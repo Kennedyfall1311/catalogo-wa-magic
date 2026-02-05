@@ -5,6 +5,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { WhatsAppFloating } from "@/components/WhatsAppFloating";
 import { useProducts } from "@/hooks/useProducts";
+import { CATEGORIES } from "@/types/product";
 
 const Index = () => {
   const { products } = useProducts();
@@ -15,23 +16,31 @@ const Index = () => {
     return products
       .filter((p) => p.active)
       .filter((p) => !category || p.category === category)
-      .filter((p) =>
-        p.name.toLowerCase().includes(search.toLowerCase())
-      );
+      .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
   }, [products, search, category]);
 
+  const categoryLabel = category
+    ? CATEGORIES.find((c) => c.slug === category)?.name ?? "GERAL"
+    : "GERAL";
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <CatalogHeader searchQuery={search} onSearchChange={setSearch} />
+    <div className="min-h-screen flex flex-col bg-background">
+      <CatalogHeader />
 
       <main className="flex-1">
-        <div className="container py-6 space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Nossos Produtos</h1>
-            <p className="mt-1 text-muted-foreground">Encontre o que procura e peça pelo WhatsApp</p>
-          </div>
+        <div className="container py-4 space-y-4">
+          {/* Category dropdown + search */}
+          <CategoryFilter
+            selected={category}
+            onSelect={setCategory}
+            searchQuery={search}
+            onSearchChange={setSearch}
+          />
 
-          <CategoryFilter selected={category} onSelect={setCategory} />
+          {/* Section title */}
+          <h2 className="text-center text-lg font-bold uppercase tracking-wide">
+            {categoryLabel}
+          </h2>
 
           {filtered.length === 0 ? (
             <div className="py-20 text-center text-muted-foreground">
@@ -39,7 +48,7 @@ const Index = () => {
               <p className="text-sm mt-1">Tente outra busca ou categoria</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 border-t border-l">
               {filtered.map((product, i) => (
                 <ProductCard key={product.id} product={product} index={i} />
               ))}
