@@ -1,74 +1,43 @@
-import { Search, Menu, ShoppingBag } from "lucide-react";
+import { Menu, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
 
-interface CatalogHeaderProps {
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-}
-
-export function CatalogHeader({ searchQuery, onSearchChange }: CatalogHeaderProps) {
-  const [searchOpen, setSearchOpen] = useState(false);
-
+export function CatalogHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
-      <div className="container flex h-16 items-center justify-between gap-4">
-        <Link to="/" className="flex items-center gap-2 shrink-0">
-          <ShoppingBag className="h-6 w-6" />
-          <span className="text-lg font-bold tracking-tight">Catálogo</span>
+    <header className="border-b bg-card">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-2 md:hidden">
+        <button className="p-2 hover:bg-muted rounded-md transition-colors" aria-label="Menu">
+          <Menu className="h-5 w-5" />
+        </button>
+        <Link to="/" className="flex items-center">
+          <ShoppingBag className="h-5 w-5" />
         </Link>
-
-        {/* Desktop search */}
-        <div className="hidden md:flex flex-1 max-w-md mx-auto">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Buscar produtos..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full rounded-full border bg-muted/50 py-2 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-ring transition-all"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSearchOpen(!searchOpen)}
-            className="md:hidden rounded-full p-2 hover:bg-muted transition-colors"
-            aria-label="Buscar"
-          >
-            <Search className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => {
-              const url = window.location.origin;
-              navigator.clipboard.writeText(url);
-            }}
-            className="rounded-full p-2 hover:bg-muted transition-colors text-sm font-medium hidden sm:block"
-            title="Compartilhar catálogo"
-          >
-            Compartilhar
-          </button>
-        </div>
+        <div className="w-9" /> {/* spacer */}
       </div>
 
-      {/* Mobile search */}
-      {searchOpen && (
-        <div className="md:hidden border-t px-4 py-3 animate-fade-in">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Buscar produtos..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              autoFocus
-              className="w-full rounded-full border bg-muted/50 py-2 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        </div>
-      )}
+      {/* Logo centered */}
+      <div className="flex flex-col items-center py-6 md:py-8">
+        <Link to="/" className="flex flex-col items-center gap-1">
+          <ShoppingBag className="h-10 w-10 md:h-12 md:w-12" />
+          <span className="text-2xl md:text-3xl font-bold tracking-tight uppercase">Catálogo</span>
+          <span className="text-[10px] md:text-xs tracking-[0.3em] text-muted-foreground uppercase">Distribuidora</span>
+        </Link>
+      </div>
+
+      {/* Info banner */}
+      <div className="border-t bg-muted/50 px-4 py-4 md:py-5 text-center space-y-2">
+        <p className="text-sm md:text-base font-semibold">
+          ❤️ Bem-vindo ao nosso catálogo digital! ❤️
+        </p>
+        <p className="text-xs md:text-sm text-muted-foreground italic">
+          Escolha seus produtos e faça seu pedido diretamente pelo WhatsApp.
+          <br className="hidden sm:block" />
+          Nosso atendimento irá auxiliar com dúvidas, prazo de entrega e formas de pagamento.
+        </p>
+        <p className="text-xs md:text-sm font-semibold uppercase mt-2">
+          Após a compra, clique em finalizar pedido e envie para o WhatsApp
+        </p>
+      </div>
     </header>
   );
 }
