@@ -4,45 +4,59 @@ import { CategoryFilter } from "@/components/CategoryFilter";
 import { ProductCard } from "@/components/ProductCard";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { WhatsAppFloating } from "@/components/WhatsAppFloating";
-import { useProducts } from "@/hooks/useProducts";
-import { CATEGORIES } from "@/types/product";
+import { useDbProducts } from "@/hooks/useDbProducts";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 
 const Index = () => {
-  const { products } = useProducts();
+  const { products, categories, loading } = useDbProducts();
+  const { settings } = useStoreSettings();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+
+  const categoryOptions = useMemo(() =>
+    categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
+    [categories]
+  );
 
   const filtered = useMemo(() => {
     return products
       .filter((p) => p.active)
-      .filter((p) => !category || p.category === category)
+      .filter((p) => !category || p.category_id === category)
       .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
   }, [products, search, category]);
 
   const categoryLabel = category
-    ? CATEGORIES.find((c) => c.slug === category)?.name ?? "GERAL"
+    ? categories.find((c) => c.id === category)?.name ?? "GERAL"
     : "GERAL";
+
+  const whatsappNumber = settings.whatsapp_number || "5511999999999";
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <CatalogHeader />
+      <CatalogHeader
+        storeName={settings.store_name}
+        storeSubtitle={settings.store_subtitle}
+      />
 
       <main className="flex-1">
         <div className="container py-4 space-y-4">
-          {/* Category dropdown + search */}
           <CategoryFilter
+            categories={categoryOptions}
             selected={category}
             onSelect={setCategory}
             searchQuery={search}
             onSearchChange={setSearch}
           />
 
-          {/* Section title */}
           <h2 className="text-center text-lg font-bold uppercase tracking-wide">
             {categoryLabel}
           </h2>
 
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="py-20 text-center text-muted-foreground">
+              <p className="text-lg">Carregando produtos...</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="py-20 text-center text-muted-foreground">
               <p className="text-lg">Nenhum produto encontrado</p>
               <p className="text-sm mt-1">Tente outra busca ou categoria</p>
@@ -50,15 +64,15 @@ const Index = () => {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 border-t border-l">
               {filtered.map((product, i) => (
-                <ProductCard key={product.id} product={product} index={i} />
+                <ProductCard key={product.id} product={product} index={i} whatsappNumber={whatsappNumber} />
               ))}
             </div>
           )}
         </div>
       </main>
 
-      <CatalogFooter />
-      <WhatsAppFloating />
+      <CatalogFooter storeName={settings.store_name} />
+      <WhatsAppFloating whatsappNumber={whatsappNumber} />
     </div>
   );
 };

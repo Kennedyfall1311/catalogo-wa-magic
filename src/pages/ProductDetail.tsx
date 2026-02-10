@@ -1,14 +1,17 @@
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, MessageCircle, Share2 } from "lucide-react";
-import { useProducts } from "@/hooks/useProducts";
-import { getWhatsAppLink } from "@/lib/whatsapp";
+import { useDbProducts } from "@/hooks/useDbProducts";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { WhatsAppFloating } from "@/components/WhatsAppFloating";
 import { CatalogFooter } from "@/components/CatalogFooter";
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const { products } = useProducts();
+  const { products } = useDbProducts();
+  const { settings } = useStoreSettings();
   const product = products.find((p) => p.slug === slug && p.active);
+
+  const whatsappNumber = settings.whatsapp_number || "5511999999999";
 
   if (!product) {
     return (
@@ -19,8 +22,13 @@ export default function ProductDetail() {
     );
   }
 
-  const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+  const hasDiscount = product.original_price && product.original_price > product.price;
   const url = window.location.href;
+
+  const whatsappMessage = encodeURIComponent(
+    `Olá, quero pedir este produto:\n\nProduto: ${product.name}\nCódigo: ${product.code || "N/A"}\nPreço: R$ ${Number(product.price).toFixed(2).replace(".", ",")}`
+  );
+  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -38,7 +46,7 @@ export default function ProductDetail() {
           <div className="grid gap-6 md:grid-cols-2">
             <div className="aspect-square overflow-hidden rounded-lg bg-muted">
               <img
-                src={product.image}
+                src={product.image_url || "/placeholder.svg"}
                 alt={product.name}
                 className="h-full w-full object-cover"
               />
@@ -52,22 +60,25 @@ export default function ProductDetail() {
               )}
 
               <h1 className="text-2xl font-bold">{product.name}</h1>
+              {product.code && (
+                <p className="text-sm text-muted-foreground mt-1">Código: {product.code}</p>
+              )}
               <p className="mt-2 text-muted-foreground">{product.description}</p>
 
               <div className="mt-4">
                 {hasDiscount && (
                   <span className="text-sm text-muted-foreground line-through mr-2">
-                    R$ {product.originalPrice!.toFixed(2).replace(".", ",")}
+                    R$ {Number(product.original_price!).toFixed(2).replace(".", ",")}
                   </span>
                 )}
                 <span className="text-2xl font-bold">
-                  R$ {product.price.toFixed(2).replace(".", ",")}
+                  R$ {Number(product.price).toFixed(2).replace(".", ",")}
                 </span>
               </div>
 
               <div className="mt-6 flex flex-col gap-3">
                 <a
-                  href={getWhatsAppLink(product.name, product.price, url)}
+                  href={whatsappLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 rounded-full bg-whatsapp px-6 py-3 font-semibold text-whatsapp-foreground transition-colors hover:bg-whatsapp-hover shadow-sm"
@@ -95,8 +106,8 @@ export default function ProductDetail() {
         </div>
       </main>
 
-      <CatalogFooter />
-      <WhatsAppFloating />
+      <CatalogFooter storeName={settings.store_name} />
+      <WhatsAppFloating whatsappNumber={whatsappNumber} />
     </div>
   );
 }
