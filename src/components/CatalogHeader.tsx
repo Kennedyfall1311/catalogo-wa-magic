@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Menu, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
+import { CompanyInfoDrawer } from "@/components/CompanyInfoDrawer";
 
 interface CatalogHeaderProps {
   storeName?: string;
@@ -10,9 +11,14 @@ interface CatalogHeaderProps {
   welcomeText?: string;
   welcomeSubtext?: string;
   headerColor?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  companyAddress?: string;
+  companyHours?: string;
+  companyDescription?: string;
 }
 
-export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, welcomeSubtext, headerColor }: CatalogHeaderProps) {
+export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, welcomeSubtext, headerColor, companyPhone, companyEmail, companyAddress, companyHours, companyDescription }: CatalogHeaderProps) {
   const { totalItems } = useCart();
   const [showStickyBar, setShowStickyBar] = useState(false);
   const mainHeaderRef = useRef<HTMLElement>(null);
@@ -36,9 +42,7 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
         style={colorStyle}
       >
         <div className={`flex items-center justify-between px-4 py-2 ${!headerColor ? 'bg-card' : ''}`}>
-          <button className="p-2 hover:opacity-70 rounded-md transition-colors md:hidden" aria-label="Menu">
-            <Menu className="h-5 w-5" />
-          </button>
+          <CompanyInfoDrawer storeName={storeName} logoUrl={logoUrl} headerColor={headerColor} companyPhone={companyPhone} companyEmail={companyEmail} companyAddress={companyAddress} companyHours={companyHours} companyDescription={companyDescription} />
           <Link to="/" className="flex items-center gap-2 mx-auto md:mx-0">
             {logoUrl ? (
               <img src={logoUrl} alt={storeName || "Logo"} className="h-10 w-10 rounded-full object-cover" />

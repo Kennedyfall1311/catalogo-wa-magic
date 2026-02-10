@@ -19,6 +19,11 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
   const [buttonColor, setButtonColor] = useState(settings.button_color ?? "#1f1f1f");
   const [textColor, setTextColor] = useState(settings.text_color ?? "#1f1f1f");
   const [priceColor, setPriceColor] = useState(settings.price_color ?? "#1f1f1f");
+  const [companyPhone, setCompanyPhone] = useState(settings.company_phone ?? "");
+  const [companyEmail, setCompanyEmail] = useState(settings.company_email ?? "");
+  const [companyAddress, setCompanyAddress] = useState(settings.company_address ?? "");
+  const [companyHours, setCompanyHours] = useState(settings.company_hours ?? "");
+  const [companyDescription, setCompanyDescription] = useState(settings.company_description ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -36,6 +41,11 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
     setButtonColor(settings.button_color ?? "#1f1f1f");
     setTextColor(settings.text_color ?? "#1f1f1f");
     setPriceColor(settings.price_color ?? "#1f1f1f");
+    setCompanyPhone(settings.company_phone ?? "");
+    setCompanyEmail(settings.company_email ?? "");
+    setCompanyAddress(settings.company_address ?? "");
+    setCompanyHours(settings.company_hours ?? "");
+    setCompanyDescription(settings.company_description ?? "");
   }, [settings]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,6 +77,11 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
       onUpdate("button_color", buttonColor),
       onUpdate("text_color", textColor),
       onUpdate("price_color", priceColor),
+      onUpdate("company_phone", companyPhone),
+      onUpdate("company_email", companyEmail),
+      onUpdate("company_address", companyAddress),
+      onUpdate("company_hours", companyHours),
+      onUpdate("company_description", companyDescription),
     ]);
     setSaving(false);
     setSaved(true);
@@ -181,6 +196,62 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
             />
           </div>
       </div>
+      </div>
+
+      <hr className="border-border" />
+      <h3 className="font-semibold text-sm flex items-center gap-2">
+        📋 Informações da Empresa (Menu ☰)
+      </h3>
+
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">Descrição da empresa</label>
+        <textarea
+          placeholder="Somos distribuidores de acessórios..."
+          value={companyDescription}
+          onChange={(e) => setCompanyDescription(e.target.value)}
+          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring min-h-[60px]"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Telefone</label>
+          <input
+            placeholder="(11) 99999-9999"
+            value={companyPhone}
+            onChange={(e) => setCompanyPhone(e.target.value)}
+            className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">E-mail</label>
+          <input
+            placeholder="contato@empresa.com"
+            value={companyEmail}
+            onChange={(e) => setCompanyEmail(e.target.value)}
+            className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">Endereço</label>
+        <input
+          placeholder="Rua Exemplo, 123 - Cidade/UF"
+          value={companyAddress}
+          onChange={(e) => setCompanyAddress(e.target.value)}
+          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">Horário de funcionamento</label>
+        <input
+          placeholder="Seg a Sex: 8h às 18h"
+          value={companyHours}
+          onChange={(e) => setCompanyHours(e.target.value)}
+          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
       </div>
 
       <div className="grid grid-cols-3 gap-4">

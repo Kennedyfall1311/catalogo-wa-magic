@@ -41,6 +41,11 @@ const Index = () => {
         welcomeText={settings.welcome_text}
         welcomeSubtext={settings.welcome_subtext}
         headerColor={settings.header_color}
+        companyPhone={settings.company_phone}
+        companyEmail={settings.company_email}
+        companyAddress={settings.company_address}
+        companyHours={settings.company_hours}
+        companyDescription={settings.company_description}
       />
 
       <main className="flex-1">
