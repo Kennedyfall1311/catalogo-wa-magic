@@ -22,8 +22,7 @@ export function ProductCard({ product, index, whatsappNumber }: ProductCardProps
   return (
     <>
       <div
-        className="group flex flex-col border-r border-b animate-fade-in"
-        style={{ animationDelay: `${index * 40}ms` }}
+        className="group flex flex-col border-r border-b"
       >
         <Link to={`/produto/${product.slug}`}>
           <div className="relative aspect-square overflow-hidden bg-card p-2">
@@ -68,7 +67,7 @@ export function ProductCard({ product, index, whatsappNumber }: ProductCardProps
         </div>
       </div>
 
-      <AddToCartDialog product={product} open={dialogOpen} onOpenChange={setDialogOpen} />
+      {dialogOpen && <AddToCartDialog product={product} open={dialogOpen} onOpenChange={setDialogOpen} />}
     </>
   );
 }
