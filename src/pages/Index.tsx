@@ -4,6 +4,7 @@ import { CategoryFilter } from "@/components/CategoryFilter";
 import { ProductCard } from "@/components/ProductCard";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { WhatsAppFloating } from "@/components/WhatsAppFloating";
+import { CartFloating } from "@/components/CartFloating";
 import { useDbProducts } from "@/hooks/useDbProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 
@@ -76,6 +77,7 @@ const Index = () => {
 
       <CatalogFooter storeName={settings.store_name} />
       <WhatsAppFloating whatsappNumber={whatsappNumber} />
+      <CartFloating />
     </div>
   );
 };

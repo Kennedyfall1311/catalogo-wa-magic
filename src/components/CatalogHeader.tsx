@@ -26,25 +26,10 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
             <ShoppingBag className="h-5 w-5" />
           )}
         </Link>
-        <Link to="/sacola" className="relative p-2 hover:bg-muted rounded-md transition-colors">
-          <ShoppingBag className="h-5 w-5" />
-          {totalItems > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-              {totalItems}
-            </span>
-          )}
-        </Link>
+        <div className="w-9" />
       </div>
 
-      <div className="flex flex-col items-center py-6 md:py-8 relative">
-        <Link to="/sacola" className="absolute right-4 top-4 hidden md:flex relative p-2 hover:bg-muted rounded-md transition-colors">
-          <ShoppingBag className="h-5 w-5" />
-          {totalItems > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-              {totalItems}
-            </span>
-          )}
-        </Link>
+      <div className="flex flex-col items-center py-6 md:py-8">
         <Link to="/" className="flex flex-col items-center gap-1">
           {logoUrl ? (
             <img src={logoUrl} alt={storeName || "Logo"} className="h-16 w-auto md:h-20 object-contain" />
