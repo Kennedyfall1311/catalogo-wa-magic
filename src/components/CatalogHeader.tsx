@@ -29,7 +29,7 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
           </button>
           <Link to="/" className="flex items-center gap-2 mx-auto md:mx-0">
             {logoUrl ? (
-              <img src={logoUrl} alt={storeName || "Logo"} className="h-8 w-auto object-contain" />
+              <img src={logoUrl} alt={storeName || "Logo"} className="h-10 w-10 rounded-full object-cover" />
             ) : (
               <ShoppingBag className="h-5 w-5" />
             )}
@@ -45,7 +45,7 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
         <div className="flex flex-col items-center py-3 md:py-4">
           <Link to="/" className="flex flex-col items-center gap-0.5">
             {logoUrl ? (
-              <img src={logoUrl} alt={storeName || "Logo"} className="h-12 w-auto md:h-14 object-contain" />
+              <img src={logoUrl} alt={storeName || "Logo"} className="h-20 w-20 md:h-24 md:w-24 rounded-full object-cover" />
             ) : (
               <ShoppingBag className="h-8 w-8 md:h-10 md:w-10" />
             )}
