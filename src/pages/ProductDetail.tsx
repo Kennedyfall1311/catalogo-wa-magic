@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, MessageCircle, Share2, ShoppingBag } from "lucide-react";
-import { useDbProducts } from "@/hooks/useDbProducts";
+import { ArrowLeft, ShoppingBag } from "lucide-react";
+import { useProductBySlug } from "@/hooks/useProductBySlug";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { WhatsAppFloating } from "@/components/WhatsAppFloating";
 import { CatalogFooter } from "@/components/CatalogFooter";
@@ -9,12 +9,19 @@ import { AddToCartDialog } from "@/components/AddToCartDialog";
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const { products } = useDbProducts();
+  const { product, loading } = useProductBySlug(slug);
   const { settings } = useStoreSettings();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const product = products.find((p) => p.slug === slug && p.active);
 
   const whatsappNumber = settings.whatsapp_number || "5511999999999";
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Carregando produto...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -26,12 +33,6 @@ export default function ProductDetail() {
   }
 
   const hasDiscount = product.original_price && product.original_price > product.price;
-  const url = window.location.href;
-
-  const whatsappMessage = encodeURIComponent(
-    `Olá, quero pedir este produto:\n\nProduto: ${product.name}\nCódigo: ${product.code || "N/A"}\nPreço: R$ ${Number(product.price).toFixed(2).replace(".", ",")}`
-  );
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -79,37 +80,13 @@ export default function ProductDetail() {
                 </span>
               </div>
 
-              <div className="mt-6 flex flex-col gap-3">
+              <div className="mt-6">
                 <button
                   onClick={() => setDialogOpen(true)}
-                  className="flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 shadow-sm"
+                  className="flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 shadow-sm w-full"
                 >
                   <ShoppingBag className="h-5 w-5" />
                   Comprar
-                </button>
-
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 rounded-full bg-whatsapp px-6 py-3 font-semibold text-whatsapp-foreground transition-colors hover:bg-whatsapp-hover shadow-sm"
-                >
-                  <MessageCircle className="h-5 w-5" />
-                  Pedir no WhatsApp
-                </a>
-
-                <button
-                  onClick={() => {
-                    if (navigator.share) {
-                      navigator.share({ title: product.name, url });
-                    } else {
-                      navigator.clipboard.writeText(url);
-                    }
-                  }}
-                  className="flex items-center justify-center gap-2 rounded-full border px-6 py-3 font-medium transition-colors hover:bg-muted"
-                >
-                  <Share2 className="h-4 w-4" />
-                  Compartilhar
                 </button>
               </div>
             </div>
