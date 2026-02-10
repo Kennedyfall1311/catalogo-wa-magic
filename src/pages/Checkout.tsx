@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { usePaymentConditions } from "@/hooks/usePaymentConditions";
 
 interface CustomerData {
   name: string;
@@ -18,7 +19,11 @@ interface CustomerData {
 export default function Checkout() {
   const { items, totalPrice } = useCart();
   const { settings } = useStoreSettings();
+  const { conditions } = usePaymentConditions();
   const whatsappNumber = settings.whatsapp_number || "5511999999999";
+  const paymentEnabled = settings.payment_conditions_enabled === "true";
+  const activeConditions = conditions.filter((c) => c.active);
+  const [selectedPayment, setSelectedPayment] = useState("");
 
   const [data, setData] = useState<CustomerData>({
     name: "",
@@ -69,12 +74,14 @@ export default function Checkout() {
 
   const isValid =
     data.name.trim().length >= 2 &&
-    data.phone.replace(/\D/g, "").length >= 10;
+    data.phone.replace(/\D/g, "").length >= 10 &&
+    (!paymentEnabled || !activeConditions.length || selectedPayment !== "");
 
   const handleSubmit = () => {
     if (!isValid) return;
 
-    const customerInfo = `*Cliente:* ${data.name}\n*WhatsApp:* ${data.phone}${data.cpfCnpj ? `\n*CPF/CNPJ:* ${data.cpfCnpj}` : ""}${data.notes ? `\n*Observações:* ${data.notes}` : ""}`;
+    const paymentInfo = selectedPayment ? `\n*Pagamento:* ${selectedPayment}` : "";
+    const customerInfo = `*Cliente:* ${data.name}\n*WhatsApp:* ${data.phone}${data.cpfCnpj ? `\n*CPF/CNPJ:* ${data.cpfCnpj}` : ""}${paymentInfo}${data.notes ? `\n*Observações:* ${data.notes}` : ""}`;
 
     const itemsList = items
       .map(
@@ -160,6 +167,28 @@ export default function Checkout() {
                 onChange={(e) => update("cpfCnpj", formatCpfCnpj(e.target.value))}
               />
             </div>
+
+            {paymentEnabled && activeConditions.length > 0 && (
+              <div className="space-y-2">
+                <Label>Forma de Pagamento *</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {activeConditions.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedPayment(c.name)}
+                      className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
+                        selectedPayment === c.name
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="notes">Observações</Label>
