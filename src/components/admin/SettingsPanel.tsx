@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Settings, Upload, Image, Store, Palette, Building2, Truck, ShoppingCart, ImageIcon } from "lucide-react";
+import { Settings, Upload, Image, Store, Palette, Building2, Truck, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PaymentConditionsManager } from "./PaymentConditionsManager";
+import { BannerManager } from "./BannerManager";
 import { Switch } from "@/components/ui/switch";
 
 interface SettingsPanelProps {
@@ -67,18 +68,13 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
   const [companyDescription, setCompanyDescription] = useState(settings.company_description ?? "");
   const [shippingFee, setShippingFee] = useState(settings.shipping_fee ?? "0");
   const [minimumOrderValue, setMinimumOrderValue] = useState(settings.minimum_order_value ?? "0");
-  const [bannerImageUrl, setBannerImageUrl] = useState(settings.banner_image_url ?? "");
-  const [bannerLink, setBannerLink] = useState(settings.banner_link ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadingBanner, setUploadingBanner] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const bannerFileRef = useRef<HTMLInputElement>(null);
 
   const shippingEnabled = settings.shipping_enabled === "true";
   const minimumOrderEnabled = settings.minimum_order_enabled === "true";
-  const bannerEnabled = settings.banner_enabled === "true";
 
   useEffect(() => {
     setWhatsapp(settings.whatsapp_number ?? "");
@@ -99,8 +95,6 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
     setCompanyDescription(settings.company_description ?? "");
     setShippingFee(settings.shipping_fee ?? "0");
     setMinimumOrderValue(settings.minimum_order_value ?? "0");
-    setBannerImageUrl(settings.banner_image_url ?? "");
-    setBannerLink(settings.banner_link ?? "");
   }, [settings]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,20 +112,8 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingBanner(true);
-    const ext = file.name.split(".").pop();
-    const path = `banner-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("product-images").upload(path, file);
-    if (!error) {
-      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-      setBannerImageUrl(data.publicUrl);
-    }
-    setUploadingBanner(false);
-    if (bannerFileRef.current) bannerFileRef.current.value = "";
-  };
+
+
 
   const handleSave = async () => {
     setSaving(true);
@@ -154,8 +136,6 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
       onUpdate("company_description", companyDescription),
       onUpdate("shipping_fee", shippingFee),
       onUpdate("minimum_order_value", minimumOrderValue),
-      onUpdate("banner_image_url", bannerImageUrl),
-      onUpdate("banner_link", bannerLink),
     ]);
     setSaving(false);
     setSaved(true);
@@ -207,39 +187,8 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
         </div>
       </div>
 
-      {/* ─── Banner ─── */}
-      <div className="rounded-lg border bg-card p-4 space-y-4">
-        <SectionHeader icon={ImageIcon} title="Banner" />
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">Exibir banner</p>
-            <p className="text-xs text-muted-foreground">Mostra uma imagem de destaque no topo do catálogo</p>
-          </div>
-          <Switch checked={bannerEnabled} onCheckedChange={(val) => onUpdate("banner_enabled", val ? "true" : "false")} />
-        </div>
-        {bannerEnabled && (
-          <>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Imagem do banner</label>
-              <div className="flex items-center gap-3">
-                {bannerImageUrl ? (
-                  <img src={bannerImageUrl} alt="Banner" className="h-20 w-auto rounded border object-cover" />
-                ) : (
-                  <div className="flex h-20 w-32 items-center justify-center rounded border bg-muted">
-                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                )}
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted transition">
-                  <Upload className="h-4 w-4" />
-                  {uploadingBanner ? "Enviando..." : "Enviar Banner"}
-                  <input ref={bannerFileRef} type="file" accept="image/*" onChange={handleBannerUpload} className="hidden" disabled={uploadingBanner} />
-                </label>
-              </div>
-            </div>
-            <FieldInput label="Link do banner (opcional)" placeholder="https://exemplo.com/promo" value={bannerLink} onChange={setBannerLink} />
-          </>
-        )}
-      </div>
+      {/* ─── Banners ─── */}
+      <BannerManager />
 
       {/* ─── Informações da Empresa ─── */}
       <div className="rounded-lg border bg-card p-4 space-y-4">
