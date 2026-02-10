@@ -9,8 +9,17 @@ export default function Cart() {
   const { settings } = useStoreSettings();
   const whatsappNumber = settings.whatsapp_number || "5511999999999";
 
+  // Read customer data from sessionStorage
+  const customerRaw = sessionStorage.getItem("customerData");
+  const customer = customerRaw ? JSON.parse(customerRaw) : null;
+
+  const customerInfo = customer
+    ? `*Cliente:* ${customer.name}\n*Tel:* ${customer.phone}\n*Endereço:* ${customer.street}, ${customer.number}${customer.complement ? ` - ${customer.complement}` : ""}\n${customer.neighborhood} - ${customer.city}/${customer.state}\n*CEP:* ${customer.cep}\n\n`
+    : "";
+
   const whatsappMessage = encodeURIComponent(
     `Olá, gostaria de fazer o pedido:\n\n` +
+      customerInfo +
       items
         .map(
           (i) =>
