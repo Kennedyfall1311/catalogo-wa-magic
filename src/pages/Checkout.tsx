@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -11,36 +11,22 @@ import { useStoreSettings } from "@/hooks/useStoreSettings";
 interface CustomerData {
   name: string;
   phone: string;
-  cep: string;
-  street: string;
-  number: string;
-  complement: string;
-  neighborhood: string;
-  city: string;
-  state: string;
+  cpfCnpj: string;
+  notes: string;
 }
 
 export default function Checkout() {
-  const navigate = useNavigate();
-  const { items } = useCart();
+  const { items, totalPrice } = useCart();
   const { settings } = useStoreSettings();
+  const whatsappNumber = settings.whatsapp_number || "5511999999999";
 
   const [data, setData] = useState<CustomerData>({
     name: "",
     phone: "",
-    cep: "",
-    street: "",
-    number: "",
-    complement: "",
-    neighborhood: "",
-    city: "",
-    state: "",
+    cpfCnpj: "",
+    notes: "",
   });
 
-  const [loadingCep, setLoadingCep] = useState(false);
-  const [cepError, setCepError] = useState("");
-
-  // Redirect to home if cart is empty
   if (items.length === 0) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -49,7 +35,7 @@ export default function Checkout() {
             <Link to="/" className="rounded-full p-2 hover:bg-muted transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <span className="text-sm font-medium">Dados do Cliente</span>
+            <span className="text-sm font-medium">Suas Informações</span>
           </div>
         </header>
         <main className="flex-1 container max-w-2xl py-20 text-center text-muted-foreground space-y-3">
@@ -68,40 +54,14 @@ export default function Checkout() {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
   };
 
-  const formatCep = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 8);
-    if (digits.length <= 5) return digits;
-    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
-  };
-
-  const handleCepBlur = async () => {
-    const cepDigits = data.cep.replace(/\D/g, "");
-    if (cepDigits.length !== 8) return;
-
-    setLoadingCep(true);
-    setCepError("");
-
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
-      const json = await res.json();
-
-      if (json.erro) {
-        setCepError("CEP não encontrado");
-        return;
-      }
-
-      setData((prev) => ({
-        ...prev,
-        street: json.logradouro || prev.street,
-        neighborhood: json.bairro || prev.neighborhood,
-        city: json.localidade || prev.city,
-        state: json.uf || prev.state,
-      }));
-    } catch {
-      setCepError("Erro ao buscar CEP");
-    } finally {
-      setLoadingCep(false);
-    }
+  const formatCpfCnpj = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 14);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    if (digits.length <= 11) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+    if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
   };
 
   const update = (field: keyof CustomerData, value: string) =>
@@ -109,160 +69,119 @@ export default function Checkout() {
 
   const isValid =
     data.name.trim().length >= 2 &&
-    data.phone.replace(/\D/g, "").length >= 10 &&
-    data.cep.replace(/\D/g, "").length === 8 &&
-    data.street.trim() !== "" &&
-    data.number.trim() !== "" &&
-    data.neighborhood.trim() !== "" &&
-    data.city.trim() !== "" &&
-    data.state.trim() !== "";
+    data.phone.replace(/\D/g, "").length >= 10;
 
   const handleSubmit = () => {
     if (!isValid) return;
-    // Store customer data in sessionStorage so the Cart page can use it
-    sessionStorage.setItem("customerData", JSON.stringify(data));
-    navigate("/sacola");
+
+    const customerInfo = `*Cliente:* ${data.name}\n*WhatsApp:* ${data.phone}${data.cpfCnpj ? `\n*CPF/CNPJ:* ${data.cpfCnpj}` : ""}${data.notes ? `\n*Observações:* ${data.notes}` : ""}`;
+
+    const itemsList = items
+      .map(
+        (i) =>
+          `• ${i.quantity}x ${i.product.name} (Cód: ${i.product.code || "N/A"}) - R$ ${(Number(i.product.price) * i.quantity).toFixed(2).replace(".", ",")}`
+      )
+      .join("\n");
+
+    const message = encodeURIComponent(
+      `Olá, gostaria de fazer o pedido:\n\n${customerInfo}\n\n${itemsList}\n\n*Total: R$ ${totalPrice.toFixed(2).replace(".", ",")}*`
+    );
+
+    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
         <div className="container flex h-14 items-center gap-3">
-          <Link to="/" className="rounded-full p-2 hover:bg-muted transition-colors">
+          <Link to="/sacola" className="rounded-full p-2 hover:bg-muted transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <span className="text-sm font-medium">Dados do Cliente</span>
+          <span className="text-sm font-medium">Suas Informações</span>
         </div>
       </header>
 
       <main className="flex-1 container max-w-2xl py-6">
-        <div className="space-y-5">
-          {/* Nome */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome completo *</Label>
-            <Input
-              id="name"
-              placeholder="Seu nome completo"
-              value={data.name}
-              onChange={(e) => update("name", e.target.value)}
-              maxLength={100}
-            />
-          </div>
-
-          {/* Telefone */}
-          <div className="space-y-2">
-            <Label htmlFor="phone">Telefone / WhatsApp *</Label>
-            <Input
-              id="phone"
-              placeholder="(00) 00000-0000"
-              value={data.phone}
-              onChange={(e) => update("phone", formatPhone(e.target.value))}
-            />
-          </div>
-
-          {/* CEP */}
-          <div className="space-y-2">
-            <Label htmlFor="cep">CEP *</Label>
-            <div className="relative">
-              <Input
-                id="cep"
-                placeholder="00000-000"
-                value={data.cep}
-                onChange={(e) => {
-                  update("cep", formatCep(e.target.value));
-                  setCepError("");
-                }}
-                onBlur={handleCepBlur}
-              />
-              {loadingCep && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-              )}
+        <div className="space-y-6">
+          {/* Resumo do pedido */}
+          <div className="rounded-lg border p-4 space-y-3">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+              Resumo do Pedido
+            </h2>
+            {items.map((item) => (
+              <div key={item.product.id} className="flex items-center justify-between text-sm">
+                <span className="flex-1 min-w-0 truncate">
+                  {item.quantity}x {item.product.name}
+                </span>
+                <span className="font-medium ml-3 shrink-0">
+                  R$ {(Number(item.product.price) * item.quantity).toFixed(2).replace(".", ",")}
+                </span>
+              </div>
+            ))}
+            <div className="border-t pt-2 flex items-center justify-between font-bold">
+              <span>Total</span>
+              <span>R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
             </div>
-            {cepError && <p className="text-sm text-destructive">{cepError}</p>}
           </div>
 
-          {/* Rua */}
-          <div className="space-y-2">
-            <Label htmlFor="street">Rua / Logradouro *</Label>
-            <Input
-              id="street"
-              placeholder="Rua, Avenida..."
-              value={data.street}
-              onChange={(e) => update("street", e.target.value)}
-              maxLength={200}
-            />
-          </div>
+          {/* Dados do cliente */}
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+              Suas Informações
+            </h2>
 
-          {/* Número + Complemento */}
-          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="number">Número *</Label>
+              <Label htmlFor="name">Nome completo *</Label>
               <Input
-                id="number"
-                placeholder="123"
-                value={data.number}
-                onChange={(e) => update("number", e.target.value)}
-                maxLength={10}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="complement">Complemento</Label>
-              <Input
-                id="complement"
-                placeholder="Apto, Bloco..."
-                value={data.complement}
-                onChange={(e) => update("complement", e.target.value)}
+                id="name"
+                placeholder="Seu nome completo"
+                value={data.name}
+                onChange={(e) => update("name", e.target.value)}
                 maxLength={100}
               />
             </div>
-          </div>
 
-          {/* Bairro */}
-          <div className="space-y-2">
-            <Label htmlFor="neighborhood">Bairro *</Label>
-            <Input
-              id="neighborhood"
-              placeholder="Bairro"
-              value={data.neighborhood}
-              onChange={(e) => update("neighborhood", e.target.value)}
-              maxLength={100}
-            />
-          </div>
-
-          {/* Cidade + Estado */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="city">Cidade *</Label>
-              <Input
-                id="city"
-                placeholder="Cidade"
-                value={data.city}
-                onChange={(e) => update("city", e.target.value)}
-                maxLength={100}
-              />
-            </div>
             <div className="space-y-2">
-              <Label htmlFor="state">UF *</Label>
+              <Label htmlFor="phone">WhatsApp *</Label>
               <Input
-                id="state"
-                placeholder="SP"
-                value={data.state}
-                onChange={(e) => update("state", e.target.value.toUpperCase())}
-                maxLength={2}
+                id="phone"
+                placeholder="(00) 00000-0000"
+                value={data.phone}
+                onChange={(e) => update("phone", formatPhone(e.target.value))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cpfCnpj">CPF / CNPJ</Label>
+              <Input
+                id="cpfCnpj"
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                value={data.cpfCnpj}
+                onChange={(e) => update("cpfCnpj", formatCpfCnpj(e.target.value))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Observações</Label>
+              <Textarea
+                id="notes"
+                placeholder="Alguma observação sobre o pedido?"
+                value={data.notes}
+                onChange={(e) => update("notes", e.target.value)}
+                maxLength={500}
+                rows={3}
               />
             </div>
           </div>
 
-          {/* Botão prosseguir */}
-          <Button
-            className="w-full rounded-full mt-4"
-            size="lg"
+          <button
             disabled={!isValid}
             onClick={handleSubmit}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-whatsapp px-6 py-3 font-semibold text-whatsapp-foreground transition-colors hover:bg-whatsapp-hover shadow-sm disabled:opacity-50 disabled:pointer-events-none"
           >
-            Prosseguir para a sacola
-            <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
+            <MessageCircle className="h-5 w-5" />
+            Enviar Pedido
+          </button>
         </div>
       </main>
 
