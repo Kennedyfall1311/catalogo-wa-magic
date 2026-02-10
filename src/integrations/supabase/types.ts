@@ -35,6 +35,30 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_conditions: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           active: boolean

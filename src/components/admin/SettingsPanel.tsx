@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Settings, Upload, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { PaymentConditionsManager } from "./PaymentConditionsManager";
 
 interface SettingsPanelProps {
   settings: Record<string, string>;
@@ -285,6 +286,11 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
       >
         {saving ? "Salvando..." : saved ? "✓ Salvo!" : "Salvar Configurações"}
       </button>
+
+      <PaymentConditionsManager
+        enabled={settings.payment_conditions_enabled === "true"}
+        onToggle={(val) => onUpdate("payment_conditions_enabled", val ? "true" : "false")}
+      />
     </div>
   );
 }
