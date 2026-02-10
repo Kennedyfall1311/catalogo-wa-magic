@@ -1,9 +1,13 @@
 import { Instagram, Facebook, Share2, ShoppingBag } from "lucide-react";
 
-export function CatalogFooter() {
+interface CatalogFooterProps {
+  storeName?: string;
+}
+
+export function CatalogFooter({ storeName }: CatalogFooterProps) {
   const shareLink = () => {
     if (navigator.share) {
-      navigator.share({ title: "Catálogo", url: window.location.origin });
+      navigator.share({ title: storeName || "Catálogo", url: window.location.origin });
     } else {
       navigator.clipboard.writeText(window.location.origin);
     }
@@ -15,39 +19,23 @@ export function CatalogFooter() {
         <div className="flex flex-col items-center gap-6 text-center">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />
-            <span className="font-bold tracking-tight">Catálogo</span>
+            <span className="font-bold tracking-tight">{storeName || "Catálogo"}</span>
           </div>
 
           <div className="flex gap-4">
-            <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full border p-2.5 transition-colors hover:bg-muted"
-              aria-label="Instagram"
-            >
+            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="rounded-full border p-2.5 transition-colors hover:bg-muted" aria-label="Instagram">
               <Instagram className="h-4 w-4" />
             </a>
-            <a
-              href="https://facebook.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full border p-2.5 transition-colors hover:bg-muted"
-              aria-label="Facebook"
-            >
+            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="rounded-full border p-2.5 transition-colors hover:bg-muted" aria-label="Facebook">
               <Facebook className="h-4 w-4" />
             </a>
-            <button
-              onClick={shareLink}
-              className="rounded-full border p-2.5 transition-colors hover:bg-muted"
-              aria-label="Compartilhar"
-            >
+            <button onClick={shareLink} className="rounded-full border p-2.5 transition-colors hover:bg-muted" aria-label="Compartilhar">
               <Share2 className="h-4 w-4" />
             </button>
           </div>
 
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Catálogo Digital. Todos os direitos reservados.
+            © {new Date().getFullYear()} {storeName || "Catálogo Digital"}. Todos os direitos reservados.
           </p>
         </div>
       </div>
