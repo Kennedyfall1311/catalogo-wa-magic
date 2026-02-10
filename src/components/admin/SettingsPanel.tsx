@@ -14,6 +14,8 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
   const [logoUrl, setLogoUrl] = useState(settings.logo_url ?? "");
   const [welcomeText, setWelcomeText] = useState(settings.welcome_text ?? "");
   const [welcomeSubtext, setWelcomeSubtext] = useState(settings.welcome_subtext ?? "");
+  const [headerColor, setHeaderColor] = useState(settings.header_color ?? "#1f1f1f");
+  const [footerColor, setFooterColor] = useState(settings.footer_color ?? "#1f1f1f");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -26,6 +28,8 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
     setLogoUrl(settings.logo_url ?? "");
     setWelcomeText(settings.welcome_text ?? "");
     setWelcomeSubtext(settings.welcome_subtext ?? "");
+    setHeaderColor(settings.header_color ?? "#1f1f1f");
+    setFooterColor(settings.footer_color ?? "#1f1f1f");
   }, [settings]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,6 +56,8 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
       onUpdate("logo_url", logoUrl),
       onUpdate("welcome_text", welcomeText),
       onUpdate("welcome_subtext", welcomeSubtext),
+      onUpdate("header_color", headerColor),
+      onUpdate("footer_color", footerColor),
     ]);
     setSaving(false);
     setSaved(true);
@@ -131,6 +137,41 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
           onChange={(e) => setWhatsapp(e.target.value)}
           className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Cor do Cabeçalho</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={headerColor}
+              onChange={(e) => setHeaderColor(e.target.value)}
+              className="h-9 w-12 cursor-pointer rounded border p-0.5"
+            />
+            <input
+              value={headerColor}
+              onChange={(e) => setHeaderColor(e.target.value)}
+              className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Cor do Rodapé</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={footerColor}
+              onChange={(e) => setFooterColor(e.target.value)}
+              className="h-9 w-12 cursor-pointer rounded border p-0.5"
+            />
+            <input
+              value={footerColor}
+              onChange={(e) => setFooterColor(e.target.value)}
+              className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+        </div>
       </div>
 
       <button

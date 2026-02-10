@@ -117,7 +117,7 @@ export default function Cart() {
         )}
       </main>
 
-      <CatalogFooter storeName={settings.store_name} />
+      <CatalogFooter storeName={settings.store_name} footerColor={settings.footer_color} />
     </div>
   );
 }
