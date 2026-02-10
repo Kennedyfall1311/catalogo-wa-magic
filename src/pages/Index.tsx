@@ -36,6 +36,9 @@ const Index = () => {
       <CatalogHeader
         storeName={settings.store_name}
         storeSubtitle={settings.store_subtitle}
+        logoUrl={settings.logo_url}
+        welcomeText={settings.welcome_text}
+        welcomeSubtext={settings.welcome_subtext}
       />
 
       <main className="flex-1">
