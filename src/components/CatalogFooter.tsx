@@ -17,9 +17,9 @@ export function CatalogFooter({ storeName, footerColor }: CatalogFooterProps) {
   const colorStyle = footerColor ? { backgroundColor: footerColor, color: '#fff' } : undefined;
 
   return (
-    <footer className={`mt-16 border-t ${!footerColor ? 'bg-card' : ''}`} style={colorStyle}>
-      <div className="container py-10">
-        <div className="flex flex-col items-center gap-6 text-center">
+    <footer className={`mt-8 border-t ${!footerColor ? 'bg-card' : ''}`} style={colorStyle}>
+      <div className="container py-5">
+        <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />
             <span className="font-bold tracking-tight">{storeName || "Catálogo"}</span>

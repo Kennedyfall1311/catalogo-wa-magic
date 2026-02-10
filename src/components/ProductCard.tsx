@@ -41,9 +41,9 @@ export function ProductCard({ product, index, whatsappNumber }: ProductCardProps
           </div>
         </Link>
 
-        <div className="px-2 py-2 text-center border-t space-y-1">
+        <div className="px-2 py-3 text-center border-t space-y-1">
           <Link to={`/produto/${product.slug}`}>
-            <h3 className="text-xs font-semibold uppercase leading-tight line-clamp-2 hover:underline">
+            <h3 className="text-[11px] md:text-xs font-semibold uppercase leading-tight line-clamp-2 hover:underline">
               {product.name}
             </h3>
           </Link>
@@ -56,13 +56,13 @@ export function ProductCard({ product, index, whatsappNumber }: ProductCardProps
             </p>
           )}
           <p className="text-sm font-bold">
-            por R$ {Number(product.price).toFixed(2).replace(".", ",")}
+            R$ {Number(product.price).toFixed(2).replace(".", ",")}
           </p>
           <button
             onClick={() => setDialogOpen(true)}
-            className="mt-1 flex w-full items-center justify-center gap-1 rounded-md bg-primary px-2 py-1.5 text-[11px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            <ShoppingBag className="h-3 w-3" />
+            <ShoppingBag className="h-3.5 w-3.5" />
             Comprar
           </button>
         </div>
