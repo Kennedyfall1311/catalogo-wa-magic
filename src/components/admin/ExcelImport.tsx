@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
 import { FileSpreadsheet, Download } from "lucide-react";
 import * as XLSX from "xlsx";
+import { supabase } from "@/integrations/supabase/client";
 import type { DbCategory } from "@/hooks/useDbProducts";
 import type { TablesInsert } from "@/integrations/supabase/types";
-
 function slugify(str: string) {
   return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
@@ -11,9 +11,10 @@ function slugify(str: string) {
 interface ExcelImportProps {
   categories: DbCategory[];
   onImport: (products: TablesInsert<"products">[]) => Promise<{ error: any }>;
+  onRefreshCategories: () => void;
 }
 
-export function ExcelImport({ categories, onImport }: ExcelImportProps) {
+export function ExcelImport({ categories, onImport, onRefreshCategories }: ExcelImportProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -36,9 +37,35 @@ export function ExcelImport({ categories, onImport }: ExcelImportProps) {
         return;
       }
 
+      // Collect unique category names from import
+      const catNames = new Set<string>();
+      rows.forEach((row) => {
+        const cat = row.categoria?.toString().trim();
+        if (cat) catNames.add(cat);
+      });
+
+      // Create missing categories
+      let allCategories = [...categories];
+      if (catNames.size > 0) {
+        const existingSlugs = new Set(categories.map((c) => c.slug));
+        const newCats: { name: string; slug: string }[] = [];
+        catNames.forEach((name) => {
+          const slug = slugify(name);
+          if (!existingSlugs.has(slug) && !categories.find((c) => c.name.toLowerCase() === name.toLowerCase())) {
+            newCats.push({ name, slug });
+          }
+        });
+
+        if (newCats.length > 0) {
+          const { data: inserted } = await supabase.from("categories").insert(newCats).select();
+          if (inserted) allCategories = [...allCategories, ...inserted];
+          onRefreshCategories();
+        }
+      }
+
       const products: TablesInsert<"products">[] = rows.map((row) => {
         const catSlug = row.categoria?.toString().toLowerCase().trim();
-        const cat = categories.find((c) => c.slug === catSlug || c.name.toLowerCase() === catSlug);
+        const cat = allCategories.find((c) => c.slug === slugify(catSlug || "") || c.name.toLowerCase() === catSlug);
 
         return {
           name: row.nome?.toString() || "Sem nome",
