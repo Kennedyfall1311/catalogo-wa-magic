@@ -8,6 +8,23 @@ function slugify(str: string) {
   return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+function normalize(str: string) {
+  return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[_\s]+/g, " ").trim();
+}
+
+function getField(row: any, possibleKeys: string[]): string | undefined {
+  for (const key of Object.keys(row)) {
+    const norm = normalize(key);
+    for (const possible of possibleKeys) {
+      if (norm === possible || norm.includes(possible)) {
+        const val = row[key];
+        return val != null ? String(val).trim() : undefined;
+      }
+    }
+  }
+  return undefined;
+}
+
 interface ExcelImportProps {
   categories: DbCategory[];
   onImport: (products: TablesInsert<"products">[]) => Promise<{ error: any }>;
@@ -40,9 +57,10 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
       // Collect unique category names from import
       const catNames = new Set<string>();
       rows.forEach((row) => {
-        const cat = row.categoria?.toString().trim();
+        const cat = getField(row, ["categoria", "category", "categorias"]);
         if (cat) catNames.add(cat);
       });
+      console.log("Categories found in file:", [...catNames]);
 
       // Create missing categories
       let allCategories = [...categories];
@@ -70,17 +88,25 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
       }
 
       const products: TablesInsert<"products">[] = rows.map((row) => {
-        const catSlug = row.categoria?.toString().toLowerCase().trim();
-        const cat = allCategories.find((c) => c.slug === slugify(catSlug || "") || c.name.toLowerCase() === catSlug);
+        const catName = getField(row, ["categoria", "category", "categorias"]);
+        const catSlug = catName ? slugify(catName) : "";
+        const cat = allCategories.find((c) => c.slug === catSlug || c.name.toLowerCase() === (catName?.toLowerCase() || ""));
+
+        const nome = getField(row, ["nome", "name", "produto"]) || "Sem nome";
+        const codigo = getField(row, ["codigo", "code", "sku"]) || null;
+        const preco = getField(row, ["preco", "price", "valor"]);
+        const precoOriginal = getField(row, ["preco_original", "preco original", "original_price"]);
+        const descricao = getField(row, ["descricao", "description", "desc"]) || "";
+        const imagemUrl = getField(row, ["imagem_url", "imagem", "image_url", "image"]) || "/placeholder.svg";
 
         return {
-          name: row.nome?.toString() || "Sem nome",
-          code: row.codigo?.toString() || null,
-          slug: slugify(row.nome?.toString() || "sem-nome"),
-          price: parseFloat(row.preco) || 0,
-          original_price: row.preco_original ? parseFloat(row.preco_original) : null,
-          description: row.descricao?.toString() || "",
-          image_url: row.imagem_url?.toString() || "/placeholder.svg",
+          name: nome,
+          code: codigo,
+          slug: slugify(nome),
+          price: parseFloat(preco || "0") || 0,
+          original_price: precoOriginal ? parseFloat(precoOriginal) : null,
+          description: descricao,
+          image_url: imagemUrl,
           category_id: cat?.id || null,
           active: true,
         };
