@@ -40,6 +40,7 @@ const Index = () => {
         logoUrl={settings.logo_url}
         welcomeText={settings.welcome_text}
         welcomeSubtext={settings.welcome_subtext}
+        headerColor={settings.header_color}
       />
 
       <main className="flex-1">
@@ -75,7 +76,7 @@ const Index = () => {
         </div>
       </main>
 
-      <CatalogFooter storeName={settings.store_name} />
+      <CatalogFooter storeName={settings.store_name} footerColor={settings.footer_color} />
       <WhatsAppFloating whatsappNumber={whatsappNumber} />
       <CartFloating />
     </div>
