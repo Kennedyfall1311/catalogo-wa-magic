@@ -8,9 +8,12 @@ interface ProductCardProps {
   product: DbProduct;
   index: number;
   whatsappNumber: string;
+  buttonColor?: string;
+  textColor?: string;
+  priceColor?: string;
 }
 
-export function ProductCard({ product, index, whatsappNumber }: ProductCardProps) {
+export function ProductCard({ product, index, whatsappNumber, buttonColor, textColor, priceColor }: ProductCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const hasDiscount = product.original_price && product.original_price > product.price;
 
@@ -42,7 +45,7 @@ export function ProductCard({ product, index, whatsappNumber }: ProductCardProps
 
         <div className="px-2 py-3 text-center border-t space-y-1">
           <Link to={`/produto/${product.slug}`}>
-            <h3 className="text-[11px] md:text-xs font-semibold uppercase leading-tight line-clamp-2 hover:underline">
+            <h3 className="text-[11px] md:text-xs font-semibold uppercase leading-tight line-clamp-2 hover:underline" style={textColor ? { color: textColor } : undefined}>
               {product.name}
             </h3>
           </Link>
@@ -54,12 +57,13 @@ export function ProductCard({ product, index, whatsappNumber }: ProductCardProps
               de R$ {Number(product.original_price!).toFixed(2).replace(".", ",")}
             </p>
           )}
-          <p className="text-sm font-bold">
+          <p className="text-sm font-bold" style={priceColor ? { color: priceColor } : undefined}>
             R$ {Number(product.price).toFixed(2).replace(".", ",")}
           </p>
           <button
             onClick={() => setDialogOpen(true)}
-            className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            className={`mt-1 flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${buttonColor ? 'text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
+            style={buttonColor ? { backgroundColor: buttonColor } : undefined}
           >
             <ShoppingBag className="h-3.5 w-3.5" />
             Comprar

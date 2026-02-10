@@ -63,7 +63,7 @@ export default function ProductDetail() {
                 </span>
               )}
 
-              <h1 className="text-2xl font-bold">{product.name}</h1>
+              <h1 className="text-2xl font-bold" style={settings.text_color ? { color: settings.text_color } : undefined}>{product.name}</h1>
               {product.code && (
                 <p className="text-sm text-muted-foreground mt-1">Código: {product.code}</p>
               )}
@@ -75,7 +75,7 @@ export default function ProductDetail() {
                     R$ {Number(product.original_price!).toFixed(2).replace(".", ",")}
                   </span>
                 )}
-                <span className="text-2xl font-bold">
+                <span className="text-2xl font-bold" style={settings.price_color ? { color: settings.price_color } : undefined}>
                   R$ {Number(product.price).toFixed(2).replace(".", ",")}
                 </span>
               </div>
@@ -83,7 +83,8 @@ export default function ProductDetail() {
               <div className="mt-6">
                 <button
                   onClick={() => setDialogOpen(true)}
-                  className="flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 shadow-sm w-full"
+                  className={`flex items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold transition-colors shadow-sm w-full ${settings.button_color ? 'text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
+                  style={settings.button_color ? { backgroundColor: settings.button_color } : undefined}
                 >
                   <ShoppingBag className="h-5 w-5" />
                   Comprar
