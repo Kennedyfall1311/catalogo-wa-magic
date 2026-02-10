@@ -25,6 +25,18 @@ export function useDbProducts() {
 
   useEffect(() => {
     Promise.all([fetchProducts(), fetchCategories()]).then(() => setLoading(false));
+
+    // Realtime: refresh products when changes happen
+    const channel = supabase
+      .channel("products-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products" },
+        () => { fetchProducts(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [fetchProducts, fetchCategories]);
 
   const addProduct = async (product: TablesInsert<"products">) => {
