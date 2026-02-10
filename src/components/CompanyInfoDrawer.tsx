@@ -35,7 +35,7 @@ export function CompanyInfoDrawer({
     <Sheet>
       <SheetTrigger asChild>
         <button className="p-2 hover:opacity-70 rounded-md transition-colors" aria-label="Menu">
-          <Menu className="h-5 w-5" />
+          <Menu className="h-7 w-7" strokeWidth={2.5} />
         </button>
       </SheetTrigger>
       <SheetContent side="left" className="w-[300px] sm:w-[360px]">

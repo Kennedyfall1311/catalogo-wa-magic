@@ -42,8 +42,7 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
         style={colorStyle}
       >
         <div className={`flex items-center justify-between px-4 py-2 ${!headerColor ? 'bg-card' : ''}`}>
-          <CompanyInfoDrawer storeName={storeName} logoUrl={logoUrl} headerColor={headerColor} companyPhone={companyPhone} companyEmail={companyEmail} companyAddress={companyAddress} companyHours={companyHours} companyDescription={companyDescription} />
-          <Link to="/" className="flex items-center gap-2 mx-auto md:mx-0">
+          <Link to="/" className="flex items-center gap-2">
             {logoUrl ? (
               <img src={logoUrl} alt={storeName || "Logo"} className="h-10 w-10 rounded-full object-cover" />
             ) : (
@@ -53,7 +52,7 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
               {storeName || "Catálogo"}
             </span>
           </Link>
-          <div className="w-9 md:hidden" />
+          <CompanyInfoDrawer storeName={storeName} logoUrl={logoUrl} headerColor={headerColor} companyPhone={companyPhone} companyEmail={companyEmail} companyAddress={companyAddress} companyHours={companyHours} companyDescription={companyDescription} />
         </div>
       </div>
 
