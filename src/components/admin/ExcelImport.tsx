@@ -57,7 +57,13 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         });
 
         if (newCats.length > 0) {
-          const { data: inserted } = await supabase.from("categories").insert(newCats).select();
+          const { data: inserted, error: catError } = await supabase.from("categories").insert(newCats).select();
+          console.log("Category insert result:", { inserted, catError, newCats });
+          if (catError) {
+            setStatus("error");
+            setMessage(`Erro ao criar categorias: ${catError.message}`);
+            return;
+          }
           if (inserted) allCategories = [...allCategories, ...inserted];
           onRefreshCategories();
         }
