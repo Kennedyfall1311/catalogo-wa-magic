@@ -140,7 +140,7 @@ export default function Admin() {
           )}
 
           {tab === "import" && (
-            <ExcelImport categories={categories} onImport={upsertProducts} />
+            <ExcelImport categories={categories} onImport={upsertProducts} onRefreshCategories={refetchCategories} />
           )}
 
           {tab === "settings" && (
