@@ -60,8 +60,9 @@ Deno.serve(async (req) => {
       .insert({ user_id: user.id, role: "admin" });
 
     if (error) {
+      console.error('Database error during admin setup:', error);
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: 'Unable to assign admin role. Please try again.' }),
         { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
       );
     }
@@ -71,8 +72,9 @@ Deno.serve(async (req) => {
       { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
     );
   } catch (err) {
+    console.error('Setup admin error:', err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: 'An unexpected error occurred. Please try again.' }),
       { status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
     );
   }

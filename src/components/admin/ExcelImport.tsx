@@ -1,9 +1,22 @@
 import { useState, useRef } from "react";
 import { FileSpreadsheet, Download } from "lucide-react";
 import * as XLSX from "xlsx";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import type { DbCategory } from "@/hooks/useDbProducts";
 import type { TablesInsert } from "@/integrations/supabase/types";
+
+const MAX_IMPORT_ROWS = 500;
+
+const ProductRowSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  code: z.string().max(100).nullable(),
+  price: z.number().nonnegative().max(999999.99),
+  original_price: z.number().positive().max(999999.99).nullable(),
+  description: z.string().max(2000).trim(),
+  image_url: z.string().max(500),
+});
+
 function slugify(str: string) {
   return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
@@ -54,6 +67,12 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         return;
       }
 
+      if (rows.length > MAX_IMPORT_ROWS) {
+        setStatus("error");
+        setMessage(`Limite de ${MAX_IMPORT_ROWS} produtos por importação. O arquivo tem ${rows.length} linhas.`);
+        return;
+      }
+
       // Collect unique category names from import
       const catNames = new Set<string>();
       rows.forEach((row) => {
@@ -87,38 +106,62 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         }
       }
 
-      const products: TablesInsert<"products">[] = rows.map((row) => {
+      const validationErrors: string[] = [];
+      const products: TablesInsert<"products">[] = [];
+
+      rows.forEach((row, idx) => {
         const catName = getField(row, ["categoria", "category", "categorias"]);
         const catSlug = catName ? slugify(catName) : "";
         const cat = allCategories.find((c) => c.slug === catSlug || c.name.toLowerCase() === (catName?.toLowerCase() || ""));
 
-        const nome = getField(row, ["nome", "name", "produto"]) || "Sem nome";
+        const nome = getField(row, ["nome", "name", "produto"]) || "";
         const codigo = getField(row, ["codigo", "code", "sku"]) || null;
         const preco = getField(row, ["preco", "price", "valor"]);
         const precoOriginal = getField(row, ["preco_original", "preco original", "original_price"]);
         const descricao = getField(row, ["descricao", "description", "desc"]) || "";
         const imagemUrl = getField(row, ["imagem_url", "imagem", "image_url", "image"]) || "/placeholder.svg";
 
-        return {
+        const parsed = ProductRowSchema.safeParse({
           name: nome,
           code: codigo,
-          slug: slugify(nome),
           price: parseFloat(preco || "0") || 0,
           original_price: precoOriginal ? parseFloat(precoOriginal) : null,
           description: descricao,
           image_url: imagemUrl,
+        });
+
+        if (!parsed.success) {
+          validationErrors.push(`Linha ${idx + 2}: ${parsed.error.issues.map(i => i.message).join(", ")}`);
+          return;
+        }
+
+        products.push({
+          name: parsed.data.name,
+          code: parsed.data.code,
+          slug: slugify(parsed.data.name),
+          price: parsed.data.price,
+          original_price: parsed.data.original_price,
+          description: parsed.data.description,
+          image_url: parsed.data.image_url,
           category_id: cat?.id || null,
           active: true,
-        };
+        });
       });
+
+      if (validationErrors.length > 0 && products.length === 0) {
+        setStatus("error");
+        setMessage(`Erros de validação:\n${validationErrors.slice(0, 5).join("\n")}`);
+        return;
+      }
 
       const { error } = await onImport(products);
       if (error) {
         setStatus("error");
         setMessage(`Erro: ${error.message}`);
       } else {
+        const warnings = validationErrors.length > 0 ? ` (${validationErrors.length} linhas ignoradas por erros)` : "";
         setStatus("success");
-        setMessage(`${products.length} produtos importados com sucesso!`);
+        setMessage(`${products.length} produtos importados com sucesso!${warnings}`);
       }
     } catch {
       setStatus("error");
