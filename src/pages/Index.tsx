@@ -48,6 +48,18 @@ const Index = () => {
         companyDescription={settings.company_description}
       />
 
+      {settings.banner_enabled === "true" && settings.banner_image_url && (
+        <div className="w-full">
+          {settings.banner_link ? (
+            <a href={settings.banner_link} target="_blank" rel="noopener noreferrer">
+              <img src={settings.banner_image_url} alt="Banner" className="w-full h-auto object-cover max-h-[400px]" />
+            </a>
+          ) : (
+            <img src={settings.banner_image_url} alt="Banner" className="w-full h-auto object-cover max-h-[400px]" />
+          )}
+        </div>
+      )}
+
       <main className="flex-1">
         <div className="container py-4 space-y-4">
           <CategoryFilter
