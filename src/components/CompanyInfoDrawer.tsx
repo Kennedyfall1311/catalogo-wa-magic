@@ -38,7 +38,7 @@ export function CompanyInfoDrawer({
           <Menu className="h-7 w-7" strokeWidth={2.5} />
         </button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[300px] sm:w-[360px]">
+      <SheetContent side="right" className="w-[300px] sm:w-[360px]">
         <SheetHeader className="text-left">
           <div className="flex items-center gap-3 mb-2">
             {logoUrl ? (
