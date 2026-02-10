@@ -34,6 +34,11 @@ export function useDbProducts() {
         { event: "*", schema: "public", table: "products" },
         () => { fetchProducts(); }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "categories" },
+        () => { fetchCategories(); }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -87,5 +92,6 @@ export function useDbProducts() {
     upsertProducts,
     uploadImage,
     refetch: fetchProducts,
+    refetchCategories: fetchCategories,
   };
 }
