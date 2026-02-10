@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import { Menu, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
@@ -13,14 +14,25 @@ interface CatalogHeaderProps {
 
 export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, welcomeSubtext, headerColor }: CatalogHeaderProps) {
   const { totalItems } = useCart();
+  const [showStickyBar, setShowStickyBar] = useState(false);
+  const mainHeaderRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyBar(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    if (mainHeaderRef.current) observer.observe(mainHeaderRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const colorStyle = headerColor ? { backgroundColor: headerColor, color: '#fff' } : undefined;
 
   return (
     <>
-      {/* Sticky top bar */}
+      {/* Sticky top bar - only visible when main header is out of view */}
       <div
-        className="sticky top-0 z-40 border-b"
+        className={`fixed top-0 left-0 right-0 z-40 border-b transition-transform duration-300 ${showStickyBar ? 'translate-y-0' : '-translate-y-full'}`}
         style={colorStyle}
       >
         <div className={`flex items-center justify-between px-4 py-2 ${!headerColor ? 'bg-card' : ''}`}>
@@ -41,7 +53,7 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
         </div>
       </div>
 
-      <header className={`border-b ${!headerColor ? 'bg-card' : ''}`} style={colorStyle}>
+      <header ref={mainHeaderRef} className={`border-b ${!headerColor ? 'bg-card' : ''}`} style={colorStyle}>
         <div className="flex flex-col items-center py-3 md:py-4">
           <Link to="/" className="flex flex-col items-center gap-0.5">
             {logoUrl ? (
