@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, MessageCircle, Share2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, Share2, ShoppingBag } from "lucide-react";
 import { useDbProducts } from "@/hooks/useDbProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { WhatsAppFloating } from "@/components/WhatsAppFloating";
 import { CatalogFooter } from "@/components/CatalogFooter";
+import { AddToCartDialog } from "@/components/AddToCartDialog";
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { products } = useDbProducts();
   const { settings } = useStoreSettings();
+  const [dialogOpen, setDialogOpen] = useState(false);
   const product = products.find((p) => p.slug === slug && p.active);
 
   const whatsappNumber = settings.whatsapp_number || "5511999999999";
@@ -77,6 +80,14 @@ export default function ProductDetail() {
               </div>
 
               <div className="mt-6 flex flex-col gap-3">
+                <button
+                  onClick={() => setDialogOpen(true)}
+                  className="flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary/90 shadow-sm"
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  Comprar
+                </button>
+
                 <a
                   href={whatsappLink}
                   target="_blank"
@@ -108,6 +119,7 @@ export default function ProductDetail() {
 
       <CatalogFooter storeName={settings.store_name} />
       <WhatsAppFloating whatsappNumber={whatsappNumber} />
+      <AddToCartDialog product={product} open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 }

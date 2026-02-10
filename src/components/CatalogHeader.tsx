@@ -1,5 +1,6 @@
 import { Menu, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useCart } from "@/contexts/CartContext";
 
 interface CatalogHeaderProps {
   storeName?: string;
@@ -10,6 +11,8 @@ interface CatalogHeaderProps {
 }
 
 export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, welcomeSubtext }: CatalogHeaderProps) {
+  const { totalItems } = useCart();
+
   return (
     <header className="border-b bg-card">
       <div className="flex items-center justify-between px-4 py-2 md:hidden">
@@ -23,10 +26,25 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
             <ShoppingBag className="h-5 w-5" />
           )}
         </Link>
-        <div className="w-9" />
+        <Link to="/sacola" className="relative p-2 hover:bg-muted rounded-md transition-colors">
+          <ShoppingBag className="h-5 w-5" />
+          {totalItems > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              {totalItems}
+            </span>
+          )}
+        </Link>
       </div>
 
-      <div className="flex flex-col items-center py-6 md:py-8">
+      <div className="flex flex-col items-center py-6 md:py-8 relative">
+        <Link to="/sacola" className="absolute right-4 top-4 hidden md:flex relative p-2 hover:bg-muted rounded-md transition-colors">
+          <ShoppingBag className="h-5 w-5" />
+          {totalItems > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              {totalItems}
+            </span>
+          )}
+        </Link>
         <Link to="/" className="flex flex-col items-center gap-1">
           {logoUrl ? (
             <img src={logoUrl} alt={storeName || "Logo"} className="h-16 w-auto md:h-20 object-contain" />
@@ -50,7 +68,7 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
           {welcomeSubtext || "Escolha seus produtos e faça seu pedido diretamente pelo WhatsApp."}
         </p>
         <p className="text-xs md:text-sm font-semibold uppercase mt-2">
-          Clique em "Pedir no WhatsApp" para fazer seu pedido
+          Clique em "Comprar" para adicionar à sacola
         </p>
       </div>
     </header>
