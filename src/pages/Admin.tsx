@@ -10,6 +10,7 @@ import { ProductList } from "@/components/admin/ProductList";
 import { ExcelImport } from "@/components/admin/ExcelImport";
 import { SettingsPanel } from "@/components/admin/SettingsPanel";
 import { CategoryManager } from "@/components/admin/CategoryManager";
+import { IntegrationPanel } from "@/components/admin/IntegrationPanel";
 import type { DbProduct } from "@/hooks/useDbProducts";
 
 export default function Admin() {
@@ -18,7 +19,7 @@ export default function Admin() {
   const { settings, updateSetting } = useStoreSettings();
   const [editing, setEditing] = useState<DbProduct | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [tab, setTab] = useState<"products" | "categories" | "import" | "settings">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "import" | "settings" | "integration">("products");
 
   if (authLoading) {
     return (
@@ -62,6 +63,7 @@ export default function Admin() {
     { key: "categories", label: "Categorias" },
     { key: "import", label: "Importar" },
     { key: "settings", label: "Config" },
+    { key: "integration", label: "ERP" },
   ] as const;
 
   return (
@@ -145,6 +147,10 @@ export default function Admin() {
 
           {tab === "settings" && (
             <SettingsPanel settings={settings} onUpdate={updateSetting} />
+          )}
+
+          {tab === "integration" && (
+            <IntegrationPanel settings={settings} onUpdate={updateSetting} />
           )}
         </main>
       </div>
