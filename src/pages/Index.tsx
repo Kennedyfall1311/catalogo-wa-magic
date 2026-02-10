@@ -5,12 +5,15 @@ import { ProductCard } from "@/components/ProductCard";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { WhatsAppFloating } from "@/components/WhatsAppFloating";
 import { CartFloating } from "@/components/CartFloating";
+import { BannerCarousel } from "@/components/BannerCarousel";
 import { useDbProducts } from "@/hooks/useDbProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { useBanners } from "@/hooks/useBanners";
 
 const Index = () => {
   const { products, categories, loading } = useDbProducts();
   const { settings } = useStoreSettings();
+  const { activeBanners } = useBanners();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
 
@@ -48,17 +51,7 @@ const Index = () => {
         companyDescription={settings.company_description}
       />
 
-      {settings.banner_enabled === "true" && settings.banner_image_url && (
-        <div className="w-full">
-          {settings.banner_link ? (
-            <a href={settings.banner_link} target="_blank" rel="noopener noreferrer">
-              <img src={settings.banner_image_url} alt="Banner" className="w-full h-auto object-cover max-h-[400px]" />
-            </a>
-          ) : (
-            <img src={settings.banner_image_url} alt="Banner" className="w-full h-auto object-cover max-h-[400px]" />
-          )}
-        </div>
-      )}
+      {activeBanners.length > 0 && <BannerCarousel banners={activeBanners} />}
 
       <main className="flex-1">
         <div className="container py-4 space-y-4">
