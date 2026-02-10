@@ -15,7 +15,20 @@ export function useStoreSettings() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  useEffect(() => {
+    fetchSettings();
+
+    const channel = supabase
+      .channel("settings-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "store_settings" },
+        () => { fetchSettings(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchSettings]);
 
   const updateSetting = async (key: string, value: string) => {
     const { error } = await supabase
