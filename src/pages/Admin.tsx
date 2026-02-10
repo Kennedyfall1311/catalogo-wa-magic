@@ -9,15 +9,16 @@ import { ProductForm } from "@/components/admin/ProductForm";
 import { ProductList } from "@/components/admin/ProductList";
 import { ExcelImport } from "@/components/admin/ExcelImport";
 import { SettingsPanel } from "@/components/admin/SettingsPanel";
+import { CategoryManager } from "@/components/admin/CategoryManager";
 import type { DbProduct } from "@/hooks/useDbProducts";
 
 export default function Admin() {
   const { user, isAdmin, loading: authLoading, signIn, signUp, signOut } = useAuth();
-  const { products, categories, loading, addProduct, updateProduct, removeProduct, toggleActive, upsertProducts, uploadImage } = useDbProducts();
+  const { products, categories, loading, addProduct, updateProduct, removeProduct, toggleActive, upsertProducts, uploadImage, refetchCategories } = useDbProducts();
   const { settings, updateSetting } = useStoreSettings();
   const [editing, setEditing] = useState<DbProduct | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [tab, setTab] = useState<"products" | "import" | "settings">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "import" | "settings">("products");
 
   if (authLoading) {
     return (
@@ -58,6 +59,7 @@ export default function Admin() {
 
   const tabs = [
     { key: "products", label: "Produtos" },
+    { key: "categories", label: "Categorias" },
     { key: "import", label: "Importar" },
     { key: "settings", label: "Config" },
   ] as const;
@@ -131,6 +133,10 @@ export default function Admin() {
                 />
               )}
             </>
+          )}
+
+          {tab === "categories" && (
+            <CategoryManager categories={categories} onRefresh={refetchCategories} />
           )}
 
           {tab === "import" && (
