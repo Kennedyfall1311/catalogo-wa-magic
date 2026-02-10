@@ -1,34 +1,14 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Trash2, MessageCircle, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { CatalogFooter } from "@/components/CatalogFooter";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, clearCart, totalPrice } = useCart();
   const { settings } = useStoreSettings();
-  const whatsappNumber = settings.whatsapp_number || "5511999999999";
-
-  // Read customer data from sessionStorage
-  const customerRaw = sessionStorage.getItem("customerData");
-  const customer = customerRaw ? JSON.parse(customerRaw) : null;
-
-  const customerInfo = customer
-    ? `*Cliente:* ${customer.name}\n*Tel:* ${customer.phone}\n*Endereço:* ${customer.street}, ${customer.number}${customer.complement ? ` - ${customer.complement}` : ""}\n${customer.neighborhood} - ${customer.city}/${customer.state}\n*CEP:* ${customer.cep}\n\n`
-    : "";
-
-  const whatsappMessage = encodeURIComponent(
-    `Olá, gostaria de fazer o pedido:\n\n` +
-      customerInfo +
-      items
-        .map(
-          (i) =>
-            `• ${i.quantity}x ${i.product.name} (Cód: ${i.product.code || "N/A"}) - R$ ${(Number(i.product.price) * i.quantity).toFixed(2).replace(".", ",")}`
-        )
-        .join("\n") +
-      `\n\n*Total: R$ ${totalPrice.toFixed(2).replace(".", ",")}*`
-  );
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -105,15 +85,12 @@ export default function Cart() {
                 <span>R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
               </div>
 
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-whatsapp px-6 py-3 font-semibold text-whatsapp-foreground transition-colors hover:bg-whatsapp-hover shadow-sm"
-              >
-                <MessageCircle className="h-5 w-5" />
-                Enviar pedido pelo WhatsApp
-              </a>
+              <Link to="/checkout">
+                <Button className="w-full rounded-full" size="lg">
+                  Prosseguir
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </Link>
 
               <button
                 onClick={clearCart}
