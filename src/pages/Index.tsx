@@ -86,7 +86,15 @@ const Index = () => {
         </div>
       </main>
 
-      <CatalogFooter storeName={settings.store_name} footerColor={settings.footer_color} />
+      <CatalogFooter
+        storeName={settings.store_name}
+        footerColor={settings.footer_color}
+        socialInstagram={settings.social_instagram}
+        socialFacebook={settings.social_facebook}
+        socialTiktok={settings.social_tiktok}
+        socialYoutube={settings.social_youtube}
+        socialWebsite={settings.social_website}
+      />
       <WhatsAppFloating whatsappNumber={whatsappNumber} />
       <CartFloating />
     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Settings, Upload, Image, Store, Palette, Building2, Truck, ShoppingCart } from "lucide-react";
+import { Settings, Upload, Image, Store, Palette, Building2, Truck, ShoppingCart, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PaymentConditionsManager } from "./PaymentConditionsManager";
 import { BannerManager } from "./BannerManager";
@@ -68,6 +68,11 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
   const [companyDescription, setCompanyDescription] = useState(settings.company_description ?? "");
   const [shippingFee, setShippingFee] = useState(settings.shipping_fee ?? "0");
   const [minimumOrderValue, setMinimumOrderValue] = useState(settings.minimum_order_value ?? "0");
+  const [socialInstagram, setSocialInstagram] = useState(settings.social_instagram ?? "");
+  const [socialFacebook, setSocialFacebook] = useState(settings.social_facebook ?? "");
+  const [socialTiktok, setSocialTiktok] = useState(settings.social_tiktok ?? "");
+  const [socialYoutube, setSocialYoutube] = useState(settings.social_youtube ?? "");
+  const [socialWebsite, setSocialWebsite] = useState(settings.social_website ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -95,6 +100,11 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
     setCompanyDescription(settings.company_description ?? "");
     setShippingFee(settings.shipping_fee ?? "0");
     setMinimumOrderValue(settings.minimum_order_value ?? "0");
+    setSocialInstagram(settings.social_instagram ?? "");
+    setSocialFacebook(settings.social_facebook ?? "");
+    setSocialTiktok(settings.social_tiktok ?? "");
+    setSocialYoutube(settings.social_youtube ?? "");
+    setSocialWebsite(settings.social_website ?? "");
   }, [settings]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,6 +146,11 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
       onUpdate("company_description", companyDescription),
       onUpdate("shipping_fee", shippingFee),
       onUpdate("minimum_order_value", minimumOrderValue),
+      onUpdate("social_instagram", socialInstagram),
+      onUpdate("social_facebook", socialFacebook),
+      onUpdate("social_tiktok", socialTiktok),
+      onUpdate("social_youtube", socialYoutube),
+      onUpdate("social_website", socialWebsite),
     ]);
     setSaving(false);
     setSaved(true);
@@ -211,7 +226,16 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
         <FieldInput label="Horário de funcionamento" placeholder="Seg a Sex: 8h às 18h" value={companyHours} onChange={setCompanyHours} />
       </div>
 
-      {/* ─── Frete ─── */}
+      {/* ─── Redes Sociais ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <SectionHeader icon={Share2} title="Redes Sociais" />
+        <FieldInput label="Instagram" placeholder="https://instagram.com/suaempresa" value={socialInstagram} onChange={setSocialInstagram} />
+        <FieldInput label="Facebook" placeholder="https://facebook.com/suaempresa" value={socialFacebook} onChange={setSocialFacebook} />
+        <FieldInput label="TikTok" placeholder="https://tiktok.com/@suaempresa" value={socialTiktok} onChange={setSocialTiktok} />
+        <FieldInput label="YouTube" placeholder="https://youtube.com/@suaempresa" value={socialYoutube} onChange={setSocialYoutube} />
+        <FieldInput label="Site / Loja" placeholder="https://suaempresa.com.br" value={socialWebsite} onChange={setSocialWebsite} />
+      </div>
+
       <div className="rounded-lg border bg-card p-4 space-y-4">
         <SectionHeader icon={Truck} title="Frete" />
         <div className="flex items-center justify-between">
