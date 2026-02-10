@@ -1,47 +1,76 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import type { User, Session } from "@supabase/supabase-js";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkAdmin = useCallback(async (u: User | null) => {
-    if (u) {
-      const { data } = await supabase.rpc("has_role", { _user_id: u.id, _role: "admin" });
-      setIsAdmin(!!data);
-    } else {
-      setIsAdmin(false);
+  const checkAdminRole = useCallback(async (userId: string) => {
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    } catch {
+      return false;
     }
   }, []);
 
   useEffect(() => {
-    let mounted = true;
+    let isMounted = true;
 
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      const u = session?.user ?? null;
-      setUser(u);
-      await checkAdmin(u);
-      if (mounted) setLoading(false);
-    });
+    // Listener for ONGOING auth changes (does NOT control loading)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        if (!isMounted) return;
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!mounted) return;
-      const u = session?.user ?? null;
-      setUser(u);
-      await checkAdmin(u);
-      if (mounted) setLoading(false);
-    });
+        if (newSession?.user) {
+          // Use setTimeout to avoid Supabase deadlock
+          setTimeout(() => {
+            if (!isMounted) return;
+            checkAdminRole(newSession.user.id).then((admin) => {
+              if (isMounted) setIsAdmin(admin);
+            });
+          }, 0);
+        } else {
+          setIsAdmin(false);
+        }
+      }
+    );
+
+    // INITIAL load (controls loading state)
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+
+        if (currentSession?.user) {
+          const admin = await checkAdminRole(currentSession.user.id);
+          if (isMounted) setIsAdmin(admin);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    initializeAuth();
 
     return () => {
-      mounted = false;
+      isMounted = false;
       subscription.unsubscribe();
     };
-  }, [checkAdmin]);
+  }, [checkAdminRole]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
