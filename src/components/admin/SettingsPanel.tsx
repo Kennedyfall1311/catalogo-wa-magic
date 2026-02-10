@@ -16,6 +16,9 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
   const [welcomeSubtext, setWelcomeSubtext] = useState(settings.welcome_subtext ?? "");
   const [headerColor, setHeaderColor] = useState(settings.header_color ?? "#1f1f1f");
   const [footerColor, setFooterColor] = useState(settings.footer_color ?? "#1f1f1f");
+  const [buttonColor, setButtonColor] = useState(settings.button_color ?? "#1f1f1f");
+  const [textColor, setTextColor] = useState(settings.text_color ?? "#1f1f1f");
+  const [priceColor, setPriceColor] = useState(settings.price_color ?? "#1f1f1f");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -30,6 +33,9 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
     setWelcomeSubtext(settings.welcome_subtext ?? "");
     setHeaderColor(settings.header_color ?? "#1f1f1f");
     setFooterColor(settings.footer_color ?? "#1f1f1f");
+    setButtonColor(settings.button_color ?? "#1f1f1f");
+    setTextColor(settings.text_color ?? "#1f1f1f");
+    setPriceColor(settings.price_color ?? "#1f1f1f");
   }, [settings]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,6 +64,9 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
       onUpdate("welcome_subtext", welcomeSubtext),
       onUpdate("header_color", headerColor),
       onUpdate("footer_color", footerColor),
+      onUpdate("button_color", buttonColor),
+      onUpdate("text_color", textColor),
+      onUpdate("price_color", priceColor),
     ]);
     setSaving(false);
     setSaved(true);
@@ -170,6 +179,30 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
               onChange={(e) => setFooterColor(e.target.value)}
               className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
+          </div>
+      </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Cor do Botão Comprar</label>
+          <div className="flex items-center gap-2">
+            <input type="color" value={buttonColor} onChange={(e) => setButtonColor(e.target.value)} className="h-9 w-12 cursor-pointer rounded border p-0.5" />
+            <input value={buttonColor} onChange={(e) => setButtonColor(e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Cor das Letras</label>
+          <div className="flex items-center gap-2">
+            <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} className="h-9 w-12 cursor-pointer rounded border p-0.5" />
+            <input value={textColor} onChange={(e) => setTextColor(e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Cor dos Preços</label>
+          <div className="flex items-center gap-2">
+            <input type="color" value={priceColor} onChange={(e) => setPriceColor(e.target.value)} className="h-9 w-12 cursor-pointer rounded border p-0.5" />
+            <input value={priceColor} onChange={(e) => setPriceColor(e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
           </div>
         </div>
       </div>
