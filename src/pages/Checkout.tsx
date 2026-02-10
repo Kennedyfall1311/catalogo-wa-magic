@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,16 +21,21 @@ export default function Checkout() {
   const { settings } = useStoreSettings();
   const { conditions } = usePaymentConditions();
   const whatsappNumber = settings.whatsapp_number || "5511999999999";
+
   const paymentEnabled = settings.payment_conditions_enabled === "true";
   const activeConditions = conditions.filter((c) => c.active);
-  const [selectedPayment, setSelectedPayment] = useState("");
 
-  const [data, setData] = useState<CustomerData>({
-    name: "",
-    phone: "",
-    cpfCnpj: "",
-    notes: "",
-  });
+  const shippingEnabled = settings.shipping_enabled === "true";
+  const shippingFee = shippingEnabled ? Number(settings.shipping_fee || 0) : 0;
+
+  const minimumOrderEnabled = settings.minimum_order_enabled === "true";
+  const minimumOrderValue = Number(settings.minimum_order_value || 0);
+
+  const finalTotal = totalPrice + shippingFee;
+  const belowMinimum = minimumOrderEnabled && minimumOrderValue > 0 && totalPrice < minimumOrderValue;
+
+  const [selectedPayment, setSelectedPayment] = useState("");
+  const [data, setData] = useState<CustomerData>({ name: "", phone: "", cpfCnpj: "", notes: "" });
 
   if (items.length === 0) {
     return (
@@ -75,23 +80,27 @@ export default function Checkout() {
   const isValid =
     data.name.trim().length >= 2 &&
     data.phone.replace(/\D/g, "").length >= 10 &&
-    (!paymentEnabled || !activeConditions.length || selectedPayment !== "");
+    (!paymentEnabled || !activeConditions.length || selectedPayment !== "") &&
+    !belowMinimum;
+
+  const formatBRL = (v: number) => v.toFixed(2).replace(".", ",");
 
   const handleSubmit = () => {
     if (!isValid) return;
 
     const paymentInfo = selectedPayment ? `\n*Pagamento:* ${selectedPayment}` : "";
+    const shippingInfo = shippingEnabled && shippingFee > 0 ? `\n*Frete:* R$ ${formatBRL(shippingFee)}` : "";
     const customerInfo = `*Cliente:* ${data.name}\n*WhatsApp:* ${data.phone}${data.cpfCnpj ? `\n*CPF/CNPJ:* ${data.cpfCnpj}` : ""}${paymentInfo}${data.notes ? `\n*Observações:* ${data.notes}` : ""}`;
 
     const itemsList = items
       .map(
         (i) =>
-          `• ${i.quantity}x ${i.product.name} (Cód: ${i.product.code || "N/A"}) - R$ ${(Number(i.product.price) * i.quantity).toFixed(2).replace(".", ",")}`
+          `• ${i.quantity}x ${i.product.name} (Cód: ${i.product.code || "N/A"}) - R$ ${formatBRL(Number(i.product.price) * i.quantity)}`
       )
       .join("\n");
 
     const message = encodeURIComponent(
-      `Olá, gostaria de fazer o pedido:\n\n${customerInfo}\n\n${itemsList}\n\n*Total: R$ ${totalPrice.toFixed(2).replace(".", ",")}*`
+      `Olá, gostaria de fazer o pedido:\n\n${customerInfo}\n\n${itemsList}${shippingInfo}\n\n*Total: R$ ${formatBRL(finalTotal)}*`
     );
 
     window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
@@ -121,15 +130,34 @@ export default function Checkout() {
                   {item.quantity}x {item.product.name}
                 </span>
                 <span className="font-medium ml-3 shrink-0">
-                  R$ {(Number(item.product.price) * item.quantity).toFixed(2).replace(".", ",")}
+                  R$ {formatBRL(Number(item.product.price) * item.quantity)}
                 </span>
               </div>
             ))}
+
+            {shippingEnabled && shippingFee > 0 && (
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Frete</span>
+                <span className="font-medium">R$ {formatBRL(shippingFee)}</span>
+              </div>
+            )}
+
             <div className="border-t pt-2 flex items-center justify-between font-bold">
               <span>Total</span>
-              <span>R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
+              <span>R$ {formatBRL(finalTotal)}</span>
             </div>
           </div>
+
+          {/* Aviso pedido mínimo */}
+          {belowMinimum && (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <p>
+                O pedido mínimo é de <strong>R$ {formatBRL(minimumOrderValue)}</strong>. 
+                Adicione mais itens para continuar.
+              </p>
+            </div>
+          )}
 
           {/* Dados do cliente */}
           <div className="space-y-4">
@@ -139,33 +167,17 @@ export default function Checkout() {
 
             <div className="space-y-2">
               <Label htmlFor="name">Nome completo *</Label>
-              <Input
-                id="name"
-                placeholder="Seu nome completo"
-                value={data.name}
-                onChange={(e) => update("name", e.target.value)}
-                maxLength={100}
-              />
+              <Input id="name" placeholder="Seu nome completo" value={data.name} onChange={(e) => update("name", e.target.value)} maxLength={100} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="phone">WhatsApp *</Label>
-              <Input
-                id="phone"
-                placeholder="(00) 00000-0000"
-                value={data.phone}
-                onChange={(e) => update("phone", formatPhone(e.target.value))}
-              />
+              <Input id="phone" placeholder="(00) 00000-0000" value={data.phone} onChange={(e) => update("phone", formatPhone(e.target.value))} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="cpfCnpj">CPF / CNPJ</Label>
-              <Input
-                id="cpfCnpj"
-                placeholder="000.000.000-00 ou 00.000.000/0000-00"
-                value={data.cpfCnpj}
-                onChange={(e) => update("cpfCnpj", formatCpfCnpj(e.target.value))}
-              />
+              <Input id="cpfCnpj" placeholder="000.000.000-00 ou 00.000.000/0000-00" value={data.cpfCnpj} onChange={(e) => update("cpfCnpj", formatCpfCnpj(e.target.value))} />
             </div>
 
             {paymentEnabled && activeConditions.length > 0 && (
@@ -192,14 +204,7 @@ export default function Checkout() {
 
             <div className="space-y-2">
               <Label htmlFor="notes">Observações</Label>
-              <Textarea
-                id="notes"
-                placeholder="Alguma observação sobre o pedido?"
-                value={data.notes}
-                onChange={(e) => update("notes", e.target.value)}
-                maxLength={500}
-                rows={3}
-              />
+              <Textarea id="notes" placeholder="Alguma observação sobre o pedido?" value={data.notes} onChange={(e) => update("notes", e.target.value)} maxLength={500} rows={3} />
             </div>
           </div>
 

@@ -1,11 +1,51 @@
 import { useState, useEffect, useRef } from "react";
-import { Settings, Upload, Image } from "lucide-react";
+import { Settings, Upload, Image, Store, Palette, Building2, Truck, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PaymentConditionsManager } from "./PaymentConditionsManager";
+import { Switch } from "@/components/ui/switch";
 
 interface SettingsPanelProps {
   settings: Record<string, string>;
   onUpdate: (key: string, value: string) => Promise<{ error: any }>;
+}
+
+function SectionHeader({ icon: Icon, title }: { icon: any; title: string }) {
+  return (
+    <h3 className="font-semibold text-sm flex items-center gap-2 pt-2">
+      <Icon className="h-4 w-4" />
+      {title}
+    </h3>
+  );
+}
+
+function FieldInput({ label, placeholder, value, onChange, type = "text" }: {
+  label: string; placeholder: string; value: string;
+  onChange: (v: string) => void; type?: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <input
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+      />
+    </div>
+  );
+}
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <div className="flex items-center gap-2">
+        <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="h-9 w-12 cursor-pointer rounded border p-0.5" />
+        <input value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+      </div>
+    </div>
+  );
 }
 
 export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
@@ -25,10 +65,15 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
   const [companyAddress, setCompanyAddress] = useState(settings.company_address ?? "");
   const [companyHours, setCompanyHours] = useState(settings.company_hours ?? "");
   const [companyDescription, setCompanyDescription] = useState(settings.company_description ?? "");
+  const [shippingFee, setShippingFee] = useState(settings.shipping_fee ?? "0");
+  const [minimumOrderValue, setMinimumOrderValue] = useState(settings.minimum_order_value ?? "0");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const shippingEnabled = settings.shipping_enabled === "true";
+  const minimumOrderEnabled = settings.minimum_order_enabled === "true";
 
   useEffect(() => {
     setWhatsapp(settings.whatsapp_number ?? "");
@@ -47,6 +92,8 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
     setCompanyAddress(settings.company_address ?? "");
     setCompanyHours(settings.company_hours ?? "");
     setCompanyDescription(settings.company_description ?? "");
+    setShippingFee(settings.shipping_fee ?? "0");
+    setMinimumOrderValue(settings.minimum_order_value ?? "0");
   }, [settings]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,6 +130,8 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
       onUpdate("company_address", companyAddress),
       onUpdate("company_hours", companyHours),
       onUpdate("company_description", companyDescription),
+      onUpdate("shipping_fee", shippingFee),
+      onUpdate("minimum_order_value", minimumOrderValue),
     ]);
     setSaving(false);
     setSaved(true);
@@ -90,207 +139,125 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
   };
 
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-4">
-      <h2 className="font-semibold flex items-center gap-2">
-        <Settings className="h-5 w-5" />
-        Configurações da Loja
-      </h2>
+    <div className="space-y-6">
+      {/* ─── Loja ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <SectionHeader icon={Store} title="Loja" />
 
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Logo da empresa</label>
-        <div className="flex items-center gap-3">
-          {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="h-14 w-auto rounded border object-contain bg-white p-1" />
-          ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded border bg-muted">
-              <Image className="h-6 w-6 text-muted-foreground" />
-            </div>
-          )}
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted transition">
-            <Upload className="h-4 w-4" />
-            {uploading ? "Enviando..." : "Enviar Logo"}
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" disabled={uploading} />
-          </label>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Logo da empresa</label>
+          <div className="flex items-center gap-3">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-14 w-auto rounded border object-contain bg-white p-1" />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded border bg-muted">
+                <Image className="h-6 w-6 text-muted-foreground" />
+              </div>
+            )}
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted transition">
+              <Upload className="h-4 w-4" />
+              {uploading ? "Enviando..." : "Enviar Logo"}
+              <input ref={fileRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" disabled={uploading} />
+            </label>
+          </div>
+        </div>
+
+        <FieldInput label="Nome da empresa" placeholder="Nome da empresa" value={storeName} onChange={setStoreName} />
+        <FieldInput label="Subtítulo" placeholder="Subtítulo (ex: Distribuidora)" value={subtitle} onChange={setSubtitle} />
+        <FieldInput label="Texto de boas-vindas" placeholder="❤️ Bem-vindo ao nosso catálogo digital! ❤️" value={welcomeText} onChange={setWelcomeText} />
+        <FieldInput label="Subtexto de boas-vindas" placeholder="Escolha seus produtos e faça seu pedido..." value={welcomeSubtext} onChange={setWelcomeSubtext} />
+        <FieldInput label="Número do WhatsApp" placeholder="5511999999999" value={whatsapp} onChange={setWhatsapp} />
+      </div>
+
+      {/* ─── Aparência ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <SectionHeader icon={Palette} title="Aparência" />
+        <div className="grid grid-cols-2 gap-4">
+          <ColorField label="Cor do Cabeçalho" value={headerColor} onChange={setHeaderColor} />
+          <ColorField label="Cor do Rodapé" value={footerColor} onChange={setFooterColor} />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <ColorField label="Botão Comprar" value={buttonColor} onChange={setButtonColor} />
+          <ColorField label="Cor das Letras" value={textColor} onChange={setTextColor} />
+          <ColorField label="Cor dos Preços" value={priceColor} onChange={setPriceColor} />
         </div>
       </div>
 
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Nome da empresa</label>
-        <input
-          placeholder="Nome da empresa"
-          value={storeName}
-          onChange={(e) => setStoreName(e.target.value)}
-          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
+      {/* ─── Informações da Empresa ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <SectionHeader icon={Building2} title="Informações da Empresa (Menu ☰)" />
 
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Subtítulo</label>
-        <input
-          placeholder="Subtítulo (ex: Distribuidora)"
-          value={subtitle}
-          onChange={(e) => setSubtitle(e.target.value)}
-          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
-
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Texto de boas-vindas</label>
-        <input
-          placeholder="❤️ Bem-vindo ao nosso catálogo digital! ❤️"
-          value={welcomeText}
-          onChange={(e) => setWelcomeText(e.target.value)}
-          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
-
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Subtexto de boas-vindas</label>
-        <input
-          placeholder="Escolha seus produtos e faça seu pedido..."
-          value={welcomeSubtext}
-          onChange={(e) => setWelcomeSubtext(e.target.value)}
-          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
-
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Número do WhatsApp</label>
-        <input
-          placeholder="Número do WhatsApp (ex: 5511999999999)"
-          value={whatsapp}
-          onChange={(e) => setWhatsapp(e.target.value)}
-          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Cor do Cabeçalho</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={headerColor}
-              onChange={(e) => setHeaderColor(e.target.value)}
-              className="h-9 w-12 cursor-pointer rounded border p-0.5"
-            />
-            <input
-              value={headerColor}
-              onChange={(e) => setHeaderColor(e.target.value)}
-              className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Cor do Rodapé</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={footerColor}
-              onChange={(e) => setFooterColor(e.target.value)}
-              className="h-9 w-12 cursor-pointer rounded border p-0.5"
-            />
-            <input
-              value={footerColor}
-              onChange={(e) => setFooterColor(e.target.value)}
-              className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-      </div>
-      </div>
-
-      <hr className="border-border" />
-      <h3 className="font-semibold text-sm flex items-center gap-2">
-        📋 Informações da Empresa (Menu ☰)
-      </h3>
-
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Descrição da empresa</label>
-        <textarea
-          placeholder="Somos distribuidores de acessórios..."
-          value={companyDescription}
-          onChange={(e) => setCompanyDescription(e.target.value)}
-          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring min-h-[60px]"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Telefone</label>
-          <input
-            placeholder="(11) 99999-9999"
-            value={companyPhone}
-            onChange={(e) => setCompanyPhone(e.target.value)}
-            className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          <label className="text-xs font-medium text-muted-foreground">Descrição da empresa</label>
+          <textarea
+            placeholder="Somos distribuidores de acessórios..."
+            value={companyDescription}
+            onChange={(e) => setCompanyDescription(e.target.value)}
+            className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring min-h-[60px]"
           />
         </div>
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">E-mail</label>
-          <input
-            placeholder="contato@empresa.com"
-            value={companyEmail}
-            onChange={(e) => setCompanyEmail(e.target.value)}
-            className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        <div className="grid grid-cols-2 gap-4">
+          <FieldInput label="Telefone" placeholder="(11) 99999-9999" value={companyPhone} onChange={setCompanyPhone} />
+          <FieldInput label="E-mail" placeholder="contato@empresa.com" value={companyEmail} onChange={setCompanyEmail} />
+        </div>
+        <FieldInput label="Endereço" placeholder="Rua Exemplo, 123 - Cidade/UF" value={companyAddress} onChange={setCompanyAddress} />
+        <FieldInput label="Horário de funcionamento" placeholder="Seg a Sex: 8h às 18h" value={companyHours} onChange={setCompanyHours} />
+      </div>
+
+      {/* ─── Frete ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <SectionHeader icon={Truck} title="Frete" />
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Ativar taxa de frete</p>
+            <p className="text-xs text-muted-foreground">Adiciona o valor do frete ao total do pedido</p>
+          </div>
+          <Switch checked={shippingEnabled} onCheckedChange={(val) => onUpdate("shipping_enabled", val ? "true" : "false")} />
+        </div>
+        {shippingEnabled && (
+          <FieldInput
+            label="Valor do frete (R$)"
+            placeholder="15.00"
+            value={shippingFee}
+            onChange={setShippingFee}
           />
-        </div>
+        )}
       </div>
 
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Endereço</label>
-        <input
-          placeholder="Rua Exemplo, 123 - Cidade/UF"
-          value={companyAddress}
-          onChange={(e) => setCompanyAddress(e.target.value)}
-          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
-
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground">Horário de funcionamento</label>
-        <input
-          placeholder="Seg a Sex: 8h às 18h"
-          value={companyHours}
-          onChange={(e) => setCompanyHours(e.target.value)}
-          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Cor do Botão Comprar</label>
-          <div className="flex items-center gap-2">
-            <input type="color" value={buttonColor} onChange={(e) => setButtonColor(e.target.value)} className="h-9 w-12 cursor-pointer rounded border p-0.5" />
-            <input value={buttonColor} onChange={(e) => setButtonColor(e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+      {/* ─── Pedido Mínimo ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <SectionHeader icon={ShoppingCart} title="Pedido Mínimo" />
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Ativar pedido mínimo</p>
+            <p className="text-xs text-muted-foreground">Bloqueia o envio se o total for inferior ao valor mínimo</p>
           </div>
+          <Switch checked={minimumOrderEnabled} onCheckedChange={(val) => onUpdate("minimum_order_enabled", val ? "true" : "false")} />
         </div>
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Cor das Letras</label>
-          <div className="flex items-center gap-2">
-            <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} className="h-9 w-12 cursor-pointer rounded border p-0.5" />
-            <input value={textColor} onChange={(e) => setTextColor(e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-          </div>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Cor dos Preços</label>
-          <div className="flex items-center gap-2">
-            <input type="color" value={priceColor} onChange={(e) => setPriceColor(e.target.value)} className="h-9 w-12 cursor-pointer rounded border p-0.5" />
-            <input value={priceColor} onChange={(e) => setPriceColor(e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-          </div>
-        </div>
+        {minimumOrderEnabled && (
+          <FieldInput
+            label="Valor mínimo (R$)"
+            placeholder="50.00"
+            value={minimumOrderValue}
+            onChange={setMinimumOrderValue}
+          />
+        )}
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition disabled:opacity-50"
-      >
-        {saving ? "Salvando..." : saved ? "✓ Salvo!" : "Salvar Configurações"}
-      </button>
-
+      {/* ─── Condições de Pagamento ─── */}
       <PaymentConditionsManager
         enabled={settings.payment_conditions_enabled === "true"}
         onToggle={(val) => onUpdate("payment_conditions_enabled", val ? "true" : "false")}
       />
+
+      {/* ─── Botão Salvar ─── */}
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition disabled:opacity-50"
+      >
+        {saving ? "Salvando..." : saved ? "✓ Salvo!" : "Salvar Configurações"}
+      </button>
     </div>
   );
 }
