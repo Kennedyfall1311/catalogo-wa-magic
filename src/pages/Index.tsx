@@ -26,13 +26,58 @@ const Index = () => {
 
   const hideNoPhoto = settings.hide_products_without_photo === "true";
 
+  const displayMode = settings.catalog_first_page_mode || "default";
+
+  // Seeded random shuffle for consistent rendering
+  const shuffled = useMemo(() => {
+    if (displayMode !== "random") return null;
+    const arr = [...products.filter((p) => p.active).filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""))];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+    // Only reshuffle on product data changes, not on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, hideNoPhoto, displayMode]);
+
   const filtered = useMemo(() => {
-    return products
+    const base = products
       .filter((p) => p.active)
       .filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""))
       .filter((p) => !category || p.category_id === category)
       .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+    return base;
   }, [products, search, category, hideNoPhoto]);
+
+  // Build the display list: first page uses display mode, subsequent pages use normal order
+  const visibleProducts = useMemo(() => {
+    const isFirstPageOnly = visibleCount <= PAGE_SIZE;
+    const hasFilters = !!category || !!search;
+
+    // When filters are active, always use normal filtered list
+    if (hasFilters) return filtered.slice(0, visibleCount);
+
+    if (displayMode === "featured" && isFirstPageOnly) {
+      const featuredItems = products
+        .filter((p) => p.active && p.featured)
+        .filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""))
+        .sort((a, b) => (a.featured_order ?? 0) - (b.featured_order ?? 0));
+      
+      // Fill remaining slots with non-featured products
+      const featuredIds = new Set(featuredItems.map((p) => p.id));
+      const rest = filtered.filter((p) => !featuredIds.has(p.id));
+      const combined = [...featuredItems, ...rest];
+      return combined.slice(0, visibleCount);
+    }
+
+    if (displayMode === "random" && isFirstPageOnly && shuffled) {
+      // Apply category/search filters to shuffled list
+      return shuffled.slice(0, visibleCount);
+    }
+
+    return filtered.slice(0, visibleCount);
+  }, [filtered, visibleCount, displayMode, products, hideNoPhoto, shuffled, category, search, PAGE_SIZE]);
 
   // Reset visible count when filters change
   const handleCategoryChange = useCallback((cat: string | null) => {
@@ -45,7 +90,6 @@ const Index = () => {
     setVisibleCount(PAGE_SIZE);
   }, []);
 
-  const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
 
   const categoryLabel = category
