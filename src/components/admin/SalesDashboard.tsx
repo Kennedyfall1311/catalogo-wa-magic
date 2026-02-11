@@ -1,23 +1,8 @@
 import { useState, useMemo } from "react";
 import { useOrders, type Order, type OrderItem } from "@/hooks/useOrders";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, ShoppingCart, Clock, CheckCircle, Package, Eye, ChevronDown, ChevronUp } from "lucide-react";
+import { DollarSign, ShoppingCart, Printer, Package, ChevronDown, ChevronUp } from "lucide-react";
 
-const STATUS_OPTIONS = [
-  { value: "pending", label: "Pendente", color: "bg-yellow-100 text-yellow-800" },
-  { value: "confirmed", label: "Confirmado", color: "bg-blue-100 text-blue-800" },
-  { value: "shipped", label: "Enviado", color: "bg-purple-100 text-purple-800" },
-  { value: "delivered", label: "Entregue", color: "bg-green-100 text-green-800" },
-  { value: "cancelled", label: "Cancelado", color: "bg-red-100 text-red-800" },
-];
-
-function StatusBadge({ status }: { status: string }) {
-  const opt = STATUS_OPTIONS.find((s) => s.value === status) || STATUS_OPTIONS[0];
-  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${opt.color}`}>{opt.label}</span>;
-}
-
-function StatCard({ icon: Icon, label, value, sub }: { icon: any; label: string; value: string; sub?: string }) {
+function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
     <div className="rounded-lg border bg-card p-4 space-y-1">
       <div className="flex items-center gap-2 text-muted-foreground">
@@ -25,12 +10,13 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: any; label: string;
         <span className="text-xs font-medium">{label}</span>
       </div>
       <p className="text-xl font-bold">{value}</p>
-      {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
     </div>
   );
 }
 
-function OrderRow({ order, onStatusChange, onFetchItems }: { order: Order; onStatusChange: (id: string, status: string) => void; onFetchItems: (id: string) => Promise<OrderItem[]> }) {
+const formatBRL = (v: number) => `R$ ${Number(v).toFixed(2).replace(".", ",")}`;
+
+function OrderRow({ order, onFetchItems }: { order: Order; onFetchItems: (id: string) => Promise<OrderItem[]> }) {
   const [expanded, setExpanded] = useState(false);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
@@ -45,18 +31,47 @@ function OrderRow({ order, onStatusChange, onFetchItems }: { order: Order; onSta
     setExpanded(!expanded);
   };
 
+  const handlePrint = async () => {
+    let printItems = items;
+    if (printItems.length === 0) {
+      printItems = await onFetchItems(order.id);
+      setItems(printItems);
+    }
+    const itemsHtml = printItems.map((i) =>
+      `<div class="row"><span>${i.quantity}x ${i.product_name}${i.product_code ? ` (${i.product_code})` : ""}</span><span class="bold">${formatBRL(i.total_price)}</span></div>`
+    ).join("");
+    const shippingHtml = order.shipping_fee > 0 ? `<div class="divider"></div><div class="row"><span>Frete</span><span>${formatBRL(order.shipping_fee)}</span></div>` : "";
+
+    const win = window.open("", "_blank", "width=400,height=600");
+    if (!win) return;
+    win.document.write(`<html><head><title>Pedido</title>
+      <style>body{font-family:Arial,sans-serif;padding:20px;font-size:13px}h2{font-size:16px;margin-bottom:4px}.divider{border-top:1px dashed #ccc;margin:10px 0}.row{display:flex;justify-content:space-between;margin:3px 0}.bold{font-weight:bold}.small{font-size:11px;color:#666}</style></head><body>
+      <h2 class="bold">Resumo do Pedido</h2>
+      <div class="small">${formatted}</div>
+      <div class="divider"></div>
+      <div class="row"><span>Cliente:</span><span class="bold">${order.customer_name}</span></div>
+      <div class="row"><span>WhatsApp:</span><span>${order.customer_phone}</span></div>
+      ${order.customer_cpf_cnpj ? `<div class="row"><span>CPF/CNPJ:</span><span>${order.customer_cpf_cnpj}</span></div>` : ""}
+      ${order.payment_method ? `<div class="row"><span>Pagamento:</span><span>${order.payment_method}</span></div>` : ""}
+      ${order.notes ? `<div class="row"><span>Obs:</span><span>${order.notes}</span></div>` : ""}
+      <div class="divider"></div>
+      ${itemsHtml}
+      ${shippingHtml}
+      <div class="divider"></div>
+      <div class="row bold" style="font-size:15px"><span>TOTAL</span><span>${formatBRL(order.total)}</span></div>
+      <script>window.print();</script>
+    </body></html>`);
+    win.document.close();
+  };
+
   const date = new Date(order.created_at);
   const formatted = `${date.toLocaleDateString("pt-BR")} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
-  const formatBRL = (v: number) => `R$ ${Number(v).toFixed(2).replace(".", ",")}`;
 
   return (
     <div className="border rounded-lg bg-card overflow-hidden">
       <div className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={handleExpand}>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-semibold truncate">{order.customer_name}</p>
-            <StatusBadge status={order.status} />
-          </div>
+          <p className="text-sm font-semibold truncate">{order.customer_name}</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">{formatted} • {order.customer_phone}</p>
         </div>
         <p className="text-sm font-bold shrink-0">{formatBRL(order.total)}</p>
@@ -74,36 +89,32 @@ function OrderRow({ order, onStatusChange, onFetchItems }: { order: Order; onSta
             {loadingItems ? (
               <p className="text-xs text-muted-foreground">Carregando...</p>
             ) : items.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nenhum item registrado</p>
+              <p className="text-xs text-muted-foreground">Nenhum item</p>
             ) : (
               items.map((item) => (
                 <div key={item.id} className="flex justify-between text-xs">
-                  <span>{item.quantity}x {item.product_name} {item.product_code ? `(${item.product_code})` : ""}</span>
+                  <span>{item.quantity}x {item.product_name}{item.product_code ? ` (${item.product_code})` : ""}</span>
                   <span className="font-medium">{formatBRL(item.total_price)}</span>
                 </div>
               ))
             )}
             {order.shipping_fee > 0 && (
               <div className="flex justify-between text-xs text-muted-foreground pt-1 border-t">
-                <span>Frete</span>
-                <span>{formatBRL(order.shipping_fee)}</span>
+                <span>Frete</span><span>{formatBRL(order.shipping_fee)}</span>
               </div>
             )}
+            <div className="flex justify-between text-sm font-bold pt-1 border-t">
+              <span>Total</span><span>{formatBRL(order.total)}</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Status:</span>
-            <Select value={order.status} onValueChange={(v) => onStatusChange(order.id, v)}>
-              <SelectTrigger className="h-8 w-40 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <button
+            onClick={handlePrint}
+            className="flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold hover:bg-muted transition-colors"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            Imprimir Resumo
+          </button>
         </div>
       )}
     </div>
@@ -111,23 +122,20 @@ function OrderRow({ order, onStatusChange, onFetchItems }: { order: Order; onSta
 }
 
 export function SalesDashboard() {
-  const { orders, loading, updateStatus, fetchItems } = useOrders();
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const { orders, loading, fetchItems } = useOrders();
 
   const stats = useMemo(() => {
-    const totalRevenue = orders.filter((o) => o.status !== "cancelled").reduce((s, o) => s + Number(o.total), 0);
+    const totalRevenue = orders.reduce((s, o) => s + Number(o.total), 0);
     const totalOrders = orders.length;
-    const pending = orders.filter((o) => o.status === "pending").length;
-    const delivered = orders.filter((o) => o.status === "delivered").length;
-    return { totalRevenue, totalOrders, pending, delivered };
+
+    // Today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayOrders = orders.filter((o) => new Date(o.created_at) >= today);
+    const todayRevenue = todayOrders.reduce((s, o) => s + Number(o.total), 0);
+
+    return { totalRevenue, totalOrders, todayOrders: todayOrders.length, todayRevenue };
   }, [orders]);
-
-  const filtered = useMemo(() => {
-    if (filterStatus === "all") return orders;
-    return orders.filter((o) => o.status === filterStatus);
-  }, [orders, filterStatus]);
-
-  const formatBRL = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
   if (loading) {
     return <p className="text-center text-muted-foreground py-8">Carregando vendas...</p>;
@@ -135,40 +143,24 @@ export function SalesDashboard() {
 
   return (
     <div className="space-y-4">
-      {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
         <StatCard icon={DollarSign} label="Receita Total" value={formatBRL(stats.totalRevenue)} />
         <StatCard icon={ShoppingCart} label="Total Pedidos" value={String(stats.totalOrders)} />
-        <StatCard icon={Clock} label="Pendentes" value={String(stats.pending)} />
-        <StatCard icon={CheckCircle} label="Entregues" value={String(stats.delivered)} />
+        <StatCard icon={DollarSign} label="Receita Hoje" value={formatBRL(stats.todayRevenue)} />
+        <StatCard icon={ShoppingCart} label="Pedidos Hoje" value={String(stats.todayOrders)} />
       </div>
 
-      {/* Filter */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Filtrar:</span>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="h-8 w-40 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <h3 className="text-sm font-semibold pt-2">Pedidos Recentes</h3>
 
-      {/* Orders list */}
-      {filtered.length === 0 ? (
+      {orders.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground space-y-2">
           <Package className="h-10 w-10 mx-auto opacity-30" />
-          <p className="text-sm">Nenhuma venda encontrada</p>
+          <p className="text-sm">Nenhuma venda registrada ainda</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((order) => (
-            <OrderRow key={order.id} order={order} onStatusChange={updateStatus} onFetchItems={fetchItems} />
+          {orders.map((order) => (
+            <OrderRow key={order.id} order={order} onFetchItems={fetchItems} />
           ))}
         </div>
       )}
