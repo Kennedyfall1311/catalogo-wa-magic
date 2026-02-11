@@ -6,17 +6,17 @@ import { CatalogFooter } from "@/components/CatalogFooter";
 import { WhatsAppFloating } from "@/components/WhatsAppFloating";
 import { CartFloating } from "@/components/CartFloating";
 import { BannerCarousel } from "@/components/BannerCarousel";
-import { CatalogProLayout } from "@/components/CatalogProLayout";
+
 import { useDbProducts } from "@/hooks/useDbProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useBanners } from "@/hooks/useBanners";
-import { useCatalogTabs } from "@/hooks/useCatalogTabs";
+
 
 const Index = () => {
   const { products, categories, loading } = useDbProducts();
   const { settings, loading: settingsLoading } = useStoreSettings();
   const { activeBanners } = useBanners();
-  const { activeTabs } = useCatalogTabs();
+  
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const PAGE_SIZE = 40;
@@ -106,8 +106,6 @@ const Index = () => {
     : "GERAL";
 
   const whatsappNumber = settings.whatsapp_number || "5511999999999";
-  const catalogMode = settings.catalog_mode || "simple";
-  const isProMode = catalogMode === "pro" && activeTabs.length > 0;
 
   const gridClass = "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5";
 
@@ -139,65 +137,46 @@ const Index = () => {
 
       <main className="flex-1">
         <div className="container py-4 space-y-4">
-          {isProMode ? (
-            loading ? (
+          <CategoryFilter
+              categories={categoryOptions}
+              selected={category}
+              onSelect={handleCategoryChange}
+              searchQuery={search}
+              onSearchChange={handleSearchChange}
+            />
+
+            <h2 className="text-center text-lg font-bold uppercase tracking-wide">
+              {categoryLabel}
+            </h2>
+
+            {loading ? (
               <div className="py-20 text-center text-muted-foreground">
                 <p className="text-lg">Carregando produtos...</p>
               </div>
+            ) : filtered.length === 0 ? (
+              <div className="py-20 text-center text-muted-foreground">
+                <p className="text-lg">Nenhum produto encontrado</p>
+                <p className="text-sm mt-1">Tente outra busca ou categoria</p>
+              </div>
             ) : (
-              <CatalogProLayout
-                products={products}
-                categories={categories}
-                tabs={activeTabs}
-                settings={settings}
-                whatsappNumber={whatsappNumber}
-                hideNoPhoto={hideNoPhoto}
-              />
-            )
-          ) : (
-            <>
-              <CategoryFilter
-                categories={categoryOptions}
-                selected={category}
-                onSelect={handleCategoryChange}
-                searchQuery={search}
-                onSearchChange={handleSearchChange}
-              />
-
-              <h2 className="text-center text-lg font-bold uppercase tracking-wide">
-                {categoryLabel}
-              </h2>
-
-              {loading ? (
-                <div className="py-20 text-center text-muted-foreground">
-                  <p className="text-lg">Carregando produtos...</p>
+              <>
+                <div className={`grid ${gridClass} border-t border-l`}>
+                  {visibleProducts.map((product, i) => (
+                    <ProductCard key={product.id} product={product} index={i} whatsappNumber={whatsappNumber} buttonColor={settings.button_color} textColor={settings.text_color} priceColor={settings.price_color} catalogSettings={settings} />
+                  ))}
                 </div>
-              ) : filtered.length === 0 ? (
-                <div className="py-20 text-center text-muted-foreground">
-                  <p className="text-lg">Nenhum produto encontrado</p>
-                  <p className="text-sm mt-1">Tente outra busca ou categoria</p>
-                </div>
-              ) : (
-                <>
-                  <div className={`grid ${gridClass} border-t border-l`}>
-                    {visibleProducts.map((product, i) => (
-                      <ProductCard key={product.id} product={product} index={i} whatsappNumber={whatsappNumber} buttonColor={settings.button_color} textColor={settings.text_color} priceColor={settings.price_color} catalogSettings={settings} />
-                    ))}
+                {hasMore && (
+                  <div className="flex justify-center pt-4 pb-2">
+                    <button
+                      onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                      className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
+                    >
+                      Carregar mais produtos ({filtered.length - visibleCount} restantes)
+                    </button>
                   </div>
-                  {hasMore && (
-                    <div className="flex justify-center pt-4 pb-2">
-                      <button
-                        onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-                        className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
-                      >
-                        Carregar mais produtos ({filtered.length - visibleCount} restantes)
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
+                )}
+              </>
+            )}
         </div>
       </main>
 
