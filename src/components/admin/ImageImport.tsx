@@ -140,22 +140,40 @@ export function ImageImport({ onComplete }: ImageImportProps) {
 
       const isCSV = file.name.toLowerCase().endsWith(".csv");
       if (isCSV) {
-        // Try UTF-8 first; if we detect null bytes (sign of UTF-16), retry with UTF-16LE
-        let text = new TextDecoder("utf-8").decode(buffer);
-        if (text.includes("\0")) {
-          // Likely UTF-16 LE (common from Excel on Windows)
-          const u16 = new Uint8Array(buffer);
-          // Check for UTF-16 LE BOM (FF FE)
-          const start = (u16[0] === 0xFF && u16[1] === 0xFE) ? 2 : 0;
-          const decoder16 = new TextDecoder("utf-16le");
-          text = decoder16.decode(buffer.slice(start));
-          console.log("CSV: detected UTF-16LE encoding");
+        const rawBytes = new Uint8Array(buffer);
+        console.log("CSV: file size bytes:", rawBytes.length);
+        console.log("CSV: first 20 bytes:", Array.from(rawBytes.slice(0, 20)).map(b => b.toString(16).padStart(2, '0')).join(' '));
+
+        let text: string;
+
+        // Detect encoding from BOM or null-byte patterns
+        if (rawBytes[0] === 0xFF && rawBytes[1] === 0xFE) {
+          // UTF-16 LE BOM
+          text = new TextDecoder("utf-16le").decode(buffer.slice(2));
+          console.log("CSV: detected UTF-16LE (BOM)");
+        } else if (rawBytes[0] === 0xFE && rawBytes[1] === 0xFF) {
+          // UTF-16 BE BOM
+          text = new TextDecoder("utf-16be").decode(buffer.slice(2));
+          console.log("CSV: detected UTF-16BE (BOM)");
+        } else if (rawBytes.length > 2 && (rawBytes[1] === 0 || rawBytes[0] === 0)) {
+          // No BOM but null bytes suggest UTF-16
+          if (rawBytes[1] === 0) {
+            text = new TextDecoder("utf-16le").decode(buffer);
+          } else {
+            text = new TextDecoder("utf-16be").decode(buffer);
+          }
+          console.log("CSV: detected UTF-16 (no BOM, null byte pattern)");
+        } else {
+          text = new TextDecoder("utf-8").decode(buffer);
+          console.log("CSV: using UTF-8");
         }
-        // Remove BOM if present
+
+        // Remove BOM if still present
         if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
         // Remove leading blank lines
-        text = text.replace(/^\s*\n/, "");
+        text = text.replace(/^(\s*\r?\n)+/, "");
 
+        console.log("CSV: text length:", text.length);
         console.log("CSV: first 200 chars:", JSON.stringify(text.substring(0, 200)));
 
         // Parse CSV properly handling quoted fields with embedded newlines
