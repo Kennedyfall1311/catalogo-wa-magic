@@ -19,8 +19,33 @@ const Index = () => {
   
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
   const PAGE_SIZE = 40;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  const quickFilters = useMemo(() => [
+    {
+      key: "promo",
+      label: settings.quick_filter_promo_label || "Promoção",
+      visible: settings.quick_filter_promo_visible === "true",
+      bgColor: settings.quick_filter_promo_bg || "#1f1f1f",
+      textColor: settings.quick_filter_promo_text || "#ffffff",
+    },
+    {
+      key: "custom1",
+      label: settings.quick_filter_custom1_label || "Destaque",
+      visible: settings.quick_filter_custom1_visible === "true",
+      bgColor: settings.quick_filter_custom1_bg || "#1f1f1f",
+      textColor: settings.quick_filter_custom1_text || "#ffffff",
+    },
+    {
+      key: "custom2",
+      label: settings.quick_filter_custom2_label || "Novidades",
+      visible: settings.quick_filter_custom2_visible === "true",
+      bgColor: settings.quick_filter_custom2_bg || "#1f1f1f",
+      textColor: settings.quick_filter_custom2_text || "#ffffff",
+    },
+  ], [settings]);
 
   const categoryOptions = useMemo(() =>
     categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
@@ -55,14 +80,21 @@ const Index = () => {
           || (p.code && p.code.toLowerCase().includes(q))
           || (p.manufacturer_code && p.manufacturer_code.toLowerCase().includes(q))
           || (p.description && p.description.toLowerCase().includes(q));
+      })
+      .filter((p) => {
+        if (!activeQuickFilter) return true;
+        if (activeQuickFilter === "promo") return p.original_price && p.original_price > p.price;
+        if (activeQuickFilter === "custom1") return p.featured;
+        // custom2 can be used for any future logic, for now show all
+        return true;
       });
     return base;
-  }, [products, search, category, hideNoPhoto]);
+  }, [products, search, category, hideNoPhoto, activeQuickFilter]);
 
   // Build the display list: first page uses display mode, subsequent pages use normal order
   const visibleProducts = useMemo(() => {
     const isFirstPageOnly = visibleCount <= PAGE_SIZE;
-    const hasFilters = !!category || !!search;
+    const hasFilters = !!category || !!search || !!activeQuickFilter;
 
     // When filters are active, always use normal filtered list
     if (hasFilters) return filtered.slice(0, visibleCount);
@@ -143,6 +175,9 @@ const Index = () => {
               onSelect={handleCategoryChange}
               searchQuery={search}
               onSearchChange={handleSearchChange}
+              quickFilters={quickFilters}
+              activeQuickFilter={activeQuickFilter}
+              onQuickFilterChange={(key) => { setActiveQuickFilter(key); setVisibleCount(PAGE_SIZE); }}
             />
 
             <h2 className="text-center text-lg font-bold uppercase tracking-wide">

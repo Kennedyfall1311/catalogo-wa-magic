@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette, Star, Shuffle, List, Sparkles } from "lucide-react";
+import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette, Star, Shuffle, List, Tag } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { FeaturedProductsManager } from "./FeaturedProductsManager";
 import type { DbProduct, DbCategory } from "@/hooks/useDbProducts";
@@ -62,6 +62,75 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
 
   return (
     <div className="space-y-6">
+
+      {/* ─── Botões Rápidos da Barra ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <h3 className="font-semibold text-sm flex items-center gap-2">
+          <Tag className="h-4 w-4" />
+          Botões Rápidos do Catálogo
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Configure os botões de filtro rápido que aparecem ao lado da barra de busca
+        </p>
+
+        {[
+          { key: "promo", labelKey: "quick_filter_promo_label", defaultLabel: "Promoção", bgKey: "quick_filter_promo_bg", textKey: "quick_filter_promo_text", visibleKey: "quick_filter_promo_visible" },
+          { key: "custom1", labelKey: "quick_filter_custom1_label", defaultLabel: "Destaque", bgKey: "quick_filter_custom1_bg", textKey: "quick_filter_custom1_text", visibleKey: "quick_filter_custom1_visible" },
+          { key: "custom2", labelKey: "quick_filter_custom2_label", defaultLabel: "Novidades", bgKey: "quick_filter_custom2_bg", textKey: "quick_filter_custom2_text", visibleKey: "quick_filter_custom2_visible" },
+        ].map((btn) => {
+          const isVisible = settings[btn.visibleKey] === "true";
+          const label = settings[btn.labelKey] || btn.defaultLabel;
+          const bg = settings[btn.bgKey] || "#1f1f1f";
+          const text = settings[btn.textKey] || "#ffffff";
+          return (
+            <div key={btn.key} className="rounded-lg border p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="rounded px-2 py-1 text-xs font-bold"
+                    style={{ backgroundColor: bg, color: text }}
+                  >
+                    {label}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {btn.key === "promo" ? "(Filtra promoções)" : "(Filtra destaques)"}
+                  </span>
+                </div>
+                <Switch
+                  checked={isVisible}
+                  onCheckedChange={(val) => onUpdate(btn.visibleKey, val ? "true" : "false")}
+                />
+              </div>
+              {isVisible && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Nome</label>
+                    <input
+                      value={label}
+                      onChange={(e) => onUpdate(btn.labelKey, e.target.value)}
+                      className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Cor do Fundo</label>
+                    <div className="flex items-center gap-1">
+                      <input type="color" value={bg} onChange={(e) => onUpdate(btn.bgKey, e.target.value)} className="h-9 w-10 cursor-pointer rounded border p-0.5" />
+                      <input value={bg} onChange={(e) => onUpdate(btn.bgKey, e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-2 py-2 text-xs outline-none focus:ring-2 focus:ring-ring" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Cor do Texto</label>
+                    <div className="flex items-center gap-1">
+                      <input type="color" value={text} onChange={(e) => onUpdate(btn.textKey, e.target.value)} className="h-9 w-10 cursor-pointer rounded border p-0.5" />
+                      <input value={text} onChange={(e) => onUpdate(btn.textKey, e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-2 py-2 text-xs outline-none focus:ring-2 focus:ring-ring" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
       {/* ─── Preview do Card ─── */}
       <div className="rounded-lg border bg-card p-4 space-y-4">
