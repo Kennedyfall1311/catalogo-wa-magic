@@ -41,6 +41,39 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_tabs: {
+        Row: {
+          active: boolean
+          created_at: string
+          filter_type: string
+          filter_value: string | null
+          icon: string | null
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          filter_type?: string
+          filter_value?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          filter_type?: string
+          filter_value?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string

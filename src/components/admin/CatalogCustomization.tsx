@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette, Star, Shuffle, List } from "lucide-react";
+import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette, Star, Shuffle, List, Monitor, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { FeaturedProductsManager } from "./FeaturedProductsManager";
+import { CatalogTabsManager } from "./CatalogTabsManager";
 import type { DbProduct, DbCategory } from "@/hooks/useDbProducts";
+import type { CatalogTab } from "@/hooks/useCatalogTabs";
 
 interface Props {
   settings: Record<string, string>;
@@ -10,6 +12,11 @@ interface Props {
   products?: DbProduct[];
   categories?: DbCategory[];
   onUpdateProduct?: (id: string, data: Partial<DbProduct>) => Promise<any>;
+  catalogTabs?: CatalogTab[];
+  onAddTab?: (tab: { name: string; filter_type: string; filter_value?: string | null }) => Promise<any>;
+  onUpdateTab?: (id: string, data: Partial<CatalogTab>) => Promise<any>;
+  onRemoveTab?: (id: string) => Promise<any>;
+  onReorderTabs?: (tabs: CatalogTab[]) => Promise<void>;
 }
 
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
@@ -32,7 +39,8 @@ const CATALOG_FIELDS = [
   { key: "catalog_show_quantity", label: "Quantidade", sampleValue: "150" },
 ];
 
-export function CatalogCustomization({ settings, onUpdate, products, categories, onUpdateProduct }: Props) {
+export function CatalogCustomization({ settings, onUpdate, products, categories, onUpdateProduct, catalogTabs, onAddTab, onUpdateTab, onRemoveTab, onReorderTabs }: Props) {
+  const catalogMode = settings.catalog_mode || "simple";
   const displayMode = settings.catalog_first_page_mode || "default";
   const [buttonColor, setButtonColor] = useState(settings.button_color ?? "#1f1f1f");
   const [textColor, setTextColor] = useState(settings.text_color ?? "#1f1f1f");
@@ -62,10 +70,56 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
 
   return (
     <div className="space-y-6">
+      {/* ─── Modelo do Catálogo ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <h3 className="font-semibold text-sm flex items-center gap-2">
+          <Monitor className="h-4 w-4" />
+          Modelo do Catálogo
+        </h3>
+        <p className="text-xs text-muted-foreground">Escolha o layout do catálogo público</p>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { value: "simple", label: "Simples", icon: LayoutGrid, desc: "Layout atual com filtros básicos" },
+            { value: "pro", label: "Pro", icon: Sparkles, desc: "Abas personalizáveis, busca compacta" },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => onUpdate("catalog_mode", opt.value)}
+              className={`flex flex-col items-center gap-1.5 rounded-lg border p-4 text-center transition ${
+                catalogMode === opt.value
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "hover:bg-muted/50"
+              }`}
+            >
+              <opt.icon className={`h-6 w-6 ${catalogMode === opt.value ? "text-primary" : "text-muted-foreground"}`} />
+              <span className="text-sm font-semibold">{opt.label}</span>
+              <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Gerenciador de Abas (Pro only) ─── */}
+      {catalogMode === "pro" && catalogTabs && onAddTab && onUpdateTab && onRemoveTab && onReorderTabs && categories && (
+        <div className="rounded-lg border bg-card p-4 space-y-4">
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Abas do Catálogo Pro
+          </h3>
+          <CatalogTabsManager
+            tabs={catalogTabs}
+            categories={categories}
+            onAdd={onAddTab}
+            onUpdate={onUpdateTab}
+            onRemove={onRemoveTab}
+            onReorder={onReorderTabs}
+          />
+        </div>
+      )}
+
       {/* ─── Preview do Card ─── */}
       <div className="rounded-lg border bg-card p-4 space-y-4">
         <h3 className="font-semibold text-sm flex items-center gap-2">
-          <Eye className="h-4 w-4" />
           Preview do Card
         </h3>
         <p className="text-xs text-muted-foreground">Veja como o card do produto aparece no catálogo</p>
