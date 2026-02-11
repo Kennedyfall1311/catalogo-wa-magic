@@ -8,6 +8,7 @@ import { AdminLogin } from "@/components/admin/AdminLogin";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { ProductList } from "@/components/admin/ProductList";
 import { ExcelImport } from "@/components/admin/ExcelImport";
+import { ImageImport } from "@/components/admin/ImageImport";
 import { SettingsPanel } from "@/components/admin/SettingsPanel";
 import { CategoryManager } from "@/components/admin/CategoryManager";
 import { IntegrationPanel } from "@/components/admin/IntegrationPanel";
@@ -142,7 +143,10 @@ export default function Admin() {
           )}
 
           {tab === "import" && (
-            <ExcelImport categories={categories} onImport={upsertProducts} onRefreshCategories={refetchCategories} />
+            <div className="space-y-4">
+              <ExcelImport categories={categories} onImport={upsertProducts} onRefreshCategories={refetchCategories} />
+              <ImageImport onComplete={() => { /* refetch handled by realtime */ }} />
+            </div>
           )}
 
           {tab === "settings" && (
