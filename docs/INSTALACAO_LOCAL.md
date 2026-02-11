@@ -53,9 +53,88 @@ brew services start postgresql@15
 ```
 
 **Windows:**
-Baixe o instalador em https://www.postgresql.org/download/windows/ e siga o assistente de instalação.
+Baixe o instalador em https://www.postgresql.org/download/windows/ e siga o assistente de instalação. Durante a instalação, defina a senha do usuário `postgres` e anote-a.
 
-### 3.2 — Criar o banco de dados
+### 3.2 — Configurar acesso e portas
+
+O PostgreSQL roda por padrão na porta **5432**. Para garantir que ele aceite conexões locais:
+
+**Linux — Verificar se está rodando e escutando:**
+```bash
+# Verificar status
+sudo systemctl status postgresql
+
+# Verificar porta
+sudo ss -tlnp | grep 5432
+```
+
+**Liberar porta no firewall (se necessário):**
+```bash
+# Linux (UFW)
+sudo ufw allow 5432/tcp
+
+# Linux (firewalld)
+sudo firewall-cmd --add-port=5432/tcp --permanent
+sudo firewall-cmd --reload
+
+# Windows — abra o Firewall do Windows e crie regra de entrada para a porta 5432
+```
+
+**Configurar autenticação — arquivo `pg_hba.conf`:**
+
+Localize o arquivo:
+```bash
+# Linux
+sudo find / -name pg_hba.conf 2>/dev/null
+# Geralmente em: /etc/postgresql/15/main/pg_hba.conf
+
+# macOS (Homebrew)
+# Geralmente em: /opt/homebrew/var/postgresql@15/pg_hba.conf
+
+# Windows
+# Geralmente em: C:\Program Files\PostgreSQL\15\data\pg_hba.conf
+```
+
+Certifique-se de que as seguintes linhas existam para permitir conexão local com senha:
+```
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             postgres                                md5
+host    all             all             127.0.0.1/32            md5
+host    all             all             ::1/128                 md5
+```
+
+**Configurar escuta — arquivo `postgresql.conf`:**
+
+No mesmo diretório do `pg_hba.conf`, edite o `postgresql.conf`:
+```
+listen_addresses = 'localhost'   # ou '*' para aceitar conexões externas
+port = 5432
+```
+
+Após alterar qualquer configuração, reinicie o PostgreSQL:
+```bash
+# Linux
+sudo systemctl restart postgresql
+
+# macOS
+brew services restart postgresql@15
+
+# Windows — reinicie o serviço pelo "Serviços" do Windows
+```
+
+**Definir senha do usuário postgres (se ainda não definiu):**
+```bash
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'sua_senha_aqui';"
+```
+
+**Testar a conexão:**
+```bash
+psql -U postgres -h localhost -p 5432
+# Digite a senha quando solicitado
+# Se conectar com sucesso, você verá o prompt: postgres=#
+```
+
+### 3.3 — Criar o banco de dados
 
 ```bash
 # Conectar ao PostgreSQL
@@ -211,11 +290,21 @@ ON CONFLICT (slug) DO NOTHING;
 
 ## 4. Configurar Variáveis de Ambiente
 
-Crie o arquivo `.env` na raiz do projeto com a conexão ao banco PostgreSQL:
+Crie o arquivo `.env` na raiz do projeto:
 
 ```env
+# Conexão com o banco de dados PostgreSQL
 DATABASE_URL=postgresql://postgres:sua_senha@localhost:5432/catalogo
+
+# Host e porta do banco
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=catalogo
+DB_USER=postgres
+DB_PASSWORD=sua_senha
 ```
+
+> **Importante:** Substitua `sua_senha` pela senha real do usuário `postgres` que você definiu na seção 3.2.
 
 ---
 
