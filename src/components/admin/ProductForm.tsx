@@ -111,6 +111,7 @@ export function ProductForm({ product, categories, onSave, onCancel, onUploadIma
       />
 
       <div className="space-y-2">
+        <p className="text-[11px] text-muted-foreground">Tamanho recomendado: 800 × 800 px (quadrada) · JPG ou WebP · Máx. 300 KB</p>
         <div className="flex items-center gap-2">
           {form.image_url && form.image_url !== "/placeholder.svg" && (
             <img src={form.image_url} alt="Preview" className="h-12 w-12 rounded-md object-cover bg-muted" />

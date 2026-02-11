@@ -148,6 +148,7 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
 
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Logo da empresa</label>
+          <p className="text-[11px] text-muted-foreground">Tamanho recomendado: 500 × 500 px (quadrada) · PNG com fundo transparente</p>
           <div className="flex items-center gap-3">
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="h-14 w-auto rounded border object-contain bg-white p-1" />
