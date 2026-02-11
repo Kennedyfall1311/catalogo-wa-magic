@@ -1,6 +1,6 @@
 # Guia de Instalação Local do Catálogo
 
-> Passo a passo para rodar o catálogo em ambiente local com banco de dados Supabase.
+> Passo a passo para rodar o catálogo em ambiente local com banco de dados **PostgreSQL** (gerenciado via Supabase).
 
 ---
 
@@ -11,8 +11,9 @@
 | Node.js          | 18+           | https://nodejs.org                              |
 | npm ou bun       | npm 9+ / bun  | Incluso com Node.js / https://bun.sh            |
 | Git              | 2.30+         | https://git-scm.com                             |
-| Supabase CLI     | 1.100+        | https://supabase.com/docs/guides/cli/getting-started |
-| Docker           | 20+           | https://www.docker.com (necessário para Supabase local) |
+| PostgreSQL       | 15+           | https://www.postgresql.org/download              |
+| Supabase CLI     | 1.100+        | https://supabase.com/docs/guides/cli/getting-started (opcional) |
+| Docker           | 20+           | https://www.docker.com (apenas se usar Supabase local) |
 
 ---
 
@@ -35,11 +36,11 @@ bun install
 
 ---
 
-## 3. Configurar o Supabase
+## 3. Configurar o Banco de Dados PostgreSQL
 
-Você tem duas opções: usar **Supabase Cloud** (hospedado) ou **Supabase Local** (via Docker).
+O catálogo utiliza **PostgreSQL** como banco de dados. Você tem três opções para configurá-lo:
 
-### Opção A: Supabase Cloud (Recomendado para produção)
+### Opção A: Supabase Cloud (Recomendado — já inclui PostgreSQL gerenciado)
 
 1. Crie um projeto em https://supabase.com/dashboard
 2. Copie a **URL** e a **Anon Key** do projeto (Settings → API)
@@ -50,14 +51,15 @@ VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIs...
 ```
 
-### Opção B: Supabase Local (via Docker)
+### Opção B: PostgreSQL Local + Supabase CLI (via Docker)
 
 ```bash
-# Iniciar o Supabase local
+# Inicia PostgreSQL + Auth + Storage + Realtime localmente
 supabase start
 
 # O CLI exibirá as credenciais locais:
 # API URL: http://localhost:54321
+# DB URL: postgresql://postgres:postgres@localhost:54322/postgres
 # Anon Key: eyJ...
 # Service Role Key: eyJ...
 ```
@@ -67,6 +69,17 @@ Crie o `.env`:
 VITE_SUPABASE_URL=http://localhost:54321
 VITE_SUPABASE_PUBLISHABLE_KEY=<anon_key_exibida>
 ```
+
+### Opção C: PostgreSQL Local Puro (sem Supabase CLI)
+
+Se você já tem um PostgreSQL rodando localmente:
+
+```bash
+# Conectar ao PostgreSQL
+psql -U postgres -h localhost -p 5432
+```
+
+> **Nota:** Sem o Supabase CLI, você precisará configurar manualmente a autenticação, storage e realtime. As tabelas e SQLs da seção 4 continuam válidos.
 
 ---
 
