@@ -74,33 +74,33 @@ export function CatalogProLayout({ products, categories, tabs, settings, whatsap
 
   return (
     <div className="space-y-3">
-      {/* Compact search */}
-      <div className="relative max-w-md mx-auto">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setVisibleCount(PAGE_SIZE); }}
-          placeholder="Buscar por nome, código, fabricante..."
-          className="w-full rounded-full border bg-card pl-9 pr-4 py-2 text-xs outline-none focus:ring-2 focus:ring-ring"
-        />
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => handleTabChange(tab.id)}
-            className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
-              activeTabId === tab.id
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            {tab.name}
-          </button>
-        ))}
+      {/* Unified search + tabs bar */}
+      <div className="flex items-center gap-0 rounded-full border bg-card shadow-sm overflow-hidden">
+        <div className="relative shrink-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setVisibleCount(PAGE_SIZE); }}
+            placeholder="Buscar..."
+            className="w-32 sm:w-44 bg-transparent pl-9 pr-3 py-2.5 text-xs outline-none border-r"
+          />
+        </div>
+        <div className="flex items-center gap-0 overflow-x-auto scrollbar-none flex-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabChange(tab.id)}
+              className={`shrink-0 px-4 py-2.5 text-xs font-semibold transition-colors whitespace-nowrap ${
+                activeTabId === tab.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted/60"
+              }`}
+            >
+              {tab.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Products grid */}
