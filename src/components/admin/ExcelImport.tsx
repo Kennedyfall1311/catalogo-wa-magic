@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { DbCategory } from "@/hooks/useDbProducts";
 import type { TablesInsert } from "@/integrations/supabase/types";
 
-const MAX_IMPORT_ROWS = 500;
+const MAX_IMPORT_ROWS = 5000;
+const BATCH_SIZE = 500;
 
 const ProductRowSchema = z.object({
   name: z.string().trim().min(1).max(255),
@@ -154,15 +155,23 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         return;
       }
 
-      const { error } = await onImport(products);
-      if (error) {
-        setStatus("error");
-        setMessage(`Erro: ${error.message}`);
-      } else {
-        const warnings = validationErrors.length > 0 ? ` (${validationErrors.length} linhas ignoradas por erros)` : "";
-        setStatus("success");
-        setMessage(`${products.length} produtos importados com sucesso!${warnings}`);
+      // Process in batches
+      let imported = 0;
+      for (let i = 0; i < products.length; i += BATCH_SIZE) {
+        const batch = products.slice(i, i + BATCH_SIZE);
+        const { error } = await onImport(batch);
+        if (error) {
+          setStatus("error");
+          setMessage(`Erro no lote ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}. ${imported} produtos importados antes do erro.`);
+          return;
+        }
+        imported += batch.length;
+        setMessage(`${imported} / ${products.length} produtos importados...`);
       }
+
+      const warnings = validationErrors.length > 0 ? ` (${validationErrors.length} linhas ignoradas por erros)` : "";
+      setStatus("success");
+      setMessage(`${imported} produtos importados com sucesso!${warnings}`);
     } catch {
       setStatus("error");
       setMessage("Erro ao ler o arquivo. Verifique o formato.");
