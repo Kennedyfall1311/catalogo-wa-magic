@@ -39,6 +39,7 @@ export default function Checkout() {
   const [selectedPayment, setSelectedPayment] = useState("");
   const [data, setData] = useState<CustomerData>({ name: "", phone: "", cpfCnpj: "", notes: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [whatsappLink, setWhatsappLink] = useState("");
 
   if (submitted) {
     return (
@@ -60,12 +61,23 @@ export default function Checkout() {
             Uma janela do WhatsApp foi aberta com o resumo do seu pedido.
             <br /><br />
             <strong>Importante:</strong> Envie a mensagem no WhatsApp para que o vendedor receba seu pedido. 
-            Caso a janela não tenha aberto, clique no botão abaixo.
+            Sem o envio da mensagem, o vendedor não receberá o pedido.
           </p>
           <div className="space-y-3 pt-2">
+            {whatsappLink && (
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-whatsapp px-6 py-3 text-sm font-semibold text-whatsapp-foreground hover:bg-whatsapp-hover transition"
+              >
+                <MessageCircle className="h-5 w-5" />
+                Reenviar Pedido pelo WhatsApp
+              </a>
+            )}
             <button
               onClick={() => navigate("/")}
-              className="w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
+              className="w-full rounded-full border border-border px-6 py-3 text-sm font-semibold hover:bg-muted transition"
             >
               Voltar ao Catálogo
             </button>
@@ -151,32 +163,33 @@ export default function Checkout() {
 
     // Build formatted WhatsApp message
     const storeName = settings.store_name || "Catálogo";
-    const line = "━━━━━━━━━━━━━━━━━━━━";
     const now = new Date();
     const dateStr = now.toLocaleDateString("pt-BR");
     const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const line = "----------------------";
 
     const itemLines = items.map((i, idx) => {
       const subtotal = Number(i.product.price) * i.quantity;
-      return `${idx + 1}. *${i.product.name}*\n   Cód: ${i.product.code || "N/A"} | Qtd: ${i.quantity}\n   Valor: R$ ${formatBRL(subtotal)}`;
+      const code = i.product.code || "N/A";
+      return `${idx + 1}. *${i.product.name}*\n   Cod: ${code} | Qtd: ${i.quantity}\n   Valor: R$ ${formatBRL(subtotal)}`;
     }).join("\n\n");
 
-    let totalsSection = `📦 *Subtotal:* R$ ${formatBRL(totalPrice)}`;
+    let totalsSection = `Subtotal: R$ ${formatBRL(totalPrice)}`;
     if (shippingEnabled && shippingFee > 0) {
-      totalsSection += `\n🚚 *Frete:* R$ ${formatBRL(shippingFee)}`;
+      totalsSection += `\nFrete: R$ ${formatBRL(shippingFee)}`;
     }
-    totalsSection += `\n💰 *TOTAL: R$ ${formatBRL(finalTotal)}*`;
+    totalsSection += `\n*TOTAL: R$ ${formatBRL(finalTotal)}*`;
 
-    const paymentLine = selectedPayment ? `\n💳 *Pagamento:* ${selectedPayment}` : "";
-    const notesLine = data.notes ? `\n📝 *Obs:* ${data.notes}` : "";
+    const paymentLine = selectedPayment ? `\nPagamento: ${selectedPayment}` : "";
+    const notesLine = data.notes ? `\nObs: ${data.notes}` : "";
 
     const msg = [
-      `🛒 *PEDIDO — ${storeName}*`,
-      `📅 ${dateStr} às ${timeStr}`,
+      `*PEDIDO - ${storeName}*`,
+      `Data: ${dateStr} as ${timeStr}`,
       line,
-      `👤 *Cliente:* ${data.name}`,
-      `📱 *WhatsApp:* ${data.phone}`,
-      data.cpfCnpj ? `🪪 *CPF/CNPJ:* ${data.cpfCnpj}` : "",
+      `Cliente: ${data.name}`,
+      `Telefone: ${data.phone}`,
+      data.cpfCnpj ? `CPF/CNPJ: ${data.cpfCnpj}` : "",
       line,
       `*ITENS DO PEDIDO:*`,
       "",
@@ -187,12 +200,14 @@ export default function Checkout() {
       paymentLine,
       notesLine,
       line,
-      `_Pedido gerado pelo ${storeName}_`,
+      `Pedido gerado pelo ${storeName}`,
     ].filter(Boolean).join("\n");
 
     const message = encodeURIComponent(msg);
-    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
+    window.open(whatsappUrl, "_blank");
 
+    setWhatsappLink(whatsappUrl);
     clearCart();
     setSubmitted(true);
   };
