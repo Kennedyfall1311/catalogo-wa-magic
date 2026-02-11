@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { DbCategory } from "@/hooks/useDbProducts";
 import type { TablesInsert } from "@/integrations/supabase/types";
 
-const MAX_IMPORT_ROWS = 5000;
 const BATCH_SIZE = 500;
 
 const ProductRowSchema = z.object({
@@ -68,11 +67,7 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         return;
       }
 
-      if (rows.length > MAX_IMPORT_ROWS) {
-        setStatus("error");
-        setMessage(`Limite de ${MAX_IMPORT_ROWS} produtos por importação. O arquivo tem ${rows.length} linhas.`);
-        return;
-      }
+
 
       // Collect unique category names from import
       const catNames = new Set<string>();
@@ -167,6 +162,8 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         }
         imported += batch.length;
         setMessage(`${imported} / ${products.length} produtos importados...`);
+        // Yield to UI thread between batches
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
 
       const warnings = validationErrors.length > 0 ? ` (${validationErrors.length} linhas ignoradas por erros)` : "";
