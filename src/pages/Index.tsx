@@ -24,13 +24,15 @@ const Index = () => {
     [categories]
   );
 
+  const hideNoPhoto = settings.hide_products_without_photo === "true";
+
   const filtered = useMemo(() => {
     return products
       .filter((p) => p.active)
-      .filter((p) => p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== "")
+      .filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""))
       .filter((p) => !category || p.category_id === category)
       .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
-  }, [products, search, category]);
+  }, [products, search, category, hideNoPhoto]);
 
   // Reset visible count when filters change
   const handleCategoryChange = useCallback((cat: string | null) => {
