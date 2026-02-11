@@ -80,6 +80,7 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
 
   const shippingEnabled = settings.shipping_enabled === "true";
   const minimumOrderEnabled = settings.minimum_order_enabled === "true";
+  const hideNoPhoto = settings.hide_products_without_photo === "true";
 
   useEffect(() => {
     setWhatsapp(settings.whatsapp_number ?? "");
@@ -234,6 +235,18 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
         <FieldInput label="TikTok" placeholder="https://tiktok.com/@suaempresa" value={socialTiktok} onChange={setSocialTiktok} />
         <FieldInput label="YouTube" placeholder="https://youtube.com/@suaempresa" value={socialYoutube} onChange={setSocialYoutube} />
         <FieldInput label="Site / Loja" placeholder="https://suaempresa.com.br" value={socialWebsite} onChange={setSocialWebsite} />
+      </div>
+
+      {/* ─── Catálogo ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <SectionHeader icon={Image} title="Catálogo" />
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Ocultar produtos sem foto</p>
+            <p className="text-xs text-muted-foreground">Produtos sem imagem não aparecem no catálogo público</p>
+          </div>
+          <Switch checked={hideNoPhoto} onCheckedChange={(val) => onUpdate("hide_products_without_photo", val ? "true" : "false")} />
+        </div>
       </div>
 
       <div className="rounded-lg border bg-card p-4 space-y-4">
