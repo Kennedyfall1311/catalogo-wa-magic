@@ -46,7 +46,13 @@ const Index = () => {
       .filter((p) => p.active)
       .filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""))
       .filter((p) => !category || p.category_id === category)
-      .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+      .filter((p) => {
+        const q = search.toLowerCase();
+        return p.name.toLowerCase().includes(q)
+          || (p.code && p.code.toLowerCase().includes(q))
+          || (p.manufacturer_code && p.manufacturer_code.toLowerCase().includes(q))
+          || (p.description && p.description.toLowerCase().includes(q));
+      });
     return base;
   }, [products, search, category, hideNoPhoto]);
 

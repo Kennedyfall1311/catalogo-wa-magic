@@ -23,7 +23,7 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Buscar produtos..."
+          placeholder="Buscar por nome, código, fabricante..."
           className="w-full rounded-lg border bg-card pl-9 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
