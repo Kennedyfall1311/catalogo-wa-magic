@@ -14,12 +14,14 @@ import { CategoryManager } from "@/components/admin/CategoryManager";
 import { IntegrationPanel } from "@/components/admin/IntegrationPanel";
 import { CatalogCustomization } from "@/components/admin/CatalogCustomization";
 import { SalesDashboard } from "@/components/admin/SalesDashboard";
+import { useCatalogTabs } from "@/hooks/useCatalogTabs";
 import type { DbProduct } from "@/hooks/useDbProducts";
 
 export default function Admin() {
   const { user, isAdmin, loading: authLoading, signIn, signUp, signOut } = useAuth();
   const { products, categories, loading, addProduct, updateProduct, removeProduct, toggleActive, upsertProducts, uploadImage, refetchCategories } = useDbProducts();
   const { settings, updateSetting } = useStoreSettings();
+  const { tabs: catalogTabs, addTab, updateTab, removeTab, reorderTabs } = useCatalogTabs();
   const [editing, setEditing] = useState<DbProduct | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [tab, setTab] = useState<"sales" | "products" | "categories" | "import" | "catalog" | "settings" | "integration">("sales");
@@ -154,6 +156,11 @@ export default function Admin() {
               products={products}
               categories={categories}
               onUpdateProduct={updateProduct}
+              catalogTabs={catalogTabs}
+              onAddTab={addTab}
+              onUpdateTab={updateTab}
+              onRemoveTab={removeTab}
+              onReorderTabs={reorderTabs}
             />
           )}
 
