@@ -148,7 +148,13 @@ export default function Admin() {
           )}
 
           {tab === "catalog" && (
-            <CatalogCustomization settings={settings} onUpdate={updateSetting} />
+            <CatalogCustomization
+              settings={settings}
+              onUpdate={updateSetting}
+              products={products}
+              categories={categories}
+              onUpdateProduct={updateProduct}
+            />
           )}
 
           {tab === "settings" && (

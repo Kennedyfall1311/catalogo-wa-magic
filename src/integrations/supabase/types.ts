@@ -189,6 +189,8 @@ export type Database = {
           code: string | null
           created_at: string
           description: string | null
+          featured: boolean
+          featured_order: number
           id: string
           image_url: string | null
           manufacturer_code: string | null
@@ -207,6 +209,8 @@ export type Database = {
           code?: string | null
           created_at?: string
           description?: string | null
+          featured?: boolean
+          featured_order?: number
           id?: string
           image_url?: string | null
           manufacturer_code?: string | null
@@ -225,6 +229,8 @@ export type Database = {
           code?: string | null
           created_at?: string
           description?: string | null
+          featured?: boolean
+          featured_order?: number
           id?: string
           image_url?: string | null
           manufacturer_code?: string | null

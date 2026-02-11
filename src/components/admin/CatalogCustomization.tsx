@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
-import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette } from "lucide-react";
+import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette, Star, Shuffle, List } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { FeaturedProductsManager } from "./FeaturedProductsManager";
+import type { DbProduct, DbCategory } from "@/hooks/useDbProducts";
 
 interface Props {
   settings: Record<string, string>;
   onUpdate: (key: string, value: string) => Promise<{ error: any }>;
+  products?: DbProduct[];
+  categories?: DbCategory[];
+  onUpdateProduct?: (id: string, data: Partial<DbProduct>) => Promise<any>;
 }
 
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
@@ -27,7 +32,8 @@ const CATALOG_FIELDS = [
   { key: "catalog_show_quantity", label: "Quantidade", sampleValue: "150" },
 ];
 
-export function CatalogCustomization({ settings, onUpdate }: Props) {
+export function CatalogCustomization({ settings, onUpdate, products, categories, onUpdateProduct }: Props) {
+  const displayMode = settings.catalog_first_page_mode || "default";
   const [buttonColor, setButtonColor] = useState(settings.button_color ?? "#1f1f1f");
   const [textColor, setTextColor] = useState(settings.text_color ?? "#1f1f1f");
   const [priceColor, setPriceColor] = useState(settings.price_color ?? "#1f1f1f");
@@ -149,6 +155,47 @@ export function CatalogCustomization({ settings, onUpdate }: Props) {
             />
           </div>
         ))}
+      </div>
+
+      {/* ─── Amostragem da Primeira Página ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <h3 className="font-semibold text-sm flex items-center gap-2 pt-2">
+          <Star className="h-4 w-4" />
+          Amostragem da Primeira Página
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Configure como os primeiros 40 produtos aparecem ao abrir o catálogo. Depois que o cliente carregar mais, a ordem segue normalmente.
+        </p>
+
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { value: "default", label: "Padrão", icon: List, desc: "Ordem de cadastro" },
+            { value: "random", label: "Aleatório", icon: Shuffle, desc: "Ordem embaralhada" },
+            { value: "featured", label: "Destaques", icon: Star, desc: "Produtos selecionados" },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => onUpdate("catalog_first_page_mode", opt.value)}
+              className={`flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition ${
+                displayMode === opt.value
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "hover:bg-muted/50"
+              }`}
+            >
+              <opt.icon className={`h-5 w-5 ${displayMode === opt.value ? "text-primary" : "text-muted-foreground"}`} />
+              <span className="text-xs font-semibold">{opt.label}</span>
+              <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
+            </button>
+          ))}
+        </div>
+
+        {displayMode === "featured" && products && categories && onUpdateProduct && (
+          <FeaturedProductsManager
+            products={products}
+            categories={categories}
+            onUpdateProduct={onUpdateProduct}
+          />
+        )}
       </div>
 
       {/* ─── Filtros ─── */}
