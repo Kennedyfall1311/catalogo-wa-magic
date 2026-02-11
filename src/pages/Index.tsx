@@ -12,7 +12,7 @@ import { useBanners } from "@/hooks/useBanners";
 
 const Index = () => {
   const { products, categories, loading } = useDbProducts();
-  const { settings } = useStoreSettings();
+  const { settings, loading: settingsLoading } = useStoreSettings();
   const { activeBanners } = useBanners();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
@@ -34,6 +34,14 @@ const Index = () => {
     : "GERAL";
 
   const whatsappNumber = settings.whatsapp_number || "5511999999999";
+
+  if (settingsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
