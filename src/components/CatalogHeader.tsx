@@ -56,7 +56,7 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
         </div>
       </div>
 
-      <header ref={mainHeaderRef} className={`border-b ${!headerColor ? 'bg-card' : ''}`} style={colorStyle}>
+      <header ref={mainHeaderRef} className={`${!headerColor ? 'bg-card' : ''}`} style={colorStyle}>
         <div className="flex flex-col items-center py-3 md:py-4">
           <Link to="/" className="flex flex-col items-center gap-0.5">
             {logoUrl ? (
