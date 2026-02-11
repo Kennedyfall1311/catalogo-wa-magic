@@ -13,6 +13,7 @@ import { SettingsPanel } from "@/components/admin/SettingsPanel";
 import { CategoryManager } from "@/components/admin/CategoryManager";
 import { IntegrationPanel } from "@/components/admin/IntegrationPanel";
 import { CatalogCustomization } from "@/components/admin/CatalogCustomization";
+import { SalesDashboard } from "@/components/admin/SalesDashboard";
 import type { DbProduct } from "@/hooks/useDbProducts";
 
 export default function Admin() {
@@ -21,7 +22,7 @@ export default function Admin() {
   const { settings, updateSetting } = useStoreSettings();
   const [editing, setEditing] = useState<DbProduct | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [tab, setTab] = useState<"products" | "categories" | "import" | "catalog" | "settings" | "integration">("products");
+  const [tab, setTab] = useState<"sales" | "products" | "categories" | "import" | "catalog" | "settings" | "integration">("sales");
 
   if (authLoading) {
     return (
@@ -61,6 +62,7 @@ export default function Admin() {
   };
 
   const tabs = [
+    { key: "sales", label: "Vendas" },
     { key: "products", label: "Produtos" },
     { key: "categories", label: "Categorias" },
     { key: "import", label: "Importar" },
@@ -103,6 +105,8 @@ export default function Admin() {
         </div>
 
         <main className="py-6 space-y-4">
+          {tab === "sales" && <SalesDashboard />}
+
           {tab === "products" && (
             loading ? (
               <p className="text-center text-muted-foreground py-8">Carregando...</p>

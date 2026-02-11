@@ -12,13 +12,12 @@ interface ProductCardProps {
   textColor?: string;
   priceColor?: string;
   catalogSettings?: Record<string, string>;
-  fontSizeClass?: { name: string; price: string; detail: string };
 }
 
-export function ProductCard({ product, index, whatsappNumber, buttonColor, textColor, priceColor, catalogSettings = {}, fontSizeClass }: ProductCardProps) {
-  const nameSize = fontSizeClass?.name ?? "text-[11px] md:text-xs";
-  const priceSize = fontSizeClass?.price ?? "text-sm";
-  const detailSize = fontSizeClass?.detail ?? "text-[10px]";
+export function ProductCard({ product, index, whatsappNumber, buttonColor, textColor, priceColor, catalogSettings = {} }: ProductCardProps) {
+  const nameSize = "text-[11px] md:text-xs";
+  const priceSize = "text-sm";
+  const detailSize = "text-[10px]";
   const [dialogOpen, setDialogOpen] = useState(false);
   const hasDiscount = product.original_price && product.original_price > product.price;
 

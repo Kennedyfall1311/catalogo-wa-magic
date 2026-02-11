@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
+import { ordersApi } from "@/lib/api-client";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { usePaymentConditions } from "@/hooks/usePaymentConditions";
@@ -85,8 +86,30 @@ export default function Checkout() {
 
   const formatBRL = (v: number) => v.toFixed(2).replace(".", ",");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isValid) return;
+
+    // Save order to database
+    const order = {
+      customer_name: data.name,
+      customer_phone: data.phone,
+      customer_cpf_cnpj: data.cpfCnpj || null,
+      payment_method: selectedPayment || null,
+      notes: data.notes || null,
+      subtotal: totalPrice,
+      shipping_fee: shippingFee,
+      total: finalTotal,
+      status: "pending",
+    };
+    const orderItems = items.map((i) => ({
+      product_id: i.product.id,
+      product_name: i.product.name,
+      product_code: i.product.code || null,
+      quantity: i.quantity,
+      unit_price: Number(i.product.price),
+      total_price: Number(i.product.price) * i.quantity,
+    }));
+    await ordersApi.create(order, orderItems);
 
     const paymentInfo = selectedPayment ? `\n*Pagamento:* ${selectedPayment}` : "";
     const shippingInfo = shippingEnabled && shippingFee > 0 ? `\n*Frete:* R$ ${formatBRL(shippingFee)}` : "";
