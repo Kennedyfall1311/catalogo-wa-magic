@@ -54,6 +54,22 @@ const Index = () => {
 
   const whatsappNumber = settings.whatsapp_number || "5511999999999";
 
+  // Card size → grid columns mapping
+  const cardSize = settings.catalog_card_size ?? "1";
+  const gridClass = cardSize === "3"
+    ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4"
+    : cardSize === "2"
+    ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4"
+    : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5";
+
+  // Font size mapping
+  const fontScale = settings.catalog_font_size ?? "1";
+  const fontSizeClass = fontScale === "3"
+    ? { name: "text-sm md:text-base", price: "text-lg", detail: "text-xs" }
+    : fontScale === "2"
+    ? { name: "text-xs md:text-sm", price: "text-base", detail: "text-[11px]" }
+    : { name: "text-[11px] md:text-xs", price: "text-sm", detail: "text-[10px]" };
+
   if (settingsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -105,9 +121,9 @@ const Index = () => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 border-t border-l">
+              <div className={`grid ${gridClass} border-t border-l`}>
                 {visibleProducts.map((product, i) => (
-                  <ProductCard key={product.id} product={product} index={i} whatsappNumber={whatsappNumber} buttonColor={settings.button_color} textColor={settings.text_color} priceColor={settings.price_color} catalogSettings={settings} />
+                  <ProductCard key={product.id} product={product} index={i} whatsappNumber={whatsappNumber} buttonColor={settings.button_color} textColor={settings.text_color} priceColor={settings.price_color} catalogSettings={settings} fontSizeClass={fontSizeClass} />
                 ))}
               </div>
               {hasMore && (

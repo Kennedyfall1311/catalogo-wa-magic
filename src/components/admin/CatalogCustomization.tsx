@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette } from "lucide-react";
+import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette, Maximize2, Type } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 
 interface Props {
   settings: Record<string, string>;
@@ -27,6 +28,9 @@ const CATALOG_FIELDS = [
   { key: "catalog_show_quantity", label: "Quantidade", sampleValue: "150" },
 ];
 
+const CARD_SIZE_LABELS: Record<string, string> = { "1": "Pequeno", "2": "Médio", "3": "Grande" };
+const FONT_SIZE_LABELS: Record<string, string> = { "1": "Pequeno", "2": "Médio", "3": "Grande" };
+
 export function CatalogCustomization({ settings, onUpdate }: Props) {
   const [buttonColor, setButtonColor] = useState(settings.button_color ?? "#1f1f1f");
   const [textColor, setTextColor] = useState(settings.text_color ?? "#1f1f1f");
@@ -35,6 +39,14 @@ export function CatalogCustomization({ settings, onUpdate }: Props) {
   const [saved, setSaved] = useState(false);
 
   const hideNoPhoto = settings.hide_products_without_photo === "true";
+  const cardSize = settings.catalog_card_size ?? "1";
+  const fontSize = settings.catalog_font_size ?? "1";
+
+  // Preview scale mapping
+  const previewWidth = cardSize === "3" ? "w-56" : cardSize === "2" ? "w-52" : "w-48";
+  const previewNameSize = fontSize === "3" ? "text-sm" : fontSize === "2" ? "text-xs" : "text-[11px]";
+  const previewPriceSize = fontSize === "3" ? "text-lg" : fontSize === "2" ? "text-base" : "text-sm";
+  const previewDetailSize = fontSize === "3" ? "text-xs" : fontSize === "2" ? "text-[11px]" : "text-[10px]";
 
   useEffect(() => {
     setButtonColor(settings.button_color ?? "#1f1f1f");
@@ -65,7 +77,7 @@ export function CatalogCustomization({ settings, onUpdate }: Props) {
         <p className="text-xs text-muted-foreground">Veja como o card do produto aparece no catálogo</p>
 
         <div className="flex justify-center">
-          <div className="w-48 border rounded-lg overflow-hidden bg-background shadow-sm">
+          <div className={`${previewWidth} border rounded-lg overflow-hidden bg-background shadow-sm transition-all`}>
             <div className="relative aspect-square overflow-hidden bg-card p-2">
               <div className="h-full w-full bg-muted rounded flex items-center justify-center">
                 <LayoutGrid className="h-8 w-8 text-muted-foreground/30" />
@@ -77,23 +89,22 @@ export function CatalogCustomization({ settings, onUpdate }: Props) {
 
             <div className="px-2 py-3 text-center border-t space-y-1">
               <h3
-                className="text-[11px] font-semibold uppercase leading-tight line-clamp-2"
+                className={`${previewNameSize} font-semibold uppercase leading-tight line-clamp-2`}
                 style={{ color: textColor }}
               >
                 PRODUTO EXEMPLO
               </h3>
-              <p className="text-[10px] text-muted-foreground">Cód: 12345</p>
-              <p className="text-[10px] text-muted-foreground line-through">
+              <p className={`${previewDetailSize} text-muted-foreground`}>Cód: 12345</p>
+              <p className={`${previewDetailSize} text-muted-foreground line-through`}>
                 de R$ 99,90
               </p>
-              <p className="text-sm font-bold" style={{ color: priceColor }}>
+              <p className={`${previewPriceSize} font-bold`} style={{ color: priceColor }}>
                 R$ 79,90
               </p>
 
-              {/* Dynamic fields preview */}
               {CATALOG_FIELDS.map((field) =>
                 settings[field.key] === "true" ? (
-                  <p key={field.key} className="text-[10px] text-muted-foreground">
+                  <p key={field.key} className={`${previewDetailSize} text-muted-foreground`}>
                     {field.key === "catalog_show_description"
                       ? field.sampleValue
                       : `${field.label}: ${field.sampleValue}`}
@@ -109,6 +120,49 @@ export function CatalogCustomization({ settings, onUpdate }: Props) {
                 Comprar
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Tamanho do Card e Fonte ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <h3 className="font-semibold text-sm flex items-center gap-2 pt-2">
+          <Maximize2 className="h-4 w-4" />
+          Tamanho do Card
+        </h3>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-muted-foreground">Tamanho: {CARD_SIZE_LABELS[cardSize]}</label>
+          </div>
+          <Slider
+            value={[Number(cardSize)]}
+            min={1}
+            max={3}
+            step={1}
+            onValueChange={([v]) => onUpdate("catalog_card_size", String(v))}
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>Pequeno</span><span>Médio</span><span>Grande</span>
+          </div>
+        </div>
+
+        <h3 className="font-semibold text-sm flex items-center gap-2 pt-2">
+          <Type className="h-4 w-4" />
+          Tamanho da Fonte
+        </h3>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-muted-foreground">Tamanho: {FONT_SIZE_LABELS[fontSize]}</label>
+          </div>
+          <Slider
+            value={[Number(fontSize)]}
+            min={1}
+            max={3}
+            step={1}
+            onValueChange={([v]) => onUpdate("catalog_font_size", String(v))}
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>Pequeno</span><span>Médio</span><span>Grande</span>
           </div>
         </div>
       </div>

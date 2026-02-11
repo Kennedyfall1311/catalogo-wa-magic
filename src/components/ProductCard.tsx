@@ -12,9 +12,13 @@ interface ProductCardProps {
   textColor?: string;
   priceColor?: string;
   catalogSettings?: Record<string, string>;
+  fontSizeClass?: { name: string; price: string; detail: string };
 }
 
-export function ProductCard({ product, index, whatsappNumber, buttonColor, textColor, priceColor, catalogSettings = {} }: ProductCardProps) {
+export function ProductCard({ product, index, whatsappNumber, buttonColor, textColor, priceColor, catalogSettings = {}, fontSizeClass }: ProductCardProps) {
+  const nameSize = fontSizeClass?.name ?? "text-[11px] md:text-xs";
+  const priceSize = fontSizeClass?.price ?? "text-sm";
+  const detailSize = fontSizeClass?.detail ?? "text-[10px]";
   const [dialogOpen, setDialogOpen] = useState(false);
   const hasDiscount = product.original_price && product.original_price > product.price;
 
@@ -46,35 +50,35 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
 
         <div className="px-2 py-3 text-center border-t space-y-1">
           <Link to={`/produto/${product.slug}`}>
-            <h3 className="text-[11px] md:text-xs font-semibold uppercase leading-tight line-clamp-2 hover:underline" style={textColor ? { color: textColor } : undefined}>
+            <h3 className={`${nameSize} font-semibold uppercase leading-tight line-clamp-2 hover:underline`} style={textColor ? { color: textColor } : undefined}>
               {product.name}
             </h3>
           </Link>
           {product.code && (
-            <p className="text-[10px] text-muted-foreground">Cód: {product.code}</p>
+            <p className={`${detailSize} text-muted-foreground`}>Cód: {product.code}</p>
           )}
           {hasDiscount && (
-            <p className="text-[10px] text-muted-foreground line-through">
+            <p className={`${detailSize} text-muted-foreground line-through`}>
               de R$ {Number(product.original_price!).toFixed(2).replace(".", ",")}
             </p>
           )}
-          <p className="text-sm font-bold" style={priceColor ? { color: priceColor } : undefined}>
+          <p className={`${priceSize} font-bold`} style={priceColor ? { color: priceColor } : undefined}>
             R$ {Number(product.price).toFixed(2).replace(".", ",")}
           </p>
           {catalogSettings.catalog_show_description === "true" && product.description && (
-            <p className="text-[10px] text-muted-foreground line-clamp-2">{product.description}</p>
+            <p className={`${detailSize} text-muted-foreground line-clamp-2`}>{product.description}</p>
           )}
           {catalogSettings.catalog_show_reference === "true" && (product as any).reference && (
-            <p className="text-[10px] text-muted-foreground">Ref: {(product as any).reference}</p>
+            <p className={`${detailSize} text-muted-foreground`}>Ref: {(product as any).reference}</p>
           )}
           {catalogSettings.catalog_show_manufacturer_code === "true" && (product as any).manufacturer_code && (
-            <p className="text-[10px] text-muted-foreground">Fab: {(product as any).manufacturer_code}</p>
+            <p className={`${detailSize} text-muted-foreground`}>Fab: {(product as any).manufacturer_code}</p>
           )}
           {catalogSettings.catalog_show_unit_of_measure === "true" && (product as any).unit_of_measure && (
-            <p className="text-[10px] text-muted-foreground">Un: {(product as any).unit_of_measure}</p>
+            <p className={`${detailSize} text-muted-foreground`}>Un: {(product as any).unit_of_measure}</p>
           )}
           {catalogSettings.catalog_show_quantity === "true" && (product as any).quantity != null && (
-            <p className="text-[10px] text-muted-foreground">Qtd: {(product as any).quantity}</p>
+            <p className={`${detailSize} text-muted-foreground`}>Qtd: {(product as any).quantity}</p>
           )}
           <button
             onClick={() => setDialogOpen(true)}
