@@ -57,7 +57,21 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
 
     try {
       const buffer = await file.arrayBuffer();
-      const wb = XLSX.read(buffer, { type: "array", codepage: 65001 });
+      let wb: XLSX.WorkBook;
+
+      const isCSV = file.name.toLowerCase().endsWith(".csv");
+      if (isCSV) {
+        let text = new TextDecoder("utf-8").decode(buffer);
+        const semicolons = (text.match(/;/g) || []).length;
+        const commas = (text.match(/,/g) || []).length;
+        if (semicolons > commas) {
+          text = text.replace(/;/g, ",");
+        }
+        wb = XLSX.read(text, { type: "string" });
+      } else {
+        wb = XLSX.read(buffer, { type: "array", codepage: 65001 });
+      }
+
       if (!wb.SheetNames.length) {
         setStatus("error");
         setMessage("Arquivo vazio ou sem planilhas.");
