@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { authApi, isPostgresMode } from "@/lib/api-client";
 
 interface AdminLoginProps {
   onLogin: (email: string, password: string) => Promise<{ error: any }>;
@@ -40,16 +40,9 @@ export function AdminLogin({ onLogin, onSignUp }: AdminLoginProps) {
     setLoading(true);
     setError("");
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setError("Faça login primeiro, depois clique em 'Tornar Admin'.");
-        setLoading(false);
-        return;
-      }
-
-      const res = await supabase.functions.invoke("setup-admin");
-      if (res.error) {
-        setError(res.error.message || "Erro ao configurar admin");
+      const result = await authApi.setupAdmin();
+      if (result.error) {
+        setError(result.error.message || "Erro ao configurar admin");
       } else {
         setMessage("Permissão de admin concedida! Recarregue a página.");
         setTimeout(() => window.location.reload(), 1500);
@@ -102,14 +95,16 @@ export function AdminLogin({ onLogin, onSignUp }: AdminLoginProps) {
           {isSignUp ? "Já tem conta? Faça login" : "Criar nova conta"}
         </button>
 
-        <button
-          type="button"
-          onClick={handleSetupAdmin}
-          disabled={loading}
-          className="w-full text-center text-xs text-muted-foreground underline"
-        >
-          Tornar minha conta Admin (primeiro acesso)
-        </button>
+        {!isPostgresMode() && (
+          <button
+            type="button"
+            onClick={handleSetupAdmin}
+            disabled={loading}
+            className="w-full text-center text-xs text-muted-foreground underline"
+          >
+            Tornar minha conta Admin (primeiro acesso)
+          </button>
+        )}
 
         <Link to="/" className="block text-center text-sm text-muted-foreground underline">
           Voltar ao catálogo

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { productsApi } from "@/lib/api-client";
 import type { DbProduct } from "@/hooks/useDbProducts";
 
 export function useProductBySlug(slug: string | undefined) {
@@ -14,12 +14,7 @@ export function useProductBySlug(slug: string | undefined) {
 
     const fetch = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .eq("slug", slug)
-        .eq("active", true)
-        .maybeSingle();
+      const data = await productsApi.findBySlug(slug);
       setProduct(data);
       setLoading(false);
     };

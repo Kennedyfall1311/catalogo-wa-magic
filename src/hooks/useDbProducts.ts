@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { productsApi, categoriesApi, storageApi, realtimeApi } from "@/lib/api-client";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 export type DbProduct = Tables<"products">;
@@ -11,53 +11,41 @@ export function useDbProducts() {
   const [loading, setLoading] = useState(true);
 
   const fetchProducts = useCallback(async () => {
-    const { data } = await supabase
-      .from("products")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const data = await productsApi.fetchAll();
     if (data) setProducts(data);
   }, []);
 
   const fetchCategories = useCallback(async () => {
-    const { data } = await supabase.from("categories").select("*").order("name");
+    const data = await categoriesApi.fetchAll();
     if (data) setCategories(data);
   }, []);
 
   useEffect(() => {
     Promise.all([fetchProducts(), fetchCategories()]).then(() => setLoading(false));
 
-    // Realtime: refresh products when changes happen
-    const channel = supabase
-      .channel("products-changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "products" },
-        () => { fetchProducts(); }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "categories" },
-        () => { fetchCategories(); }
-      )
-      .subscribe();
+    const unsubProducts = realtimeApi.subscribeToTable("products", () => fetchProducts());
+    const unsubCategories = realtimeApi.subscribeToTable("categories", () => fetchCategories());
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      unsubProducts();
+      unsubCategories();
+    };
   }, [fetchProducts, fetchCategories]);
 
   const addProduct = async (product: TablesInsert<"products">) => {
-    const { error } = await supabase.from("products").insert(product);
+    const { error } = await productsApi.insert(product);
     if (!error) await fetchProducts();
     return { error };
   };
 
   const updateProduct = async (id: string, data: Partial<TablesInsert<"products">>) => {
-    const { error } = await supabase.from("products").update(data).eq("id", id);
+    const { error } = await productsApi.update(id, data);
     if (!error) await fetchProducts();
     return { error };
   };
 
   const removeProduct = async (id: string) => {
-    const { error } = await supabase.from("products").delete().eq("id", id);
+    const { error } = await productsApi.remove(id);
     if (!error) await fetchProducts();
     return { error };
   };
@@ -67,18 +55,13 @@ export function useDbProducts() {
   };
 
   const upsertProducts = async (rows: TablesInsert<"products">[]) => {
-    const { error } = await supabase.from("products").upsert(rows, { onConflict: "code" });
+    const { error } = await productsApi.upsert(rows);
     if (!error) await fetchProducts();
     return { error };
   };
 
   const uploadImage = async (file: File) => {
-    const ext = file.name.split(".").pop();
-    const path = `${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("product-images").upload(path, file);
-    if (error) return { url: null, error };
-    const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-    return { url: data.publicUrl, error: null };
+    return storageApi.uploadFile(file);
   };
 
   return {

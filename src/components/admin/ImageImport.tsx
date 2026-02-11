@@ -1,20 +1,10 @@
 import { useState, useRef } from "react";
 import { ImageIcon, Download } from "lucide-react";
 import * as XLSX from "xlsx";
-import { supabase } from "@/integrations/supabase/client";
+import { productsApi, storageApi } from "@/lib/api-client";
 
 interface ImageImportProps {
   onComplete: () => void;
-}
-
-function base64ToBlob(base64: string): Blob {
-  const clean = base64.replace(/^data:image\/\w+;base64,/, "");
-  const binary = atob(clean);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new Blob([bytes], { type: "image/jpeg" });
 }
 
 function detectExtension(base64: string): string {
@@ -27,13 +17,11 @@ function detectExtension(base64: string): string {
 
 /**
  * Streaming CSV parser that reads a File in small chunks via ReadableStream.
- * Handles quoted fields with embedded newlines (e.g. multiline base64).
- * Yields one parsed record at a time to avoid loading entire file into memory.
  */
 async function* streamCSVRecords(
   file: File
 ): AsyncGenerator<Record<string, string>> {
-  const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks
+  const CHUNK_SIZE = 4 * 1024 * 1024;
   const decoder = new TextDecoder("utf-8");
 
   let headers: string[] | null = null;
@@ -52,7 +40,6 @@ async function* streamCSVRecords(
     const buffer = await blob.arrayBuffer();
     const chunkText = decoder.decode(buffer, { stream: chunkIdx < totalChunks - 1 });
 
-    // On first chunk, strip BOM
     let text: string;
     if (chunkIdx === 0) {
       text = chunkText.charCodeAt(0) === 0xFEFF ? chunkText.slice(1) : chunkText;
@@ -60,7 +47,6 @@ async function* streamCSVRecords(
       text = chunkText;
     }
 
-    // Prepend any leftover from previous chunk
     text = leftover + text;
     leftover = "";
 
@@ -97,8 +83,6 @@ async function* streamCSVRecords(
 
           if (currentRecord.some(f => f.length > 0)) {
             if (!headers) {
-              // First non-empty record = headers
-              // Detect delimiter from this line (re-parse if needed)
               const rawLine = currentRecord.join(delimiter);
               const delimiters = [",", ";", "\t", "|"];
               let maxCount = 0;
@@ -106,11 +90,8 @@ async function* streamCSVRecords(
                 const count = rawLine.split(d).length - 1;
                 if (count > maxCount) { maxCount = count; delimiter = d; }
               }
-
               headers = currentRecord.map(h => h.replace(/^"+|"+$/g, "").trim());
-              console.log("CSV stream: headers:", JSON.stringify(headers));
             } else {
-              // Data record
               const row: Record<string, string> = {};
               headers.forEach((h, idx) => {
                 row[h] = (currentRecord[idx] || "").replace(/^"+|"+$/g, "").trim();
@@ -126,17 +107,8 @@ async function* streamCSVRecords(
         }
       }
     }
-
-    // If we're in the middle of a quoted field at end of chunk, save what we have
-    if (inQuotes) {
-      // The currentField and state carry over naturally
-      // But currentField content should not be re-processed
-      // leftover stays empty since state is in currentField/inQuotes
-    }
-    // If there's a partial unfinished record (not in quotes), it will be completed in next chunk
   }
 
-  // Handle final record without trailing newline
   if (currentField.length > 0 || currentRecord.length > 0) {
     currentRecord.push(currentField.trim());
     if (headers && currentRecord.some(f => f.length > 0)) {
@@ -173,11 +145,7 @@ async function processRow(
     return { success: false, error: `Linha ${rowNum}: código ou imagem ausente` };
   }
 
-  const { data: products } = await supabase
-    .from("products")
-    .select("id")
-    .eq("code", code)
-    .limit(1);
+  const products = await productsApi.findByCode(code);
 
   if (!products || products.length === 0) {
     return { success: false, error: `Linha ${rowNum}: produto com código "${code}" não encontrado` };
@@ -185,24 +153,13 @@ async function processRow(
 
   try {
     const cleanBase64 = imgBase64.replace(/^data:image\/\w+;base64,/, "").replace(/\s/g, "");
-    const ext = detectExtension(cleanBase64);
-    const blob = base64ToBlob(cleanBase64);
-    const path = `${crypto.randomUUID()}.${ext}`;
+    const { url, error: uploadError } = await storageApi.uploadBase64(cleanBase64);
 
-    const { error: uploadError } = await supabase.storage
-      .from("product-images")
-      .upload(path, blob, { contentType: `image/${ext}` });
-
-    if (uploadError) {
-      return { success: false, error: `Linha ${rowNum}: erro no upload - ${uploadError.message}` };
+    if (uploadError || !url) {
+      return { success: false, error: `Linha ${rowNum}: erro no upload - ${uploadError?.message || "unknown"}` };
     }
 
-    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-
-    const { error: updateError } = await supabase
-      .from("products")
-      .update({ image_url: urlData.publicUrl })
-      .eq("id", products[0].id);
+    const { error: updateError } = await productsApi.update(products[0].id, { image_url: url });
 
     if (updateError) {
       return { success: false, error: `Linha ${rowNum}: erro ao atualizar produto - ${updateError.message}` };
@@ -231,9 +188,6 @@ export function ImageImport({ onComplete }: ImageImportProps) {
       const isCSV = file.name.toLowerCase().endsWith(".csv");
 
       if (isCSV) {
-        // Stream-based processing for CSV (handles files of any size)
-        console.log("CSV stream: file size:", file.size, "bytes");
-
         let updated = 0;
         let skipped = 0;
         let rowNum = 1;
@@ -248,7 +202,7 @@ export function ImageImport({ onComplete }: ImageImportProps) {
             if (result.error) errors.push(result.error);
             skipped++;
           }
-          setProgress({ current: rowNum - 1, total: 0 }); // total unknown in streaming
+          setProgress({ current: rowNum - 1, total: 0 });
         }
 
         if (updated > 0) {
@@ -265,7 +219,6 @@ export function ImageImport({ onComplete }: ImageImportProps) {
           );
         }
       } else {
-        // XLSX: use existing approach (XLSX files are typically small)
         const buffer = await file.arrayBuffer();
         const wb = XLSX.read(buffer, { type: "array", codepage: 65001 });
         if (!wb.SheetNames.length) {

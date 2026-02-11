@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { categoriesApi } from "@/lib/api-client";
 import type { DbCategory } from "@/hooks/useDbProducts";
 
 function slugify(str: string) {
@@ -22,21 +22,21 @@ export function CategoryManager({ categories, onRefresh }: CategoryManagerProps)
     const name = newName.trim();
     if (!name) return;
     setAdding(true);
-    await supabase.from("categories").insert({ name, slug: slugify(name) });
+    await categoriesApi.insert({ name, slug: slugify(name) });
     setNewName("");
     setAdding(false);
     onRefresh();
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("categories").delete().eq("id", id);
+    await categoriesApi.remove(id);
     onRefresh();
   };
 
   const handleEditSave = async (id: string) => {
     const name = editName.trim();
     if (!name) return;
-    await supabase.from("categories").update({ name, slug: slugify(name) }).eq("id", id);
+    await categoriesApi.update(id, { name, slug: slugify(name) });
     setEditingId(null);
     onRefresh();
   };
