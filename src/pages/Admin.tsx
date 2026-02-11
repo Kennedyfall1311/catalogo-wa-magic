@@ -12,6 +12,7 @@ import { ImageImport } from "@/components/admin/ImageImport";
 import { SettingsPanel } from "@/components/admin/SettingsPanel";
 import { CategoryManager } from "@/components/admin/CategoryManager";
 import { IntegrationPanel } from "@/components/admin/IntegrationPanel";
+import { CatalogCustomization } from "@/components/admin/CatalogCustomization";
 import type { DbProduct } from "@/hooks/useDbProducts";
 
 export default function Admin() {
@@ -20,7 +21,7 @@ export default function Admin() {
   const { settings, updateSetting } = useStoreSettings();
   const [editing, setEditing] = useState<DbProduct | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [tab, setTab] = useState<"products" | "categories" | "import" | "settings" | "integration">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "import" | "catalog" | "settings" | "integration">("products");
 
   if (authLoading) {
     return (
@@ -63,6 +64,7 @@ export default function Admin() {
     { key: "products", label: "Produtos" },
     { key: "categories", label: "Categorias" },
     { key: "import", label: "Importar" },
+    { key: "catalog", label: "Catálogo" },
     { key: "settings", label: "Config" },
     { key: "integration", label: "ERP" },
   ] as const;
@@ -139,6 +141,10 @@ export default function Admin() {
               <ExcelImport categories={categories} onImport={upsertProducts} onRefreshCategories={refetchCategories} />
               <ImageImport onComplete={() => {}} />
             </div>
+          )}
+
+          {tab === "catalog" && (
+            <CatalogCustomization settings={settings} onUpdate={updateSetting} />
           )}
 
           {tab === "settings" && (

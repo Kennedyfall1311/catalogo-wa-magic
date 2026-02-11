@@ -58,9 +58,6 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
   const [welcomeSubtext, setWelcomeSubtext] = useState(settings.welcome_subtext ?? "");
   const [headerColor, setHeaderColor] = useState(settings.header_color ?? "#1f1f1f");
   const [footerColor, setFooterColor] = useState(settings.footer_color ?? "#1f1f1f");
-  const [buttonColor, setButtonColor] = useState(settings.button_color ?? "#1f1f1f");
-  const [textColor, setTextColor] = useState(settings.text_color ?? "#1f1f1f");
-  const [priceColor, setPriceColor] = useState(settings.price_color ?? "#1f1f1f");
   const [companyPhone, setCompanyPhone] = useState(settings.company_phone ?? "");
   const [companyEmail, setCompanyEmail] = useState(settings.company_email ?? "");
   const [companyAddress, setCompanyAddress] = useState(settings.company_address ?? "");
@@ -80,7 +77,6 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
 
   const shippingEnabled = settings.shipping_enabled === "true";
   const minimumOrderEnabled = settings.minimum_order_enabled === "true";
-  const hideNoPhoto = settings.hide_products_without_photo === "true";
 
   useEffect(() => {
     setWhatsapp(settings.whatsapp_number ?? "");
@@ -91,9 +87,6 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
     setWelcomeSubtext(settings.welcome_subtext ?? "");
     setHeaderColor(settings.header_color ?? "#1f1f1f");
     setFooterColor(settings.footer_color ?? "#1f1f1f");
-    setButtonColor(settings.button_color ?? "#1f1f1f");
-    setTextColor(settings.text_color ?? "#1f1f1f");
-    setPriceColor(settings.price_color ?? "#1f1f1f");
     setCompanyPhone(settings.company_phone ?? "");
     setCompanyEmail(settings.company_email ?? "");
     setCompanyAddress(settings.company_address ?? "");
@@ -129,9 +122,6 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
       onUpdate("welcome_subtext", welcomeSubtext),
       onUpdate("header_color", headerColor),
       onUpdate("footer_color", footerColor),
-      onUpdate("button_color", buttonColor),
-      onUpdate("text_color", textColor),
-      onUpdate("price_color", priceColor),
       onUpdate("company_phone", companyPhone),
       onUpdate("company_email", companyEmail),
       onUpdate("company_address", companyAddress),
@@ -188,11 +178,6 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
           <ColorField label="Cor do Cabeçalho" value={headerColor} onChange={setHeaderColor} />
           <ColorField label="Cor do Rodapé" value={footerColor} onChange={setFooterColor} />
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          <ColorField label="Botão Comprar" value={buttonColor} onChange={setButtonColor} />
-          <ColorField label="Cor das Letras" value={textColor} onChange={setTextColor} />
-          <ColorField label="Cor dos Preços" value={priceColor} onChange={setPriceColor} />
-        </div>
       </div>
 
       {/* ─── Banners ─── */}
@@ -229,34 +214,7 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
         <FieldInput label="Site / Loja" placeholder="https://suaempresa.com.br" value={socialWebsite} onChange={setSocialWebsite} />
       </div>
 
-      {/* ─── Catálogo ─── */}
-      <div className="rounded-lg border bg-card p-4 space-y-4">
-        <SectionHeader icon={Image} title="Catálogo" />
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">Ocultar produtos sem foto</p>
-            <p className="text-xs text-muted-foreground">Produtos sem imagem não aparecem no catálogo público</p>
-          </div>
-          <Switch checked={hideNoPhoto} onCheckedChange={(val) => onUpdate("hide_products_without_photo", val ? "true" : "false")} />
-        </div>
-
-        <p className="text-xs font-medium text-muted-foreground pt-2">Campos visíveis no catálogo</p>
-        {[
-          { key: "catalog_show_description", label: "Descrição" },
-          { key: "catalog_show_reference", label: "Referência" },
-          { key: "catalog_show_manufacturer_code", label: "Código do Fabricante" },
-          { key: "catalog_show_unit_of_measure", label: "Unidade de Medida" },
-          { key: "catalog_show_quantity", label: "Quantidade" },
-        ].map((item) => (
-          <div key={item.key} className="flex items-center justify-between">
-            <p className="text-sm">{item.label}</p>
-            <Switch
-              checked={settings[item.key] === "true"}
-              onCheckedChange={(val) => onUpdate(item.key, val ? "true" : "false")}
-            />
-          </div>
-        ))}
-      </div>
+      {/* Catálogo section moved to its own tab */}
 
       <div className="rounded-lg border bg-card p-4 space-y-4">
         <SectionHeader icon={Truck} title="Frete" />
