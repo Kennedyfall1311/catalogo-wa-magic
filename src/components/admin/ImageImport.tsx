@@ -41,34 +41,59 @@ export function ImageImport({ onComplete }: ImageImportProps) {
 
     try {
       const buffer = await file.arrayBuffer();
-      let wb: XLSX.WorkBook;
+      let rows: any[] = [];
 
-      // Handle CSV with semicolon delimiter (common in Brazilian locale)
       const isCSV = file.name.toLowerCase().endsWith(".csv");
       if (isCSV) {
+        // Manual CSV parsing to handle any delimiter and base64 content
         let text = new TextDecoder("utf-8").decode(buffer);
-        // Detect delimiter: if semicolons are more frequent than commas, replace
-        const semicolons = (text.match(/;/g) || []).length;
-        const commas = (text.match(/,/g) || []).length;
-        if (semicolons > commas) {
-          text = text.replace(/;/g, ",");
+        // Remove BOM if present
+        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+        
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lines.length < 2) {
+          setStatus("error");
+          setMessage("Arquivo CSV vazio ou sem dados.");
+          return;
         }
-        wb = XLSX.read(text, { type: "string" });
+
+        // Detect delimiter from header line only (avoid base64 content)
+        const headerLine = lines[0];
+        const delimiters = [";", ",", "\t", "|"];
+        let bestDelim = ",";
+        let maxCount = 0;
+        for (const d of delimiters) {
+          const count = (headerLine.match(new RegExp(d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g")) || []).length;
+          if (count > maxCount) { maxCount = count; bestDelim = d; }
+        }
+
+        console.log("CSV delimiter detected:", JSON.stringify(bestDelim), "from header:", headerLine);
+
+        const headers = headerLine.split(bestDelim).map(h => h.replace(/^"|"$/g, "").trim());
+        
+        for (let i = 1; i < lines.length; i++) {
+          const parts = lines[i].split(bestDelim);
+          const row: any = {};
+          headers.forEach((h, idx) => {
+            row[h] = (parts[idx] || "").replace(/^"|"$/g, "").trim();
+          });
+          rows.push(row);
+        }
       } else {
-        wb = XLSX.read(buffer, { type: "array", codepage: 65001 });
+        const wb = XLSX.read(buffer, { type: "array", codepage: 65001 });
+        if (!wb.SheetNames.length) {
+          setStatus("error");
+          setMessage("Arquivo vazio ou sem planilhas.");
+          return;
+        }
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json<any>(ws, { defval: "" });
       }
 
-      if (!wb.SheetNames.length) {
-        setStatus("error");
-        setMessage("Arquivo vazio ou sem planilhas.");
-        return;
-      }
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<any>(ws, { defval: "" });
-
-      console.log("Image import: sheets:", wb.SheetNames, "rows:", rows.length);
+      console.log("Image import: rows:", rows.length);
       if (rows.length > 0) {
         console.log("Image import: first row keys:", Object.keys(rows[0]));
+        console.log("Image import: first row sample (truncated):", JSON.stringify(rows[0]).slice(0, 300));
       }
 
       if (!rows.length) {
