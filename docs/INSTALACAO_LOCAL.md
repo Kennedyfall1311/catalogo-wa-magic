@@ -34,9 +34,28 @@ bun install
 
 ---
 
-## 3. Configurar o PostgreSQL
+## 3. Instalar e Configurar o PostgreSQL
 
-### 3.1 — Criar o banco de dados
+### 3.1 — Instalar o PostgreSQL
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+```
+
+**macOS (Homebrew):**
+```bash
+brew install postgresql@15
+brew services start postgresql@15
+```
+
+**Windows:**
+Baixe o instalador em https://www.postgresql.org/download/windows/ e siga o assistente de instalação.
+
+### 3.2 — Criar o banco de dados
 
 ```bash
 # Conectar ao PostgreSQL
@@ -49,11 +68,16 @@ CREATE DATABASE catalogo;
 \c catalogo
 ```
 
-### 3.2 — Criar as tabelas
+### 3.3 — Criar as tabelas
 
-Execute os SQLs abaixo na ordem apresentada:
+Execute os SQLs abaixo na ordem apresentada dentro do banco `catalogo`:
 
 ```sql
+-- ============================================
+-- EXTENSÃO PARA GERAR UUIDs
+-- ============================================
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- ============================================
 -- ENUM DE ROLES
 -- ============================================
@@ -131,7 +155,7 @@ CREATE TABLE public.banners (
 );
 
 -- ============================================
--- TRIGGER: ATUALIZAR updated_at AUTOMATICAMENTE
+-- FUNÇÃO: ATUALIZAR updated_at AUTOMATICAMENTE
 -- ============================================
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -141,12 +165,29 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ============================================
+-- TRIGGER: ATUALIZAR updated_at EM PRODUCTS
+-- ============================================
 CREATE TRIGGER update_products_updated_at
   BEFORE UPDATE ON public.products
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================
+-- FUNÇÃO: VERIFICAR ROLE DO USUÁRIO
+-- ============================================
+CREATE OR REPLACE FUNCTION public.has_role(_user_id UUID, _role app_role)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
+  )
+$$;
 ```
 
-### 3.3 — Inserir dados iniciais
+### 3.4 — Inserir dados iniciais
 
 ```sql
 -- Configurações padrão da loja
@@ -170,27 +211,26 @@ ON CONFLICT (slug) DO NOTHING;
 
 ## 4. Configurar Variáveis de Ambiente
 
-Crie o arquivo `.env` na raiz do projeto:
+Crie o arquivo `.env` na raiz do projeto com a conexão ao banco PostgreSQL:
 
 ```env
-VITE_SUPABASE_URL=http://localhost:54321
-VITE_SUPABASE_PUBLISHABLE_KEY=sua_anon_key_aqui
+DATABASE_URL=postgresql://postgres:sua_senha@localhost:5432/catalogo
 ```
-
-> **Nota:** O catálogo utiliza o Supabase como camada de API sobre o PostgreSQL. Para ambiente local, você pode usar o [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started) com `supabase start` para criar essa camada automaticamente. O CLI requer Docker instalado.
 
 ---
 
 ## 5. Criar o Primeiro Usuário Admin
 
-Insira um registro na tabela `user_roles` com o UUID do usuário que terá acesso administrativo:
+Insira um registro na tabela `user_roles` com o UUID do usuário administrador:
 
 ```sql
+-- Gerar um UUID para o admin
 INSERT INTO public.user_roles (user_id, role)
-VALUES ('<UUID_DO_USUARIO>', 'admin');
+VALUES (gen_random_uuid(), 'admin')
+RETURNING user_id;
 ```
 
-> **Alternativa:** Acesse `/admin` no catálogo e use o formulário de setup automático.
+Anote o `user_id` retornado — ele será usado para autenticação no painel administrativo.
 
 ---
 
@@ -259,13 +299,41 @@ O catálogo estará disponível em: **http://localhost:8080**
 
 ---
 
+## Comandos Úteis do PostgreSQL
+
+```bash
+# Conectar ao banco
+psql -U postgres -d catalogo
+
+# Listar tabelas
+\dt
+
+# Descrever uma tabela
+\d products
+
+# Contar produtos
+SELECT COUNT(*) FROM products;
+
+# Ver categorias
+SELECT * FROM categories;
+
+# Backup do banco
+pg_dump -U postgres catalogo > backup_catalogo.sql
+
+# Restaurar backup
+psql -U postgres catalogo < backup_catalogo.sql
+```
+
+---
+
 ## Solução de Problemas
 
 | Problema | Solução |
 |----------|---------|
-| `relation does not exist` | Execute os SQLs da seção 3.2 na ordem correta |
+| `relation does not exist` | Execute os SQLs da seção 3.3 na ordem correta |
+| `role "postgres" does not exist` | Crie o role: `createuser -s postgres` |
+| `connection refused` | Verifique se o PostgreSQL está rodando: `sudo systemctl status postgresql` |
 | Erro de permissão | Verifique se o usuário tem role `admin` em `user_roles` |
-| Login não funciona | Confirme as credenciais no `.env` |
 | Produtos não aparecem | Verifique se existem produtos com `active = true` |
 
 ---
@@ -276,4 +344,4 @@ O catálogo estará disponível em: **http://localhost:8080**
 npm run build
 ```
 
-Os arquivos gerados estarão na pasta `dist/` e podem ser hospedados em qualquer servidor estático.
+Os arquivos gerados estarão na pasta `dist/` e podem ser hospedados em qualquer servidor estático (Nginx, Apache, etc.).
