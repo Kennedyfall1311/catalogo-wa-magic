@@ -3,107 +3,11 @@ import { ImageIcon, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Parse CSV text that may contain quoted fields with embedded newlines (e.g. multiline base64).
- * Returns an array of objects keyed by header names.
- */
-function parseCSVWithQuotes(text: string): Record<string, string>[] {
-  const firstLineEnd = text.indexOf("\n");
-  const headerLine = text.substring(0, firstLineEnd === -1 ? undefined : firstLineEnd).replace(/\r$/, "");
-
-  const delimiters = [",", ";", "\t", "|"];
-  let delimiter = ",";
-  let maxCount = 0;
-  for (const d of delimiters) {
-    const count = headerLine.split(d).length - 1;
-    if (count > maxCount) { maxCount = count; delimiter = d; }
-  }
-
-  console.log("CSV: delimiter:", JSON.stringify(delimiter), "header:", headerLine);
-
-  const records: string[][] = [];
-  let currentRecord: string[] = [];
-  let currentField = "";
-  let inQuotes = false;
-  let i = 0;
-
-  while (i < text.length) {
-    const ch = text[i];
-
-    if (inQuotes) {
-      if (ch === '"') {
-        if (i + 1 < text.length && text[i + 1] === '"') {
-          currentField += '"';
-          i += 2;
-          continue;
-        }
-        inQuotes = false;
-        i++;
-        continue;
-      }
-      currentField += ch;
-      i++;
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-        i++;
-      } else if (ch === delimiter) {
-        currentRecord.push(currentField.trim());
-        currentField = "";
-        i++;
-      } else if (ch === "\r") {
-        i++;
-      } else if (ch === "\n") {
-        currentRecord.push(currentField.trim());
-        currentField = "";
-        if (currentRecord.some(f => f.length > 0)) {
-          records.push(currentRecord);
-        }
-        currentRecord = [];
-        i++;
-      } else {
-        currentField += ch;
-        i++;
-      }
-    }
-  }
-
-  if (currentField.length > 0 || currentRecord.length > 0) {
-    currentRecord.push(currentField.trim());
-    if (currentRecord.some(f => f.length > 0)) {
-      records.push(currentRecord);
-    }
-  }
-
-  console.log("CSV parser: total records (incl header):", records.length);
-  if (records.length > 0) {
-    console.log("CSV parser: header record:", JSON.stringify(records[0]));
-  }
-
-  if (records.length < 2) return [];
-
-  // Clean headers: remove surrounding quotes and trim
-  const headers = records[0].map(h => h.replace(/^"+|"+$/g, "").trim());
-  console.log("CSV parser: cleaned headers:", JSON.stringify(headers));
-
-  const rows: Record<string, string>[] = [];
-  for (let r = 1; r < records.length; r++) {
-    const row: Record<string, string> = {};
-    headers.forEach((h, idx) => {
-      row[h] = (records[r][idx] || "").replace(/^"+|"+$/g, "").trim();
-    });
-    rows.push(row);
-  }
-
-  return rows;
-}
-
 interface ImageImportProps {
   onComplete: () => void;
 }
 
 function base64ToBlob(base64: string): Blob {
-  // Remove data URI prefix if present
   const clean = base64.replace(/^data:image\/\w+;base64,/, "");
   const binary = atob(clean);
   const bytes = new Uint8Array(binary.length);
@@ -121,6 +25,195 @@ function detectExtension(base64: string): string {
   return "jpg";
 }
 
+/**
+ * Streaming CSV parser that reads a File in small chunks via ReadableStream.
+ * Handles quoted fields with embedded newlines (e.g. multiline base64).
+ * Yields one parsed record at a time to avoid loading entire file into memory.
+ */
+async function* streamCSVRecords(
+  file: File
+): AsyncGenerator<Record<string, string>> {
+  const CHUNK_SIZE = 4 * 1024 * 1024; // 4MB chunks
+  const decoder = new TextDecoder("utf-8");
+
+  let headers: string[] | null = null;
+  let delimiter = ",";
+  let currentField = "";
+  let currentRecord: string[] = [];
+  let inQuotes = false;
+  let leftover = "";
+
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+  for (let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++) {
+    const start = chunkIdx * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, file.size);
+    const blob = file.slice(start, end);
+    const buffer = await blob.arrayBuffer();
+    const chunkText = decoder.decode(buffer, { stream: chunkIdx < totalChunks - 1 });
+
+    // On first chunk, strip BOM
+    let text: string;
+    if (chunkIdx === 0) {
+      text = chunkText.charCodeAt(0) === 0xFEFF ? chunkText.slice(1) : chunkText;
+    } else {
+      text = chunkText;
+    }
+
+    // Prepend any leftover from previous chunk
+    text = leftover + text;
+    leftover = "";
+
+    let i = 0;
+    while (i < text.length) {
+      const ch = text[i];
+
+      if (inQuotes) {
+        if (ch === '"') {
+          if (i + 1 < text.length && text[i + 1] === '"') {
+            currentField += '"';
+            i += 2;
+            continue;
+          }
+          inQuotes = false;
+          i++;
+          continue;
+        }
+        currentField += ch;
+        i++;
+      } else {
+        if (ch === '"') {
+          inQuotes = true;
+          i++;
+        } else if (ch === delimiter) {
+          currentRecord.push(currentField.trim());
+          currentField = "";
+          i++;
+        } else if (ch === "\r") {
+          i++;
+        } else if (ch === "\n") {
+          currentRecord.push(currentField.trim());
+          currentField = "";
+
+          if (currentRecord.some(f => f.length > 0)) {
+            if (!headers) {
+              // First non-empty record = headers
+              // Detect delimiter from this line (re-parse if needed)
+              const rawLine = currentRecord.join(delimiter);
+              const delimiters = [",", ";", "\t", "|"];
+              let maxCount = 0;
+              for (const d of delimiters) {
+                const count = rawLine.split(d).length - 1;
+                if (count > maxCount) { maxCount = count; delimiter = d; }
+              }
+
+              headers = currentRecord.map(h => h.replace(/^"+|"+$/g, "").trim());
+              console.log("CSV stream: headers:", JSON.stringify(headers));
+            } else {
+              // Data record
+              const row: Record<string, string> = {};
+              headers.forEach((h, idx) => {
+                row[h] = (currentRecord[idx] || "").replace(/^"+|"+$/g, "").trim();
+              });
+              yield row;
+            }
+          }
+          currentRecord = [];
+          i++;
+        } else {
+          currentField += ch;
+          i++;
+        }
+      }
+    }
+
+    // If we're in the middle of a quoted field at end of chunk, save what we have
+    if (inQuotes) {
+      // The currentField and state carry over naturally
+      // But currentField content should not be re-processed
+      // leftover stays empty since state is in currentField/inQuotes
+    }
+    // If there's a partial unfinished record (not in quotes), it will be completed in next chunk
+  }
+
+  // Handle final record without trailing newline
+  if (currentField.length > 0 || currentRecord.length > 0) {
+    currentRecord.push(currentField.trim());
+    if (headers && currentRecord.some(f => f.length > 0)) {
+      const row: Record<string, string> = {};
+      headers.forEach((h, idx) => {
+        row[h] = (currentRecord[idx] || "").replace(/^"+|"+$/g, "").trim();
+      });
+      yield row;
+    }
+  }
+}
+
+const getField = (row: Record<string, string>, keys: string[]): string | undefined => {
+  for (const key of Object.keys(row)) {
+    const norm = key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    for (const k of keys) {
+      if (norm === k || norm.includes(k)) {
+        const val = row[key];
+        return val != null ? String(val).trim() : undefined;
+      }
+    }
+  }
+  return undefined;
+};
+
+async function processRow(
+  row: Record<string, string>,
+  rowNum: number
+): Promise<{ success: boolean; error?: string }> {
+  const code = getField(row, ["codigoproduto", "codigo_produto", "codigo", "code", "sku"]);
+  const imgBase64 = getField(row, ["imagem_base64", "imagem", "image_base64", "image", "base64"]);
+
+  if (!code || !imgBase64) {
+    return { success: false, error: `Linha ${rowNum}: código ou imagem ausente` };
+  }
+
+  const { data: products } = await supabase
+    .from("products")
+    .select("id")
+    .eq("code", code)
+    .limit(1);
+
+  if (!products || products.length === 0) {
+    return { success: false, error: `Linha ${rowNum}: produto com código "${code}" não encontrado` };
+  }
+
+  try {
+    const cleanBase64 = imgBase64.replace(/^data:image\/\w+;base64,/, "").replace(/\s/g, "");
+    const ext = detectExtension(cleanBase64);
+    const blob = base64ToBlob(cleanBase64);
+    const path = `${crypto.randomUUID()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(path, blob, { contentType: `image/${ext}` });
+
+    if (uploadError) {
+      return { success: false, error: `Linha ${rowNum}: erro no upload - ${uploadError.message}` };
+    }
+
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+
+    const { error: updateError } = await supabase
+      .from("products")
+      .update({ image_url: urlData.publicUrl })
+      .eq("id", products[0].id);
+
+    if (updateError) {
+      return { success: false, error: `Linha ${rowNum}: erro ao atualizar produto - ${updateError.message}` };
+    }
+
+    return { success: true };
+  } catch {
+    return { success: false, error: `Linha ${rowNum}: imagem base64 inválida` };
+  }
+}
+
 export function ImageImport({ onComplete }: ImageImportProps) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -135,50 +228,45 @@ export function ImageImport({ onComplete }: ImageImportProps) {
     setProgress({ current: 0, total: 0 });
 
     try {
-      const buffer = await file.arrayBuffer();
-      let rows: any[] = [];
-
       const isCSV = file.name.toLowerCase().endsWith(".csv");
+
       if (isCSV) {
-        const rawBytes = new Uint8Array(buffer);
-        console.log("CSV: file size bytes:", rawBytes.length);
-        console.log("CSV: first 20 bytes:", Array.from(rawBytes.slice(0, 20)).map(b => b.toString(16).padStart(2, '0')).join(' '));
+        // Stream-based processing for CSV (handles files of any size)
+        console.log("CSV stream: file size:", file.size, "bytes");
 
-        let text: string;
+        let updated = 0;
+        let skipped = 0;
+        let rowNum = 1;
+        const errors: string[] = [];
 
-        // Detect encoding from BOM or null-byte patterns
-        if (rawBytes[0] === 0xFF && rawBytes[1] === 0xFE) {
-          // UTF-16 LE BOM
-          text = new TextDecoder("utf-16le").decode(buffer.slice(2));
-          console.log("CSV: detected UTF-16LE (BOM)");
-        } else if (rawBytes[0] === 0xFE && rawBytes[1] === 0xFF) {
-          // UTF-16 BE BOM
-          text = new TextDecoder("utf-16be").decode(buffer.slice(2));
-          console.log("CSV: detected UTF-16BE (BOM)");
-        } else if (rawBytes.length > 2 && (rawBytes[1] === 0 || rawBytes[0] === 0)) {
-          // No BOM but null bytes suggest UTF-16
-          if (rawBytes[1] === 0) {
-            text = new TextDecoder("utf-16le").decode(buffer);
+        for await (const row of streamCSVRecords(file)) {
+          rowNum++;
+          const result = await processRow(row, rowNum);
+          if (result.success) {
+            updated++;
           } else {
-            text = new TextDecoder("utf-16be").decode(buffer);
+            if (result.error) errors.push(result.error);
+            skipped++;
           }
-          console.log("CSV: detected UTF-16 (no BOM, null byte pattern)");
-        } else {
-          text = new TextDecoder("utf-8").decode(buffer);
-          console.log("CSV: using UTF-8");
+          setProgress({ current: rowNum - 1, total: 0 }); // total unknown in streaming
         }
 
-        // Remove BOM if still present
-        if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-        // Remove leading blank lines
-        text = text.replace(/^(\s*\r?\n)+/, "");
-
-        console.log("CSV: text length:", text.length);
-        console.log("CSV: first 200 chars:", JSON.stringify(text.substring(0, 200)));
-
-        // Parse CSV properly handling quoted fields with embedded newlines
-        rows = parseCSVWithQuotes(text);
+        if (updated > 0) {
+          onComplete();
+          const warn = skipped > 0 ? ` (${skipped} linhas ignoradas)` : "";
+          setStatus("success");
+          setMessage(`${updated} imagens atualizadas com sucesso!${warn}`);
+        } else {
+          setStatus("error");
+          setMessage(
+            `Nenhuma imagem atualizada.\n${errors.slice(0, 5).join("\n")}${
+              errors.length > 5 ? `\n...e mais ${errors.length - 5} erros` : ""
+            }`
+          );
+        }
       } else {
+        // XLSX: use existing approach (XLSX files are typically small)
+        const buffer = await file.arrayBuffer();
         const wb = XLSX.read(buffer, { type: "array", codepage: 65001 });
         if (!wb.SheetNames.length) {
           setStatus("error");
@@ -186,123 +274,47 @@ export function ImageImport({ onComplete }: ImageImportProps) {
           return;
         }
         const ws = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json<any>(ws, { defval: "" });
-      }
+        const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: "" });
 
-      console.log("Image import: rows:", rows.length);
-      if (rows.length > 0) {
-        console.log("Image import: first row keys:", Object.keys(rows[0]));
-        console.log("Image import: first row value lengths:", Object.fromEntries(
-          Object.entries(rows[0]).map(([k, v]) => [k, String(v).length])
-        ));
-      }
-
-      if (!rows.length) {
-        setStatus("error");
-        setMessage("Arquivo vazio ou formato inválido. Verifique se a primeira linha contém os cabeçalhos.");
-        return;
-      }
-
-      // Identify columns
-      const getField = (row: any, keys: string[]): string | undefined => {
-        for (const key of Object.keys(row)) {
-          const norm = key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-          for (const k of keys) {
-            if (norm === k || norm.includes(k)) {
-              const val = row[key];
-              return val != null ? String(val).trim() : undefined;
-            }
-          }
-        }
-        return undefined;
-      };
-
-      const total = rows.length;
-      setProgress({ current: 0, total });
-      let updated = 0;
-      let skipped = 0;
-      const errors: string[] = [];
-
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const code = getField(row, ["codigoproduto", "codigo_produto", "codigo", "code", "sku"]);
-        const imgBase64 = getField(row, ["imagem_base64", "imagem", "image_base64", "image", "base64"]);
-
-        if (!code || !imgBase64) {
-          errors.push(`Linha ${i + 2}: código ou imagem ausente`);
-          skipped++;
-          setProgress({ current: i + 1, total });
-          continue;
+        if (!rows.length) {
+          setStatus("error");
+          setMessage("Arquivo vazio ou formato inválido.");
+          return;
         }
 
-        // Find product by code
-        const { data: products } = await supabase
-          .from("products")
-          .select("id")
-          .eq("code", code)
-          .limit(1);
+        const total = rows.length;
+        setProgress({ current: 0, total });
+        let updated = 0;
+        let skipped = 0;
+        const errors: string[] = [];
 
-        if (!products || products.length === 0) {
-          errors.push(`Linha ${i + 2}: produto com código "${code}" não encontrado`);
-          skipped++;
-          setProgress({ current: i + 1, total });
-          continue;
-        }
-
-        try {
-          // Clean and upload
-          const cleanBase64 = imgBase64.replace(/^data:image\/\w+;base64,/, "").replace(/\s/g, "");
-          const ext = detectExtension(cleanBase64);
-          const blob = base64ToBlob(cleanBase64);
-          const path = `${crypto.randomUUID()}.${ext}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from("product-images")
-            .upload(path, blob, { contentType: `image/${ext}` });
-
-          if (uploadError) {
-            errors.push(`Linha ${i + 2}: erro no upload - ${uploadError.message}`);
-            skipped++;
-            setProgress({ current: i + 1, total });
-            continue;
-          }
-
-          const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-
-          // Update product
-          const { error: updateError } = await supabase
-            .from("products")
-            .update({ image_url: urlData.publicUrl })
-            .eq("id", products[0].id);
-
-          if (updateError) {
-            errors.push(`Linha ${i + 2}: erro ao atualizar produto - ${updateError.message}`);
-            skipped++;
-          } else {
+        for (let i = 0; i < rows.length; i++) {
+          const result = await processRow(rows[i], i + 2);
+          if (result.success) {
             updated++;
+          } else {
+            if (result.error) errors.push(result.error);
+            skipped++;
           }
-        } catch {
-          errors.push(`Linha ${i + 2}: imagem base64 inválida`);
-          skipped++;
+          setProgress({ current: i + 1, total });
         }
 
-        setProgress({ current: i + 1, total });
+        if (updated > 0) {
+          onComplete();
+          const warn = skipped > 0 ? ` (${skipped} linhas ignoradas)` : "";
+          setStatus("success");
+          setMessage(`${updated} imagens atualizadas com sucesso!${warn}`);
+        } else {
+          setStatus("error");
+          setMessage(
+            `Nenhuma imagem atualizada.\n${errors.slice(0, 5).join("\n")}${
+              errors.length > 5 ? `\n...e mais ${errors.length - 5} erros` : ""
+            }`
+          );
+        }
       }
-
-      if (updated > 0) {
-        onComplete();
-        const warn = skipped > 0 ? ` (${skipped} linhas ignoradas)` : "";
-        setStatus("success");
-        setMessage(`${updated} imagens atualizadas com sucesso!${warn}`);
-      } else {
-        setStatus("error");
-        setMessage(
-          `Nenhuma imagem atualizada.\n${errors.slice(0, 5).join("\n")}${
-            errors.length > 5 ? `\n...e mais ${errors.length - 5} erros` : ""
-          }`
-        );
-      }
-    } catch {
+    } catch (err) {
+      console.error("Image import error:", err);
       setStatus("error");
       setMessage("Erro ao ler o arquivo. Verifique o formato.");
     }
@@ -353,16 +365,12 @@ export function ImageImport({ onComplete }: ImageImportProps) {
         </button>
       </div>
 
-      {status === "loading" && progress.total > 0 && (
+      {status === "loading" && (
         <div className="space-y-1">
-          <div className="w-full bg-muted rounded-full h-2">
-            <div
-              className="bg-primary h-2 rounded-full transition-all"
-              style={{ width: `${(progress.current / progress.total) * 100}%` }}
-            />
-          </div>
           <p className="text-xs text-muted-foreground">
-            {progress.current} / {progress.total} processados
+            {progress.total > 0
+              ? `${progress.current} / ${progress.total} processados`
+              : `${progress.current} processados...`}
           </p>
         </div>
       )}
