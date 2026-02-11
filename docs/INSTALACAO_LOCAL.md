@@ -53,19 +53,21 @@ brew services start postgresql@15
 ```
 
 **Windows:**
-Baixe o instalador em https://www.postgresql.org/download/windows/ e siga o assistente de instalação. Durante a instalação, defina a senha do usuário `postgres` e anote-a.
+Baixe o instalador em https://www.postgresql.org/download/windows/ e siga o assistente. Durante a instalação, defina a senha do usuário `postgres`.
 
 ### 3.2 — Configurar acesso e portas
 
-O PostgreSQL roda por padrão na porta **5432**. Para garantir que ele aceite conexões locais:
+O PostgreSQL roda na porta **5432** por padrão.
 
-**Linux — Verificar se está rodando e escutando:**
+**Verificar se está rodando:**
 ```bash
-# Verificar status
+# Linux
 sudo systemctl status postgresql
 
-# Verificar porta
-sudo ss -tlnp | grep 5432
+# macOS
+brew services list | grep postgresql
+
+# Windows — verificar no "Serviços" do Windows
 ```
 
 **Liberar porta no firewall (se necessário):**
@@ -77,25 +79,19 @@ sudo ufw allow 5432/tcp
 sudo firewall-cmd --add-port=5432/tcp --permanent
 sudo firewall-cmd --reload
 
-# Windows — abra o Firewall do Windows e crie regra de entrada para a porta 5432
+# Windows — crie regra de entrada para porta 5432 no Firewall do Windows
 ```
 
-**Configurar autenticação — arquivo `pg_hba.conf`:**
+**Configurar autenticação — `pg_hba.conf`:**
 
 Localize o arquivo:
 ```bash
-# Linux
-sudo find / -name pg_hba.conf 2>/dev/null
-# Geralmente em: /etc/postgresql/15/main/pg_hba.conf
-
-# macOS (Homebrew)
-# Geralmente em: /opt/homebrew/var/postgresql@15/pg_hba.conf
-
-# Windows
-# Geralmente em: C:\Program Files\PostgreSQL\15\data\pg_hba.conf
+# Linux: /etc/postgresql/15/main/pg_hba.conf
+# macOS: /opt/homebrew/var/postgresql@15/pg_hba.conf
+# Windows: C:\Program Files\PostgreSQL\15\data\pg_hba.conf
 ```
 
-Certifique-se de que as seguintes linhas existam para permitir conexão local com senha:
+Certifique-se de que estas linhas existam:
 ```
 # TYPE  DATABASE        USER            ADDRESS                 METHOD
 local   all             postgres                                md5
@@ -103,68 +99,57 @@ host    all             all             127.0.0.1/32            md5
 host    all             all             ::1/128                 md5
 ```
 
-**Configurar escuta — arquivo `postgresql.conf`:**
+**Configurar escuta — `postgresql.conf`:**
 
-No mesmo diretório do `pg_hba.conf`, edite o `postgresql.conf`:
+No mesmo diretório do `pg_hba.conf`:
 ```
-listen_addresses = 'localhost'   # ou '*' para aceitar conexões externas
+listen_addresses = 'localhost'
 port = 5432
 ```
 
-Após alterar qualquer configuração, reinicie o PostgreSQL:
+**Reiniciar após alterações:**
 ```bash
 # Linux
 sudo systemctl restart postgresql
 
 # macOS
 brew services restart postgresql@15
-
-# Windows — reinicie o serviço pelo "Serviços" do Windows
 ```
 
-**Definir senha do usuário postgres (se ainda não definiu):**
+**Definir senha do usuário postgres:**
 ```bash
 sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'sua_senha_aqui';"
 ```
 
-**Testar a conexão:**
+**Testar conexão:**
 ```bash
 psql -U postgres -h localhost -p 5432
-# Digite a senha quando solicitado
-# Se conectar com sucesso, você verá o prompt: postgres=#
+# Se conectar com sucesso: postgres=#
 ```
 
 ### 3.3 — Criar o banco de dados
 
 ```bash
-# Conectar ao PostgreSQL
 psql -U postgres -h localhost -p 5432
+```
 
-# Criar o banco
+```sql
 CREATE DATABASE catalogo;
-
-# Conectar ao banco criado
 \c catalogo
 ```
 
-### 3.3 — Criar as tabelas
+### 3.4 — Criar as tabelas
 
-Execute os SQLs abaixo na ordem apresentada dentro do banco `catalogo`:
+Execute dentro do banco `catalogo`:
 
 ```sql
--- ============================================
--- EXTENSÃO PARA GERAR UUIDs
--- ============================================
+-- Extensão para UUIDs
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- ============================================
--- ENUM DE ROLES
--- ============================================
+-- Enum de roles
 CREATE TYPE public.app_role AS ENUM ('admin');
 
--- ============================================
--- TABELA DE ROLES (permissões de usuário)
--- ============================================
+-- Tabela de roles
 CREATE TABLE public.user_roles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
@@ -173,9 +158,7 @@ CREATE TABLE public.user_roles (
   UNIQUE (user_id, role)
 );
 
--- ============================================
--- CATEGORIAS
--- ============================================
+-- Categorias
 CREATE TABLE public.categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -183,9 +166,7 @@ CREATE TABLE public.categories (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ============================================
--- PRODUTOS
--- ============================================
+-- Produtos
 CREATE TABLE public.products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -201,18 +182,14 @@ CREATE TABLE public.products (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ============================================
--- CONFIGURAÇÕES DA LOJA
--- ============================================
+-- Configurações da loja
 CREATE TABLE public.store_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   key TEXT NOT NULL UNIQUE,
   value TEXT NOT NULL DEFAULT ''
 );
 
--- ============================================
--- CONDIÇÕES DE PAGAMENTO
--- ============================================
+-- Condições de pagamento
 CREATE TABLE public.payment_conditions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -221,9 +198,7 @@ CREATE TABLE public.payment_conditions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ============================================
--- BANNERS (CARROSSEL)
--- ============================================
+-- Banners (carrossel)
 CREATE TABLE public.banners (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   image_url TEXT NOT NULL,
@@ -233,9 +208,7 @@ CREATE TABLE public.banners (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ============================================
--- FUNÇÃO: ATUALIZAR updated_at AUTOMATICAMENTE
--- ============================================
+-- Função: atualizar updated_at automaticamente
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -244,16 +217,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- ============================================
--- TRIGGER: ATUALIZAR updated_at EM PRODUCTS
--- ============================================
 CREATE TRIGGER update_products_updated_at
   BEFORE UPDATE ON public.products
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- ============================================
--- FUNÇÃO: VERIFICAR ROLE DO USUÁRIO
--- ============================================
+-- Função: verificar role do usuário
 CREATE OR REPLACE FUNCTION public.has_role(_user_id UUID, _role app_role)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -266,10 +234,9 @@ AS $$
 $$;
 ```
 
-### 3.4 — Inserir dados iniciais
+### 3.5 — Inserir dados iniciais
 
 ```sql
--- Configurações padrão da loja
 INSERT INTO public.store_settings (key, value) VALUES
   ('whatsapp_number', '5511999999999'),
   ('store_name', 'Catálogo'),
@@ -277,7 +244,6 @@ INSERT INTO public.store_settings (key, value) VALUES
   ('payment_conditions_enabled', 'false')
 ON CONFLICT (key) DO NOTHING;
 
--- Categorias padrão
 INSERT INTO public.categories (name, slug) VALUES
   ('Roupas', 'roupas'),
   ('Calçados', 'calcados'),
@@ -293,37 +259,56 @@ ON CONFLICT (slug) DO NOTHING;
 Crie o arquivo `.env` na raiz do projeto:
 
 ```env
-# Conexão com o banco de dados PostgreSQL
+# Modo de operação: "postgres" para PostgreSQL direto, ou deixe vazio para usar Supabase
+VITE_API_MODE=postgres
+
+# URL da API Express backend
+VITE_API_URL=http://localhost:3001/api
+
+# Conexão com o banco PostgreSQL (usado pelo servidor Express)
 DATABASE_URL=postgresql://postgres:sua_senha@localhost:5432/catalogo
-
-# Host e porta do banco
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=catalogo
-DB_USER=postgres
-DB_PASSWORD=sua_senha
 ```
 
-> **Importante:** Substitua `sua_senha` pela senha real do usuário `postgres` que você definiu na seção 3.2.
+> **Importante:** Substitua `sua_senha` pela senha real do usuário `postgres`.
 
 ---
 
-## 5. Criar o Primeiro Usuário Admin
+## 5. Rodar o Servidor Backend (Express)
 
-Insira um registro na tabela `user_roles` com o UUID do usuário administrador:
+O catálogo utiliza um servidor Express que conecta diretamente ao PostgreSQL.
 
-```sql
--- Gerar um UUID para o admin
-INSERT INTO public.user_roles (user_id, role)
-VALUES (gen_random_uuid(), 'admin')
-RETURNING user_id;
+```bash
+# Iniciar o servidor backend (porta 3001)
+npx tsx server/index.ts
 ```
 
-Anote o `user_id` retornado — ele será usado para autenticação no painel administrativo.
+O servidor ficará disponível em: **http://localhost:3001**
+
+Endpoints disponíveis:
+
+| Rota | Método | Descrição |
+|------|--------|-----------|
+| `/api/products` | GET | Listar produtos |
+| `/api/products` | POST | Criar produto |
+| `/api/products/:id` | PUT | Atualizar produto |
+| `/api/products/:id` | DELETE | Remover produto |
+| `/api/products/upsert` | POST | Upsert em lote |
+| `/api/categories` | GET/POST | Listar/criar categorias |
+| `/api/categories/:id` | PUT/DELETE | Atualizar/remover |
+| `/api/settings` | GET | Listar configurações |
+| `/api/settings/:key` | PUT | Atualizar configuração |
+| `/api/banners` | GET/POST | Listar/criar banners |
+| `/api/banners/:id` | PUT/DELETE | Atualizar/remover |
+| `/api/payment-conditions` | GET/POST | Condições de pagamento |
+| `/api/upload/image` | POST | Upload de imagem (multipart) |
+| `/api/upload/base64` | POST | Upload de imagem base64 |
+| `/api/health` | GET | Health check |
 
 ---
 
-## 6. Rodar o Projeto
+## 6. Rodar o Frontend
+
+Em outro terminal:
 
 ```bash
 npm run dev
@@ -336,10 +321,26 @@ O catálogo estará disponível em: **http://localhost:8080**
 | Rota | Descrição |
 |------|-----------|
 | `/` | Catálogo público |
-| `/admin` | Painel administrativo |
+| `/admin` | Painel administrativo (aberto, sem login) |
 | `/produto/:slug` | Detalhe do produto |
 | `/carrinho` | Carrinho de compras |
 | `/checkout` | Finalização do pedido |
+
+> **Nota:** No modo PostgreSQL, o painel admin é aberto (sem autenticação). Para protegê-lo em produção, configure um proxy reverso (Nginx) com autenticação básica.
+
+---
+
+## 7. Upload de Imagens
+
+No modo PostgreSQL, as imagens são salvas localmente na pasta `public/uploads/`. O servidor Express serve esses arquivos automaticamente.
+
+```
+public/
+  uploads/
+    abc123.jpg    ← imagens de produtos
+    banner-1.png  ← imagens de banners
+    logo-1.png    ← logo da loja
+```
 
 ---
 
@@ -388,6 +389,23 @@ O catálogo estará disponível em: **http://localhost:8080**
 
 ---
 
+## Arquitetura Dual Mode
+
+O catálogo suporta dois modos de operação:
+
+| | **Modo PostgreSQL** | **Modo Supabase** |
+|---|---|---|
+| Variável | `VITE_API_MODE=postgres` | (padrão, sem variável) |
+| Backend | Express.js local | Supabase Cloud |
+| Banco | PostgreSQL direto | PostgreSQL gerenciado |
+| Auth | Sem autenticação (admin aberto) | Supabase Auth (email/senha) |
+| Storage | Pasta `public/uploads/` | Supabase Storage |
+| Realtime | Polling (5s) | WebSocket nativo |
+
+Para alternar entre os modos, basta mudar a variável `VITE_API_MODE` no `.env`.
+
+---
+
 ## Comandos Úteis do PostgreSQL
 
 ```bash
@@ -403,9 +421,6 @@ psql -U postgres -d catalogo
 # Contar produtos
 SELECT COUNT(*) FROM products;
 
-# Ver categorias
-SELECT * FROM categories;
-
 # Backup do banco
 pg_dump -U postgres catalogo > backup_catalogo.sql
 
@@ -419,11 +434,13 @@ psql -U postgres catalogo < backup_catalogo.sql
 
 | Problema | Solução |
 |----------|---------|
-| `relation does not exist` | Execute os SQLs da seção 3.3 na ordem correta |
+| `relation does not exist` | Execute os SQLs da seção 3.4 na ordem correta |
 | `role "postgres" does not exist` | Crie o role: `createuser -s postgres` |
-| `connection refused` | Verifique se o PostgreSQL está rodando: `sudo systemctl status postgresql` |
-| Erro de permissão | Verifique se o usuário tem role `admin` em `user_roles` |
+| `connection refused` (PostgreSQL) | Verifique: `sudo systemctl status postgresql` |
+| `connection refused` (Express) | Verifique se o backend está rodando: `npx tsx server/index.ts` |
+| Imagens não aparecem | Verifique se a pasta `public/uploads/` existe |
 | Produtos não aparecem | Verifique se existem produtos com `active = true` |
+| CORS errors | O Express já inclui CORS. Verifique se `VITE_API_URL` aponta para o endereço correto |
 
 ---
 
@@ -433,4 +450,37 @@ psql -U postgres catalogo < backup_catalogo.sql
 npm run build
 ```
 
-Os arquivos gerados estarão na pasta `dist/` e podem ser hospedados em qualquer servidor estático (Nginx, Apache, etc.).
+Os arquivos do frontend estarão na pasta `dist/`. Para produção com PostgreSQL:
+
+1. Sirva a pasta `dist/` com Nginx ou outro servidor estático
+2. Rode o backend: `npx tsx server/index.ts`
+3. Configure um proxy reverso para `/api` apontar para o Express
+4. Configure variáveis de ambiente no servidor
+
+Exemplo de configuração Nginx:
+```nginx
+server {
+    listen 80;
+    server_name catalogo.exemplo.com;
+
+    # Frontend estático
+    root /var/www/catalogo/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Proxy para API Express
+    location /api/ {
+        proxy_pass http://localhost:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # Imagens uploadadas
+    location /uploads/ {
+        alias /var/www/catalogo/public/uploads/;
+    }
+}
+```

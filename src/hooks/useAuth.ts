@@ -1,62 +1,58 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { User, Session } from "@supabase/supabase-js";
+import { authApi } from "@/lib/api-client";
+import { isPostgresMode } from "@/lib/api-client";
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<any | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const checkAdminRole = useCallback(async (userId: string) => {
-    try {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .eq("role", "admin")
-        .maybeSingle();
-      return !!data;
-    } catch {
-      return false;
-    }
+    return authApi.checkAdmin(userId);
   }, []);
 
   useEffect(() => {
     let isMounted = true;
 
-    // Listener for ONGOING auth changes (does NOT control loading)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        if (!isMounted) return;
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
+    if (isPostgresMode()) {
+      // PostgreSQL mode: admin is always open
+      setUser({ id: "local-admin", email: "admin@local" });
+      setSession({});
+      setIsAdmin(true);
+      setLoading(false);
+      return;
+    }
 
-        if (newSession?.user) {
-          // Use setTimeout to avoid Supabase deadlock
-          setTimeout(() => {
-            if (!isMounted) return;
-            checkAdminRole(newSession.user.id).then((admin) => {
-              if (isMounted) setIsAdmin(admin);
-            });
-          }, 0);
-        } else {
-          setIsAdmin(false);
-        }
+    // Supabase mode: use auth state listener
+    const unsubscribe = authApi.onAuthStateChange((newUser, newSession) => {
+      if (!isMounted) return;
+      setSession(newSession);
+      setUser(newUser);
+
+      if (newUser) {
+        setTimeout(() => {
+          if (!isMounted) return;
+          checkAdminRole(newUser.id).then((admin) => {
+            if (isMounted) setIsAdmin(admin);
+          });
+        }, 0);
+      } else {
+        setIsAdmin(false);
       }
-    );
+    });
 
-    // INITIAL load (controls loading state)
+    // Initial load
     const initializeAuth = async () => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        const { user: currentUser, session: currentSession } = await authApi.getSession();
         if (!isMounted) return;
 
         setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        setUser(currentUser);
 
-        if (currentSession?.user) {
-          const admin = await checkAdminRole(currentSession.user.id);
+        if (currentUser) {
+          const admin = await checkAdminRole(currentUser.id);
           if (isMounted) setIsAdmin(admin);
         }
       } finally {
@@ -68,26 +64,23 @@ export function useAuth() {
 
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, [checkAdminRole]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    return authApi.signIn(email, password);
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: window.location.origin },
-    });
-    return { error };
+    return authApi.signUp(email, password);
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await authApi.signOut();
+    if (isPostgresMode()) {
+      // No-op in postgres mode
+    }
   };
 
   return { user, isAdmin, loading, signIn, signUp, signOut };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Settings, Upload, Image, Store, Palette, Building2, Truck, ShoppingCart, Share2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { storageApi } from "@/lib/api-client";
 import { PaymentConditionsManager } from "./PaymentConditionsManager";
 import { BannerManager } from "./BannerManager";
 import { Switch } from "@/components/ui/switch";
@@ -112,19 +112,11 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `logo-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("product-images").upload(path, file);
-    if (!error) {
-      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-      setLogoUrl(data.publicUrl);
-    }
+    const { url } = await storageApi.uploadFile(file);
+    if (url) setLogoUrl(url);
     setUploading(false);
     if (fileRef.current) fileRef.current.value = "";
   };
-
-
-
 
   const handleSave = async () => {
     setSaving(true);

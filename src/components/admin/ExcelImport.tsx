@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { FileSpreadsheet, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { categoriesApi } from "@/lib/api-client";
 import type { DbCategory } from "@/hooks/useDbProducts";
 import type { TablesInsert } from "@/integrations/supabase/types";
 
@@ -80,19 +80,11 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<any>(ws, { defval: "" });
 
-      console.log("Excel import: sheets found:", wb.SheetNames, "rows:", rows.length);
-      if (rows.length > 0) {
-        console.log("Excel import: first row keys:", Object.keys(rows[0]));
-        console.log("Excel import: first row sample:", JSON.stringify(rows[0]).slice(0, 500));
-      }
-
       if (!rows.length) {
         setStatus("error");
         setMessage("Arquivo vazio ou formato inválido. Verifique se a primeira linha contém os cabeçalhos.");
         return;
       }
-
-
 
       // Collect unique category names from import
       const catNames = new Set<string>();
@@ -100,7 +92,6 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         const cat = getField(row, ["categoria", "category", "categorias"]);
         if (cat) catNames.add(cat);
       });
-      console.log("Categories found in file:", [...catNames]);
 
       // Create missing categories
       let allCategories = [...categories];
@@ -115,8 +106,7 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         });
 
         if (newCats.length > 0) {
-          const { data: inserted, error: catError } = await supabase.from("categories").insert(newCats).select();
-          console.log("Category insert result:", { inserted, catError, newCats });
+          const { data: inserted, error: catError } = await categoriesApi.insertBatch(newCats);
           if (catError) {
             setStatus("error");
             setMessage(`Erro ao criar categorias: ${catError.message}`);
@@ -187,7 +177,6 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         }
         imported += batch.length;
         setMessage(`${imported} / ${products.length} produtos importados...`);
-        // Yield to UI thread between batches
         await new Promise(resolve => setTimeout(resolve, 50));
       }
 

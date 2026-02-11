@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { ImageIcon, Upload, Trash2, GripVertical } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { storageApi } from "@/lib/api-client";
 import { useBanners } from "@/hooks/useBanners";
 import { Switch } from "@/components/ui/switch";
 
@@ -13,12 +13,9 @@ export function BannerManager() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `banner-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("product-images").upload(path, file);
-    if (!error) {
-      const { data } = supabase.storage.from("product-images").getPublicUrl(path);
-      await addBanner(data.publicUrl);
+    const { url } = await storageApi.uploadFile(file);
+    if (url) {
+      await addBanner(url);
     }
     setUploading(false);
     if (fileRef.current) fileRef.current.value = "";
