@@ -1,18 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, LogOut } from "lucide-react";
+import { ArrowLeft, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDbProducts } from "@/hooks/useDbProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { ProductForm } from "@/components/admin/ProductForm";
-import { ProductList } from "@/components/admin/ProductList";
+import { ProductManager } from "@/components/admin/ProductManager";
 import { ExcelImport } from "@/components/admin/ExcelImport";
 import { ImageImport } from "@/components/admin/ImageImport";
 import { SettingsPanel } from "@/components/admin/SettingsPanel";
 import { CategoryManager } from "@/components/admin/CategoryManager";
 import { IntegrationPanel } from "@/components/admin/IntegrationPanel";
-import { ProductsWithoutPhoto } from "@/components/admin/ProductsWithoutPhoto";
 import type { DbProduct } from "@/hooks/useDbProducts";
 
 export default function Admin() {
@@ -21,7 +20,7 @@ export default function Admin() {
   const { settings, updateSetting } = useStoreSettings();
   const [editing, setEditing] = useState<DbProduct | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [tab, setTab] = useState<"products" | "categories" | "import" | "settings" | "integration" | "no-photo">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "import" | "settings" | "integration">("products");
 
   if (authLoading) {
     return (
@@ -63,7 +62,6 @@ export default function Admin() {
   const tabs = [
     { key: "products", label: "Produtos" },
     { key: "categories", label: "Categorias" },
-    { key: "no-photo", label: "Sem Foto" },
     { key: "import", label: "Importar" },
     { key: "settings", label: "Config" },
     { key: "integration", label: "ERP" },
@@ -86,13 +84,12 @@ export default function Admin() {
       </header>
 
       <div className="container max-w-3xl">
-        {/* Tabs */}
-        <div className="flex border-b mt-2">
+        <div className="flex border-b mt-2 overflow-x-auto">
           {tabs.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+              className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
                 tab === t.key
                   ? "border-primary text-foreground"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -105,48 +102,32 @@ export default function Admin() {
 
         <main className="py-6 space-y-4">
           {tab === "products" && (
-            <>
-              <div className="flex items-center justify-between">
-                <h1 className="text-xl font-bold">{products.length} Produtos</h1>
-                <button
-                  onClick={() => { setEditing(null); setShowForm(true); }}
-                  className="flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
-                >
-                  <Plus className="h-4 w-4" /> Novo
-                </button>
-              </div>
-
-              {showForm && (
-                <ProductForm
-                  product={editing}
-                  categories={categories}
-                  onSave={handleSave}
-                  onCancel={() => { setShowForm(false); setEditing(null); }}
-                  onUploadImage={uploadImage}
-                />
-              )}
-
-              {loading ? (
-                <p className="text-center text-muted-foreground py-8">Carregando...</p>
-              ) : (
-                <ProductList
-                  products={products}
-                  categories={categories}
-                  onEdit={(p) => { setEditing(p); setShowForm(true); }}
-                  onDelete={removeProduct}
-                  onToggleActive={toggleActive}
-                />
-              )}
-            </>
-          )}
-
-          {tab === "no-photo" && (
-            <ProductsWithoutPhoto
-              products={products}
-              categories={categories}
-              onUploadImage={uploadImage}
-              onUpdateProduct={updateProduct}
-            />
+            loading ? (
+              <p className="text-center text-muted-foreground py-8">Carregando...</p>
+            ) : (
+              <ProductManager
+                products={products}
+                categories={categories}
+                onEdit={(p) => { setEditing(p); setShowForm(true); }}
+                onDelete={removeProduct}
+                onToggleActive={toggleActive}
+                onUploadImage={uploadImage}
+                onUpdateProduct={updateProduct}
+                onAddNew={() => { setEditing(null); setShowForm(true); }}
+                showForm={showForm}
+                formSlot={
+                  showForm ? (
+                    <ProductForm
+                      product={editing}
+                      categories={categories}
+                      onSave={handleSave}
+                      onCancel={() => { setShowForm(false); setEditing(null); }}
+                      onUploadImage={uploadImage}
+                    />
+                  ) : undefined
+                }
+              />
+            )
           )}
 
           {tab === "categories" && (
@@ -156,7 +137,7 @@ export default function Admin() {
           {tab === "import" && (
             <div className="space-y-4">
               <ExcelImport categories={categories} onImport={upsertProducts} onRefreshCategories={refetchCategories} />
-              <ImageImport onComplete={() => { /* refetch handled by realtime */ }} />
+              <ImageImport onComplete={() => {}} />
             </div>
           )}
 
