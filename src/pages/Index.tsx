@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { CatalogHeader } from "@/components/CatalogHeader";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { ProductCard } from "@/components/ProductCard";
@@ -16,6 +16,8 @@ const Index = () => {
   const { activeBanners } = useBanners();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const PAGE_SIZE = 40;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const categoryOptions = useMemo(() =>
     categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
@@ -28,6 +30,20 @@ const Index = () => {
       .filter((p) => !category || p.category_id === category)
       .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
   }, [products, search, category]);
+
+  // Reset visible count when filters change
+  const handleCategoryChange = useCallback((cat: string | null) => {
+    setCategory(cat);
+    setVisibleCount(PAGE_SIZE);
+  }, []);
+
+  const handleSearchChange = useCallback((q: string) => {
+    setSearch(q);
+    setVisibleCount(PAGE_SIZE);
+  }, []);
+
+  const visibleProducts = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = visibleCount < filtered.length;
 
   const categoryLabel = category
     ? categories.find((c) => c.id === category)?.name ?? "GERAL"
@@ -66,9 +82,9 @@ const Index = () => {
           <CategoryFilter
             categories={categoryOptions}
             selected={category}
-            onSelect={setCategory}
+            onSelect={handleCategoryChange}
             searchQuery={search}
-            onSearchChange={setSearch}
+            onSearchChange={handleSearchChange}
           />
 
           <h2 className="text-center text-lg font-bold uppercase tracking-wide">
@@ -85,11 +101,23 @@ const Index = () => {
               <p className="text-sm mt-1">Tente outra busca ou categoria</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 border-t border-l">
-              {filtered.map((product, i) => (
-                <ProductCard key={product.id} product={product} index={i} whatsappNumber={whatsappNumber} buttonColor={settings.button_color} textColor={settings.text_color} priceColor={settings.price_color} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 border-t border-l">
+                {visibleProducts.map((product, i) => (
+                  <ProductCard key={product.id} product={product} index={i} whatsappNumber={whatsappNumber} buttonColor={settings.button_color} textColor={settings.text_color} priceColor={settings.price_color} />
+                ))}
+              </div>
+              {hasMore && (
+                <div className="flex justify-center pt-4 pb-2">
+                  <button
+                    onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                    className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
+                  >
+                    Carregar mais produtos ({filtered.length - visibleCount} restantes)
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
