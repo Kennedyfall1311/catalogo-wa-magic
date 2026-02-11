@@ -12,6 +12,7 @@ import { ImageImport } from "@/components/admin/ImageImport";
 import { SettingsPanel } from "@/components/admin/SettingsPanel";
 import { CategoryManager } from "@/components/admin/CategoryManager";
 import { IntegrationPanel } from "@/components/admin/IntegrationPanel";
+import { ProductsWithoutPhoto } from "@/components/admin/ProductsWithoutPhoto";
 import type { DbProduct } from "@/hooks/useDbProducts";
 
 export default function Admin() {
@@ -20,7 +21,7 @@ export default function Admin() {
   const { settings, updateSetting } = useStoreSettings();
   const [editing, setEditing] = useState<DbProduct | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [tab, setTab] = useState<"products" | "categories" | "import" | "settings" | "integration">("products");
+  const [tab, setTab] = useState<"products" | "categories" | "import" | "settings" | "integration" | "no-photo">("products");
 
   if (authLoading) {
     return (
@@ -62,6 +63,7 @@ export default function Admin() {
   const tabs = [
     { key: "products", label: "Produtos" },
     { key: "categories", label: "Categorias" },
+    { key: "no-photo", label: "Sem Foto" },
     { key: "import", label: "Importar" },
     { key: "settings", label: "Config" },
     { key: "integration", label: "ERP" },
@@ -136,6 +138,15 @@ export default function Admin() {
                 />
               )}
             </>
+          )}
+
+          {tab === "no-photo" && (
+            <ProductsWithoutPhoto
+              products={products}
+              categories={categories}
+              onUploadImage={uploadImage}
+              onUpdateProduct={updateProduct}
+            />
           )}
 
           {tab === "categories" && (
