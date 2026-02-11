@@ -231,6 +231,8 @@ export type Database = {
           original_price: number | null
           price: number
           quantity: number | null
+          quick_filter_1: boolean
+          quick_filter_2: boolean
           reference: string | null
           slug: string
           unit_of_measure: string | null
@@ -251,6 +253,8 @@ export type Database = {
           original_price?: number | null
           price: number
           quantity?: number | null
+          quick_filter_1?: boolean
+          quick_filter_2?: boolean
           reference?: string | null
           slug: string
           unit_of_measure?: string | null
@@ -271,6 +275,8 @@ export type Database = {
           original_price?: number | null
           price?: number
           quantity?: number | null
+          quick_filter_1?: boolean
+          quick_filter_2?: boolean
           reference?: string | null
           slug?: string
           unit_of_measure?: string | null
