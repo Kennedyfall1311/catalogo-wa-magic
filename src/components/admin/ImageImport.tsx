@@ -75,14 +75,22 @@ function parseCSVWithQuotes(text: string): Record<string, string>[] {
     }
   }
 
+  console.log("CSV parser: total records (incl header):", records.length);
+  if (records.length > 0) {
+    console.log("CSV parser: header record:", JSON.stringify(records[0]));
+  }
+
   if (records.length < 2) return [];
 
-  const headers = records[0];
+  // Clean headers: remove surrounding quotes and trim
+  const headers = records[0].map(h => h.replace(/^"+|"+$/g, "").trim());
+  console.log("CSV parser: cleaned headers:", JSON.stringify(headers));
+
   const rows: Record<string, string>[] = [];
   for (let r = 1; r < records.length; r++) {
     const row: Record<string, string> = {};
     headers.forEach((h, idx) => {
-      row[h] = records[r][idx] || "";
+      row[h] = (records[r][idx] || "").replace(/^"+|"+$/g, "").trim();
     });
     rows.push(row);
   }
