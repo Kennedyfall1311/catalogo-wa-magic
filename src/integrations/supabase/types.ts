@@ -95,10 +95,14 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          manufacturer_code: string | null
           name: string
           original_price: number | null
           price: number
+          quantity: number | null
+          reference: string | null
           slug: string
+          unit_of_measure: string | null
           updated_at: string
         }
         Insert: {
@@ -109,10 +113,14 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          manufacturer_code?: string | null
           name: string
           original_price?: number | null
           price: number
+          quantity?: number | null
+          reference?: string | null
           slug: string
+          unit_of_measure?: string | null
           updated_at?: string
         }
         Update: {
@@ -123,10 +131,14 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          manufacturer_code?: string | null
           name?: string
           original_price?: number | null
           price?: number
+          quantity?: number | null
+          reference?: string | null
           slug?: string
+          unit_of_measure?: string | null
           updated_at?: string
         }
         Relationships: [

@@ -67,7 +67,21 @@ export default function ProductDetail() {
               {product.code && (
                 <p className="text-sm text-muted-foreground mt-1">Código: {product.code}</p>
               )}
-              <p className="mt-2 text-muted-foreground">{product.description}</p>
+              {settings.catalog_show_description === "true" && product.description && (
+                <p className="mt-2 text-muted-foreground">{product.description}</p>
+              )}
+              {settings.catalog_show_reference === "true" && (product as any).reference && (
+                <p className="text-sm text-muted-foreground">Referência: {(product as any).reference}</p>
+              )}
+              {settings.catalog_show_manufacturer_code === "true" && (product as any).manufacturer_code && (
+                <p className="text-sm text-muted-foreground">Cód. Fabricante: {(product as any).manufacturer_code}</p>
+              )}
+              {settings.catalog_show_unit_of_measure === "true" && (product as any).unit_of_measure && (
+                <p className="text-sm text-muted-foreground">Unidade: {(product as any).unit_of_measure}</p>
+              )}
+              {settings.catalog_show_quantity === "true" && (product as any).quantity != null && (
+                <p className="text-sm text-muted-foreground">Quantidade: {(product as any).quantity}</p>
+              )}
 
               <div className="mt-4">
                 {hasDiscount && (
