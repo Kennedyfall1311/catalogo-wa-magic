@@ -1,4 +1,12 @@
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Tag } from "lucide-react";
+
+interface QuickFilterButton {
+  key: string;
+  label: string;
+  visible: boolean;
+  bgColor: string;
+  textColor: string;
+}
 
 interface CategoryOption {
   id: string;
@@ -12,9 +20,14 @@ interface CategoryFilterProps {
   onSelect: (id: string | null) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
+  quickFilters?: QuickFilterButton[];
+  activeQuickFilter?: string | null;
+  onQuickFilterChange?: (key: string | null) => void;
 }
 
-export function CategoryFilter({ categories, selected, onSelect, searchQuery, onSearchChange }: CategoryFilterProps) {
+export function CategoryFilter({ categories, selected, onSelect, searchQuery, onSearchChange, quickFilters, activeQuickFilter, onQuickFilterChange }: CategoryFilterProps) {
+  const visibleFilters = quickFilters?.filter((f) => f.visible) || [];
+
   return (
     <div className="flex flex-col sm:flex-row gap-2">
       <div className="relative flex-1">
@@ -27,6 +40,29 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
           className="w-full rounded-lg border bg-card pl-9 pr-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
+
+      {visibleFilters.length > 0 && (
+        <div className="flex gap-1.5">
+          {visibleFilters.map((filter) => {
+            const isActive = activeQuickFilter === filter.key;
+            return (
+              <button
+                key={filter.key}
+                onClick={() => onQuickFilterChange?.(isActive ? null : filter.key)}
+                className="shrink-0 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap"
+                style={{
+                  backgroundColor: isActive ? filter.bgColor : "transparent",
+                  color: isActive ? filter.textColor : filter.bgColor,
+                  borderColor: filter.bgColor,
+                }}
+              >
+                <Tag className="h-3.5 w-3.5" />
+                {filter.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="relative">
         <select
