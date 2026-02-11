@@ -239,6 +239,23 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
           </div>
           <Switch checked={hideNoPhoto} onCheckedChange={(val) => onUpdate("hide_products_without_photo", val ? "true" : "false")} />
         </div>
+
+        <p className="text-xs font-medium text-muted-foreground pt-2">Campos visíveis no catálogo</p>
+        {[
+          { key: "catalog_show_description", label: "Descrição" },
+          { key: "catalog_show_reference", label: "Referência" },
+          { key: "catalog_show_manufacturer_code", label: "Código do Fabricante" },
+          { key: "catalog_show_unit_of_measure", label: "Unidade de Medida" },
+          { key: "catalog_show_quantity", label: "Quantidade" },
+        ].map((item) => (
+          <div key={item.key} className="flex items-center justify-between">
+            <p className="text-sm">{item.label}</p>
+            <Switch
+              checked={settings[item.key] === "true"}
+              onCheckedChange={(val) => onUpdate(item.key, val ? "true" : "false")}
+            />
+          </div>
+        ))}
       </div>
 
       <div className="rounded-lg border bg-card p-4 space-y-4">

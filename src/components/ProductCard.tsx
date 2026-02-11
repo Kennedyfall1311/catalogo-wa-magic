@@ -11,9 +11,10 @@ interface ProductCardProps {
   buttonColor?: string;
   textColor?: string;
   priceColor?: string;
+  catalogSettings?: Record<string, string>;
 }
 
-export function ProductCard({ product, index, whatsappNumber, buttonColor, textColor, priceColor }: ProductCardProps) {
+export function ProductCard({ product, index, whatsappNumber, buttonColor, textColor, priceColor, catalogSettings = {} }: ProductCardProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const hasDiscount = product.original_price && product.original_price > product.price;
 
@@ -60,6 +61,21 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
           <p className="text-sm font-bold" style={priceColor ? { color: priceColor } : undefined}>
             R$ {Number(product.price).toFixed(2).replace(".", ",")}
           </p>
+          {catalogSettings.catalog_show_description === "true" && product.description && (
+            <p className="text-[10px] text-muted-foreground line-clamp-2">{product.description}</p>
+          )}
+          {catalogSettings.catalog_show_reference === "true" && (product as any).reference && (
+            <p className="text-[10px] text-muted-foreground">Ref: {(product as any).reference}</p>
+          )}
+          {catalogSettings.catalog_show_manufacturer_code === "true" && (product as any).manufacturer_code && (
+            <p className="text-[10px] text-muted-foreground">Fab: {(product as any).manufacturer_code}</p>
+          )}
+          {catalogSettings.catalog_show_unit_of_measure === "true" && (product as any).unit_of_measure && (
+            <p className="text-[10px] text-muted-foreground">Un: {(product as any).unit_of_measure}</p>
+          )}
+          {catalogSettings.catalog_show_quantity === "true" && (product as any).quantity != null && (
+            <p className="text-[10px] text-muted-foreground">Qtd: {(product as any).quantity}</p>
+          )}
           <button
             onClick={() => setDialogOpen(true)}
             className={`mt-1 flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${buttonColor ? 'text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}

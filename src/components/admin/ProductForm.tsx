@@ -24,6 +24,10 @@ export function ProductForm({ product, categories, onSave, onCancel, onUploadIma
     image_url: product?.image_url ?? "",
     category_id: product?.category_id ?? "",
     active: product?.active ?? true,
+    reference: (product as any)?.reference ?? "",
+    manufacturer_code: (product as any)?.manufacturer_code ?? "",
+    unit_of_measure: (product as any)?.unit_of_measure ?? "",
+    quantity: (product as any)?.quantity ? String((product as any).quantity) : "",
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -51,6 +55,10 @@ export function ProductForm({ product, categories, onSave, onCancel, onUploadIma
       image_url: form.image_url || "/placeholder.svg",
       category_id: form.category_id || null,
       active: form.active,
+      reference: form.reference || null,
+      manufacturer_code: form.manufacturer_code || null,
+      unit_of_measure: form.unit_of_measure || null,
+      quantity: form.quantity ? parseFloat(form.quantity) : null,
     });
     setSaving(false);
   };
@@ -118,6 +126,37 @@ export function ProductForm({ product, categories, onSave, onCancel, onUploadIma
           value={form.image_url}
           onChange={(e) => setForm({ ...form, image_url: e.target.value })}
           className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+      </div>
+
+      <input
+        placeholder="Referência"
+        value={form.reference}
+        onChange={(e) => setForm({ ...form, reference: e.target.value })}
+        className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+      />
+
+      <input
+        placeholder="Código do fabricante"
+        value={form.manufacturer_code}
+        onChange={(e) => setForm({ ...form, manufacturer_code: e.target.value })}
+        className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+      />
+
+      <div className="grid grid-cols-2 gap-3">
+        <input
+          placeholder="Unidade de medida"
+          value={form.unit_of_measure}
+          onChange={(e) => setForm({ ...form, unit_of_measure: e.target.value })}
+          className="rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+        <input
+          placeholder="Quantidade"
+          type="number"
+          step="0.01"
+          value={form.quantity}
+          onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+          className="rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
