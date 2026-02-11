@@ -41,13 +41,23 @@ export function ImageImport({ onComplete }: ImageImportProps) {
 
     try {
       const buffer = await file.arrayBuffer();
-      const wb = XLSX.read(buffer);
+      const wb = XLSX.read(buffer, { type: "array", codepage: 65001 });
+      if (!wb.SheetNames.length) {
+        setStatus("error");
+        setMessage("Arquivo vazio ou sem planilhas.");
+        return;
+      }
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<any>(ws);
+      const rows = XLSX.utils.sheet_to_json<any>(ws, { defval: "" });
+
+      console.log("Image import: sheets:", wb.SheetNames, "rows:", rows.length);
+      if (rows.length > 0) {
+        console.log("Image import: first row keys:", Object.keys(rows[0]));
+      }
 
       if (!rows.length) {
         setStatus("error");
-        setMessage("Arquivo vazio ou formato inválido.");
+        setMessage("Arquivo vazio ou formato inválido. Verifique se a primeira linha contém os cabeçalhos.");
         return;
       }
 
