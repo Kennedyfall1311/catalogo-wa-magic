@@ -31,6 +31,10 @@ export function BannerManager() {
       <p className="text-xs text-muted-foreground">
         Adicione múltiplas imagens para exibir em carrossel no topo do catálogo.
       </p>
+      <div className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground space-y-0.5">
+        <p className="font-medium">📐 Tamanho recomendado do banner:</p>
+        <p>1920 × 400 px (proporção 5:1) · Formato WebP ou JPG · Máx. 500 KB</p>
+      </div>
 
       {/* Banner list */}
       <div className="space-y-3">
