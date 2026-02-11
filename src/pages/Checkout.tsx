@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, MessageCircle, AlertCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, MessageCircle, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +18,8 @@ interface CustomerData {
 }
 
 export default function Checkout() {
-  const { items, totalPrice } = useCart();
+  const navigate = useNavigate();
+  const { items, totalPrice, clearCart } = useCart();
   const { settings } = useStoreSettings();
   const { conditions } = usePaymentConditions();
   const whatsappNumber = settings.whatsapp_number || "5511999999999";
@@ -37,6 +38,43 @@ export default function Checkout() {
 
   const [selectedPayment, setSelectedPayment] = useState("");
   const [data, setData] = useState<CustomerData>({ name: "", phone: "", cpfCnpj: "", notes: "" });
+  const [submitted, setSubmitted] = useState(false);
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
+          <div className="container flex h-14 items-center gap-3">
+            <Link to="/" className="rounded-full p-2 hover:bg-muted transition-colors">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <span className="text-sm font-medium">Pedido Enviado</span>
+          </div>
+        </header>
+        <main className="flex-1 container max-w-md py-16 text-center space-y-5">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+            <CheckCircle2 className="h-8 w-8 text-green-600" />
+          </div>
+          <h1 className="text-xl font-bold">Pedido enviado com sucesso! 🎉</h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Uma janela do WhatsApp foi aberta com o resumo do seu pedido.
+            <br /><br />
+            <strong>Importante:</strong> Envie a mensagem no WhatsApp para que o vendedor receba seu pedido. 
+            Caso a janela não tenha aberto, clique no botão abaixo.
+          </p>
+          <div className="space-y-3 pt-2">
+            <button
+              onClick={() => navigate("/")}
+              className="w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
+            >
+              Voltar ao Catálogo
+            </button>
+          </div>
+        </main>
+        <CatalogFooter storeName={settings.store_name} footerColor={settings.footer_color} />
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -111,22 +149,52 @@ export default function Checkout() {
     }));
     await ordersApi.create(order, orderItems);
 
-    const paymentInfo = selectedPayment ? `\n*Pagamento:* ${selectedPayment}` : "";
-    const shippingInfo = shippingEnabled && shippingFee > 0 ? `\n*Frete:* R$ ${formatBRL(shippingFee)}` : "";
-    const customerInfo = `*Cliente:* ${data.name}\n*WhatsApp:* ${data.phone}${data.cpfCnpj ? `\n*CPF/CNPJ:* ${data.cpfCnpj}` : ""}${paymentInfo}${data.notes ? `\n*Observações:* ${data.notes}` : ""}`;
+    // Build formatted WhatsApp message
+    const storeName = settings.store_name || "Catálogo";
+    const line = "━━━━━━━━━━━━━━━━━━━━";
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("pt-BR");
+    const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-    const itemsList = items
-      .map(
-        (i) =>
-          `• ${i.quantity}x ${i.product.name} (Cód: ${i.product.code || "N/A"}) - R$ ${formatBRL(Number(i.product.price) * i.quantity)}`
-      )
-      .join("\n");
+    const itemLines = items.map((i, idx) => {
+      const subtotal = Number(i.product.price) * i.quantity;
+      return `${idx + 1}. *${i.product.name}*\n   Cód: ${i.product.code || "N/A"} | Qtd: ${i.quantity}\n   Valor: R$ ${formatBRL(subtotal)}`;
+    }).join("\n\n");
 
-    const message = encodeURIComponent(
-      `Olá, gostaria de fazer o pedido:\n\n${customerInfo}\n\n${itemsList}${shippingInfo}\n\n*Total: R$ ${formatBRL(finalTotal)}*`
-    );
+    let totalsSection = `📦 *Subtotal:* R$ ${formatBRL(totalPrice)}`;
+    if (shippingEnabled && shippingFee > 0) {
+      totalsSection += `\n🚚 *Frete:* R$ ${formatBRL(shippingFee)}`;
+    }
+    totalsSection += `\n💰 *TOTAL: R$ ${formatBRL(finalTotal)}*`;
 
+    const paymentLine = selectedPayment ? `\n💳 *Pagamento:* ${selectedPayment}` : "";
+    const notesLine = data.notes ? `\n📝 *Obs:* ${data.notes}` : "";
+
+    const msg = [
+      `🛒 *PEDIDO — ${storeName}*`,
+      `📅 ${dateStr} às ${timeStr}`,
+      line,
+      `👤 *Cliente:* ${data.name}`,
+      `📱 *WhatsApp:* ${data.phone}`,
+      data.cpfCnpj ? `🪪 *CPF/CNPJ:* ${data.cpfCnpj}` : "",
+      line,
+      `*ITENS DO PEDIDO:*`,
+      "",
+      itemLines,
+      "",
+      line,
+      totalsSection,
+      paymentLine,
+      notesLine,
+      line,
+      `_Pedido gerado pelo ${storeName}_`,
+    ].filter(Boolean).join("\n");
+
+    const message = encodeURIComponent(msg);
     window.open(`https://wa.me/${whatsappNumber}?text=${message}`, "_blank");
+
+    clearCart();
+    setSubmitted(true);
   };
 
   return (

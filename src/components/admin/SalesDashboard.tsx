@@ -37,28 +37,68 @@ function OrderRow({ order, onFetchItems }: { order: Order; onFetchItems: (id: st
       printItems = await onFetchItems(order.id);
       setItems(printItems);
     }
-    const itemsHtml = printItems.map((i) =>
-      `<div class="row"><span>${i.quantity}x ${i.product_name}${i.product_code ? ` (${i.product_code})` : ""}</span><span class="bold">${formatBRL(i.total_price)}</span></div>`
-    ).join("");
-    const shippingHtml = order.shipping_fee > 0 ? `<div class="divider"></div><div class="row"><span>Frete</span><span>${formatBRL(order.shipping_fee)}</span></div>` : "";
 
-    const win = window.open("", "_blank", "width=400,height=600");
+    const storeName = "Catálogo";
+    const itemsHtml = printItems.map((i, idx) =>
+      `<tr>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee">${idx + 1}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee">${i.product_name}${i.product_code ? `<br><small style="color:#888">Cód: ${i.product_code}</small>` : ""}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:center">${i.quantity}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right">${formatBRL(i.unit_price)}</td>
+        <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:bold">${formatBRL(i.total_price)}</td>
+      </tr>`
+    ).join("");
+
+    const win = window.open("", "_blank", "width=600,height=700");
     if (!win) return;
-    win.document.write(`<html><head><title>Pedido</title>
-      <style>body{font-family:Arial,sans-serif;padding:20px;font-size:13px}h2{font-size:16px;margin-bottom:4px}.divider{border-top:1px dashed #ccc;margin:10px 0}.row{display:flex;justify-content:space-between;margin:3px 0}.bold{font-weight:bold}.small{font-size:11px;color:#666}</style></head><body>
-      <h2 class="bold">Resumo do Pedido</h2>
-      <div class="small">${formatted}</div>
-      <div class="divider"></div>
-      <div class="row"><span>Cliente:</span><span class="bold">${order.customer_name}</span></div>
-      <div class="row"><span>WhatsApp:</span><span>${order.customer_phone}</span></div>
-      ${order.customer_cpf_cnpj ? `<div class="row"><span>CPF/CNPJ:</span><span>${order.customer_cpf_cnpj}</span></div>` : ""}
-      ${order.payment_method ? `<div class="row"><span>Pagamento:</span><span>${order.payment_method}</span></div>` : ""}
-      ${order.notes ? `<div class="row"><span>Obs:</span><span>${order.notes}</span></div>` : ""}
-      <div class="divider"></div>
-      ${itemsHtml}
-      ${shippingHtml}
-      <div class="divider"></div>
-      <div class="row bold" style="font-size:15px"><span>TOTAL</span><span>${formatBRL(order.total)}</span></div>
+    win.document.write(`<html><head><title>Pedido - ${order.customer_name}</title>
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; font-size: 13px; color: #333; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+        .header h1 { font-size: 18px; margin: 0 0 4px 0; }
+        .header p { color: #666; margin: 0; font-size: 12px; }
+        .section { margin: 16px 0; }
+        .section-title { font-size: 12px; font-weight: bold; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 8px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
+        .info-row { display: flex; gap: 6px; }
+        .info-label { color: #888; min-width: 80px; }
+        .info-value { font-weight: 500; }
+        table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+        th { background: #f5f5f5; padding: 6px 8px; text-align: left; font-size: 11px; text-transform: uppercase; color: #666; }
+        .totals { text-align: right; margin-top: 12px; }
+        .totals .row { display: flex; justify-content: flex-end; gap: 20px; margin: 3px 0; }
+        .totals .grand { font-size: 16px; font-weight: bold; border-top: 2px solid #333; padding-top: 6px; margin-top: 6px; }
+        .footer { margin-top: 30px; text-align: center; color: #aaa; font-size: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+      </style></head><body>
+      <div class="header">
+        <h1>📋 Resumo do Pedido</h1>
+        <p>${formatted}</p>
+      </div>
+      <div class="section">
+        <div class="section-title">Dados do Cliente</div>
+        <div class="info-grid">
+          <div class="info-row"><span class="info-label">Cliente:</span><span class="info-value">${order.customer_name}</span></div>
+          <div class="info-row"><span class="info-label">WhatsApp:</span><span class="info-value">${order.customer_phone}</span></div>
+          ${order.customer_cpf_cnpj ? `<div class="info-row"><span class="info-label">CPF/CNPJ:</span><span class="info-value">${order.customer_cpf_cnpj}</span></div>` : ""}
+          ${order.payment_method ? `<div class="info-row"><span class="info-label">Pagamento:</span><span class="info-value">${order.payment_method}</span></div>` : ""}
+        </div>
+        ${order.notes ? `<div style="margin-top:8px"><span class="info-label">Observações:</span> ${order.notes}</div>` : ""}
+      </div>
+      <div class="section">
+        <div class="section-title">Itens do Pedido</div>
+        <table>
+          <thead><tr>
+            <th>#</th><th>Produto</th><th style="text-align:center">Qtd</th><th style="text-align:right">Unit.</th><th style="text-align:right">Total</th>
+          </tr></thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+      </div>
+      <div class="totals">
+        <div class="row"><span>Subtotal:</span><span>${formatBRL(order.subtotal)}</span></div>
+        ${order.shipping_fee > 0 ? `<div class="row"><span>Frete:</span><span>${formatBRL(order.shipping_fee)}</span></div>` : ""}
+        <div class="row grand"><span>TOTAL:</span><span>${formatBRL(order.total)}</span></div>
+      </div>
+      <div class="footer">Pedido gerado automaticamente</div>
       <script>window.print();</script>
     </body></html>`);
     win.document.close();
