@@ -495,12 +495,64 @@ export const authApi = {
   },
 };
 
+// ─── Orders API ───
+
+export const ordersApi = {
+  async fetchAll() {
+    if (isPostgresMode()) {
+      return restGet<any[]>("/orders");
+    }
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
+    return data || [];
+  },
+
+  async fetchItems(orderId: string) {
+    if (isPostgresMode()) {
+      return restGet<any[]>(`/orders/${orderId}/items`);
+    }
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase.from("order_items").select("*").eq("order_id", orderId);
+    return data || [];
+  },
+
+  async create(order: any, items: any[]) {
+    if (isPostgresMode()) {
+      try {
+        await restPost("/orders", { order, items });
+        return { error: null };
+      } catch (err: any) {
+        return { error: { message: err.message } };
+      }
+    }
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data, error } = await supabase.from("orders").insert(order).select("id").single();
+    if (error) return { error };
+    const orderItems = items.map((i) => ({ ...i, order_id: data.id }));
+    const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+    return { error: itemsError };
+  },
+
+  async updateStatus(id: string, status: string) {
+    if (isPostgresMode()) {
+      try {
+        await restPut(`/orders/${id}`, { status });
+        return { error: null };
+      } catch (err: any) {
+        return { error: { message: err.message } };
+      }
+    }
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+    return { error };
+  },
+};
+
 // ─── Realtime (only works in Supabase mode) ───
 
 export const realtimeApi = {
   subscribeToTable(table: string, callback: () => void): () => void {
     if (isPostgresMode()) {
-      // No realtime in PostgreSQL mode - use polling as fallback
       const interval = setInterval(callback, 5000);
       return () => clearInterval(interval);
     }
