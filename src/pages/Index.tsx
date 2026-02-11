@@ -84,12 +84,22 @@ const Index = () => {
       .filter((p) => {
         if (!activeQuickFilter) return true;
         if (activeQuickFilter === "promo") return p.original_price && p.original_price > p.price;
-        if (activeQuickFilter === "custom1") return p.featured;
-        // custom2 can be used for any future logic, for now show all
+        if (activeQuickFilter === "custom1") {
+          const filterType = settings.quick_filter_custom1_type || "manual";
+          if (filterType === "promotion") return p.original_price && p.original_price > p.price;
+          if (filterType === "category") return p.category_id === settings.quick_filter_custom1_type_category;
+          return (p as any).quick_filter_1 === true;
+        }
+        if (activeQuickFilter === "custom2") {
+          const filterType = settings.quick_filter_custom2_type || "manual";
+          if (filterType === "promotion") return p.original_price && p.original_price > p.price;
+          if (filterType === "category") return p.category_id === settings.quick_filter_custom2_type_category;
+          return (p as any).quick_filter_2 === true;
+        }
         return true;
       });
     return base;
-  }, [products, search, category, hideNoPhoto, activeQuickFilter]);
+  }, [products, search, category, hideNoPhoto, activeQuickFilter, settings]);
 
   // Build the display list: first page uses display mode, subsequent pages use normal order
   const visibleProducts = useMemo(() => {

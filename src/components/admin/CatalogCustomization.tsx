@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette, Star, Shuffle, List, Tag } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { FeaturedProductsManager } from "./FeaturedProductsManager";
+import { QuickFilterProductSelector } from "./QuickFilterProductSelector";
 import type { DbProduct, DbCategory } from "@/hooks/useDbProducts";
 
 interface Props {
@@ -74,14 +75,15 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
         </p>
 
         {[
-          { key: "promo", labelKey: "quick_filter_promo_label", defaultLabel: "Promoção", bgKey: "quick_filter_promo_bg", textKey: "quick_filter_promo_text", visibleKey: "quick_filter_promo_visible" },
-          { key: "custom1", labelKey: "quick_filter_custom1_label", defaultLabel: "Destaque", bgKey: "quick_filter_custom1_bg", textKey: "quick_filter_custom1_text", visibleKey: "quick_filter_custom1_visible" },
-          { key: "custom2", labelKey: "quick_filter_custom2_label", defaultLabel: "Novidades", bgKey: "quick_filter_custom2_bg", textKey: "quick_filter_custom2_text", visibleKey: "quick_filter_custom2_visible" },
+          { key: "promo", labelKey: "quick_filter_promo_label", defaultLabel: "Promoção", bgKey: "quick_filter_promo_bg", textKey: "quick_filter_promo_text", visibleKey: "quick_filter_promo_visible", filterTypeKey: "quick_filter_promo_type", productField: null as string | null },
+          { key: "custom1", labelKey: "quick_filter_custom1_label", defaultLabel: "Destaque", bgKey: "quick_filter_custom1_bg", textKey: "quick_filter_custom1_text", visibleKey: "quick_filter_custom1_visible", filterTypeKey: "quick_filter_custom1_type", productField: "quick_filter_1" as string | null },
+          { key: "custom2", labelKey: "quick_filter_custom2_label", defaultLabel: "Novidades", bgKey: "quick_filter_custom2_bg", textKey: "quick_filter_custom2_text", visibleKey: "quick_filter_custom2_visible", filterTypeKey: "quick_filter_custom2_type", productField: "quick_filter_2" as string | null },
         ].map((btn) => {
           const isVisible = settings[btn.visibleKey] === "true";
           const label = settings[btn.labelKey] || btn.defaultLabel;
           const bg = settings[btn.bgKey] || "#1f1f1f";
           const text = settings[btn.textKey] || "#ffffff";
+          const filterType = btn.key === "promo" ? "promotion" : (settings[btn.filterTypeKey] || "manual");
           return (
             <div key={btn.key} className="rounded-lg border p-3 space-y-3">
               <div className="flex items-center justify-between">
@@ -93,7 +95,9 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
                     {label}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {btn.key === "promo" ? "(Filtra promoções)" : "(Filtra destaques)"}
+                    {filterType === "promotion" && "(Filtra promoções)"}
+                    {filterType === "category" && "(Filtra por categoria)"}
+                    {filterType === "manual" && "(Seleção manual)"}
                   </span>
                 </div>
                 <Switch
@@ -102,29 +106,74 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
                 />
               </div>
               {isVisible && (
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Nome</label>
-                    <input
-                      value={label}
-                      onChange={(e) => onUpdate(btn.labelKey, e.target.value)}
-                      className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Nome</label>
+                      <input
+                        value={label}
+                        onChange={(e) => onUpdate(btn.labelKey, e.target.value)}
+                        className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Cor do Fundo</label>
+                      <div className="flex items-center gap-1">
+                        <input type="color" value={bg} onChange={(e) => onUpdate(btn.bgKey, e.target.value)} className="h-9 w-10 cursor-pointer rounded border p-0.5" />
+                        <input value={bg} onChange={(e) => onUpdate(btn.bgKey, e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-2 py-2 text-xs outline-none focus:ring-2 focus:ring-ring" />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Cor do Texto</label>
+                      <div className="flex items-center gap-1">
+                        <input type="color" value={text} onChange={(e) => onUpdate(btn.textKey, e.target.value)} className="h-9 w-10 cursor-pointer rounded border p-0.5" />
+                        <input value={text} onChange={(e) => onUpdate(btn.textKey, e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-2 py-2 text-xs outline-none focus:ring-2 focus:ring-ring" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filter type selector (not for promo which is always "promotion") */}
+                  {btn.key !== "promo" && (
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Tipo de Filtro</label>
+                      <select
+                        value={filterType}
+                        onChange={(e) => onUpdate(btn.filterTypeKey, e.target.value)}
+                        className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="manual">Seleção manual de produtos</option>
+                        <option value="category">Filtrar por categoria</option>
+                        <option value="promotion">Promoções (com desconto)</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Category selector */}
+                  {btn.key !== "promo" && filterType === "category" && categories && (
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Categoria</label>
+                      <select
+                        value={settings[`${btn.filterTypeKey}_category`] || ""}
+                        onChange={(e) => onUpdate(`${btn.filterTypeKey}_category`, e.target.value)}
+                        className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="">Selecione uma categoria</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Manual product selector */}
+                  {btn.key !== "promo" && filterType === "manual" && products && categories && onUpdateProduct && btn.productField && (
+                    <QuickFilterProductSelector
+                      products={products}
+                      categories={categories}
+                      fieldName={btn.productField}
+                      onUpdateProduct={onUpdateProduct}
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Cor do Fundo</label>
-                    <div className="flex items-center gap-1">
-                      <input type="color" value={bg} onChange={(e) => onUpdate(btn.bgKey, e.target.value)} className="h-9 w-10 cursor-pointer rounded border p-0.5" />
-                      <input value={bg} onChange={(e) => onUpdate(btn.bgKey, e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-2 py-2 text-xs outline-none focus:ring-2 focus:ring-ring" />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Cor do Texto</label>
-                    <div className="flex items-center gap-1">
-                      <input type="color" value={text} onChange={(e) => onUpdate(btn.textKey, e.target.value)} className="h-9 w-10 cursor-pointer rounded border p-0.5" />
-                      <input value={text} onChange={(e) => onUpdate(btn.textKey, e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-2 py-2 text-xs outline-none focus:ring-2 focus:ring-ring" />
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
