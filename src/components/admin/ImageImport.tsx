@@ -3,6 +3,93 @@ import { ImageIcon, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Parse CSV text that may contain quoted fields with embedded newlines (e.g. multiline base64).
+ * Returns an array of objects keyed by header names.
+ */
+function parseCSVWithQuotes(text: string): Record<string, string>[] {
+  const firstLineEnd = text.indexOf("\n");
+  const headerLine = text.substring(0, firstLineEnd === -1 ? undefined : firstLineEnd).replace(/\r$/, "");
+
+  const delimiters = [",", ";", "\t", "|"];
+  let delimiter = ",";
+  let maxCount = 0;
+  for (const d of delimiters) {
+    const count = headerLine.split(d).length - 1;
+    if (count > maxCount) { maxCount = count; delimiter = d; }
+  }
+
+  console.log("CSV: delimiter:", JSON.stringify(delimiter), "header:", headerLine);
+
+  const records: string[][] = [];
+  let currentRecord: string[] = [];
+  let currentField = "";
+  let inQuotes = false;
+  let i = 0;
+
+  while (i < text.length) {
+    const ch = text[i];
+
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < text.length && text[i + 1] === '"') {
+          currentField += '"';
+          i += 2;
+          continue;
+        }
+        inQuotes = false;
+        i++;
+        continue;
+      }
+      currentField += ch;
+      i++;
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+        i++;
+      } else if (ch === delimiter) {
+        currentRecord.push(currentField.trim());
+        currentField = "";
+        i++;
+      } else if (ch === "\r") {
+        i++;
+      } else if (ch === "\n") {
+        currentRecord.push(currentField.trim());
+        currentField = "";
+        if (currentRecord.some(f => f.length > 0)) {
+          records.push(currentRecord);
+        }
+        currentRecord = [];
+        i++;
+      } else {
+        currentField += ch;
+        i++;
+      }
+    }
+  }
+
+  if (currentField.length > 0 || currentRecord.length > 0) {
+    currentRecord.push(currentField.trim());
+    if (currentRecord.some(f => f.length > 0)) {
+      records.push(currentRecord);
+    }
+  }
+
+  if (records.length < 2) return [];
+
+  const headers = records[0];
+  const rows: Record<string, string>[] = [];
+  for (let r = 1; r < records.length; r++) {
+    const row: Record<string, string> = {};
+    headers.forEach((h, idx) => {
+      row[h] = records[r][idx] || "";
+    });
+    rows.push(row);
+  }
+
+  return rows;
+}
+
 interface ImageImportProps {
   onComplete: () => void;
 }
@@ -45,40 +132,12 @@ export function ImageImport({ onComplete }: ImageImportProps) {
 
       const isCSV = file.name.toLowerCase().endsWith(".csv");
       if (isCSV) {
-        // Manual CSV parsing to handle any delimiter and base64 content
         let text = new TextDecoder("utf-8").decode(buffer);
         // Remove BOM if present
         if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-        
-        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-        if (lines.length < 2) {
-          setStatus("error");
-          setMessage("Arquivo CSV vazio ou sem dados.");
-          return;
-        }
 
-        // Detect delimiter from header line only (avoid base64 content)
-        const headerLine = lines[0];
-        const delimiters = [";", ",", "\t", "|"];
-        let bestDelim = ",";
-        let maxCount = 0;
-        for (const d of delimiters) {
-          const count = (headerLine.match(new RegExp(d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g")) || []).length;
-          if (count > maxCount) { maxCount = count; bestDelim = d; }
-        }
-
-        console.log("CSV delimiter detected:", JSON.stringify(bestDelim), "from header:", headerLine);
-
-        const headers = headerLine.split(bestDelim).map(h => h.replace(/^"|"$/g, "").trim());
-        
-        for (let i = 1; i < lines.length; i++) {
-          const parts = lines[i].split(bestDelim);
-          const row: any = {};
-          headers.forEach((h, idx) => {
-            row[h] = (parts[idx] || "").replace(/^"|"$/g, "").trim();
-          });
-          rows.push(row);
-        }
+        // Parse CSV properly handling quoted fields with embedded newlines
+        rows = parseCSVWithQuotes(text);
       } else {
         const wb = XLSX.read(buffer, { type: "array", codepage: 65001 });
         if (!wb.SheetNames.length) {
@@ -93,7 +152,9 @@ export function ImageImport({ onComplete }: ImageImportProps) {
       console.log("Image import: rows:", rows.length);
       if (rows.length > 0) {
         console.log("Image import: first row keys:", Object.keys(rows[0]));
-        console.log("Image import: first row sample (truncated):", JSON.stringify(rows[0]).slice(0, 300));
+        console.log("Image import: first row value lengths:", Object.fromEntries(
+          Object.entries(rows[0]).map(([k, v]) => [k, String(v).length])
+        ));
       }
 
       if (!rows.length) {
