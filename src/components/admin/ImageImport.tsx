@@ -140,9 +140,23 @@ export function ImageImport({ onComplete }: ImageImportProps) {
 
       const isCSV = file.name.toLowerCase().endsWith(".csv");
       if (isCSV) {
+        // Try UTF-8 first; if we detect null bytes (sign of UTF-16), retry with UTF-16LE
         let text = new TextDecoder("utf-8").decode(buffer);
+        if (text.includes("\0")) {
+          // Likely UTF-16 LE (common from Excel on Windows)
+          const u16 = new Uint8Array(buffer);
+          // Check for UTF-16 LE BOM (FF FE)
+          const start = (u16[0] === 0xFF && u16[1] === 0xFE) ? 2 : 0;
+          const decoder16 = new TextDecoder("utf-16le");
+          text = decoder16.decode(buffer.slice(start));
+          console.log("CSV: detected UTF-16LE encoding");
+        }
         // Remove BOM if present
         if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+        // Remove leading blank lines
+        text = text.replace(/^\s*\n/, "");
+
+        console.log("CSV: first 200 chars:", JSON.stringify(text.substring(0, 200)));
 
         // Parse CSV properly handling quoted fields with embedded newlines
         rows = parseCSVWithQuotes(text);
