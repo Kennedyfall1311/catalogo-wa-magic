@@ -6,6 +6,7 @@ interface QuickFilterButton {
   visible: boolean;
   bgColor: string;
   textColor: string;
+  style: "solid" | "outline";
 }
 
 interface CategoryOption {
@@ -45,15 +46,27 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
         <div className="flex gap-1.5">
           {visibleFilters.map((filter) => {
             const isActive = activeQuickFilter === filter.key;
+            const isSolid = filter.style === "solid";
+
+            const bgStyle = isSolid
+              ? filter.bgColor
+              : isActive ? filter.bgColor : "transparent";
+            const txtStyle = isSolid
+              ? filter.textColor
+              : isActive ? filter.textColor : filter.bgColor;
+            const borderStyle = filter.bgColor;
+
             return (
               <button
                 key={filter.key}
                 onClick={() => onQuickFilterChange?.(isActive ? null : filter.key)}
-                className="shrink-0 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap"
+                className={`shrink-0 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                  !isSolid && isActive ? "opacity-100" : !isSolid ? "opacity-90" : ""
+                }`}
                 style={{
-                  backgroundColor: isActive ? filter.bgColor : "transparent",
-                  color: isActive ? filter.textColor : filter.bgColor,
-                  borderColor: filter.bgColor,
+                  backgroundColor: bgStyle,
+                  color: txtStyle,
+                  borderColor: borderStyle,
                 }}
               >
                 <Tag className="h-3.5 w-3.5" />

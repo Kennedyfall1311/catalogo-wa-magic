@@ -75,22 +75,27 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
         </p>
 
         {[
-          { key: "promo", labelKey: "quick_filter_promo_label", defaultLabel: "Promoção", bgKey: "quick_filter_promo_bg", textKey: "quick_filter_promo_text", visibleKey: "quick_filter_promo_visible", filterTypeKey: "quick_filter_promo_type", productField: null as string | null },
-          { key: "custom1", labelKey: "quick_filter_custom1_label", defaultLabel: "Destaque", bgKey: "quick_filter_custom1_bg", textKey: "quick_filter_custom1_text", visibleKey: "quick_filter_custom1_visible", filterTypeKey: "quick_filter_custom1_type", productField: "quick_filter_1" as string | null },
-          { key: "custom2", labelKey: "quick_filter_custom2_label", defaultLabel: "Novidades", bgKey: "quick_filter_custom2_bg", textKey: "quick_filter_custom2_text", visibleKey: "quick_filter_custom2_visible", filterTypeKey: "quick_filter_custom2_type", productField: "quick_filter_2" as string | null },
+          { key: "promo", labelKey: "quick_filter_promo_label", defaultLabel: "Promoção", bgKey: "quick_filter_promo_bg", textKey: "quick_filter_promo_text", visibleKey: "quick_filter_promo_visible", styleKey: "quick_filter_promo_style", filterTypeKey: "quick_filter_promo_type", productField: null as string | null },
+          { key: "custom1", labelKey: "quick_filter_custom1_label", defaultLabel: "Destaque", bgKey: "quick_filter_custom1_bg", textKey: "quick_filter_custom1_text", visibleKey: "quick_filter_custom1_visible", styleKey: "quick_filter_custom1_style", filterTypeKey: "quick_filter_custom1_type", productField: "quick_filter_1" as string | null },
+          { key: "custom2", labelKey: "quick_filter_custom2_label", defaultLabel: "Novidades", bgKey: "quick_filter_custom2_bg", textKey: "quick_filter_custom2_text", visibleKey: "quick_filter_custom2_visible", styleKey: "quick_filter_custom2_style", filterTypeKey: "quick_filter_custom2_type", productField: "quick_filter_2" as string | null },
         ].map((btn) => {
           const isVisible = settings[btn.visibleKey] === "true";
           const label = settings[btn.labelKey] || btn.defaultLabel;
           const bg = settings[btn.bgKey] || "#1f1f1f";
           const text = settings[btn.textKey] || "#ffffff";
           const filterType = btn.key === "promo" ? "promotion" : (settings[btn.filterTypeKey] || "manual");
+          const btnStyle = settings[btn.styleKey] || "solid";
           return (
             <div key={btn.key} className="rounded-lg border p-3 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span
-                    className="rounded px-2 py-1 text-xs font-bold"
-                    style={{ backgroundColor: bg, color: text }}
+                    className="rounded px-2 py-1 text-xs font-bold border-2"
+                    style={{
+                      backgroundColor: btnStyle === "solid" ? bg : "transparent",
+                      color: btnStyle === "solid" ? text : bg,
+                      borderColor: bg,
+                    }}
                   >
                     {label}
                   </span>
@@ -129,6 +134,31 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
                         <input type="color" value={text} onChange={(e) => onUpdate(btn.textKey, e.target.value)} className="h-9 w-10 cursor-pointer rounded border p-0.5" />
                         <input value={text} onChange={(e) => onUpdate(btn.textKey, e.target.value)} className="flex-1 rounded-lg border bg-muted/50 px-2 py-2 text-xs outline-none focus:ring-2 focus:ring-ring" />
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Style selector */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Estilo do Botão</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onUpdate(btn.styleKey, "solid")}
+                        className={`flex-1 rounded-lg border-2 px-3 py-2 text-xs font-semibold transition ${
+                          btnStyle === "solid" ? "ring-2 ring-ring" : ""
+                        }`}
+                        style={{ backgroundColor: bg, color: text, borderColor: bg }}
+                      >
+                        Sólido
+                      </button>
+                      <button
+                        onClick={() => onUpdate(btn.styleKey, "outline")}
+                        className={`flex-1 rounded-lg border-2 px-3 py-2 text-xs font-semibold transition ${
+                          btnStyle === "outline" ? "ring-2 ring-ring" : ""
+                        }`}
+                        style={{ backgroundColor: "transparent", color: bg, borderColor: bg }}
+                      >
+                        Vazado
+                      </button>
                     </div>
                   </div>
 

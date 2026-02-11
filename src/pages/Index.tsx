@@ -30,6 +30,7 @@ const Index = () => {
       visible: settings.quick_filter_promo_visible === "true",
       bgColor: settings.quick_filter_promo_bg || "#1f1f1f",
       textColor: settings.quick_filter_promo_text || "#ffffff",
+      style: (settings.quick_filter_promo_style || "solid") as "solid" | "outline",
     },
     {
       key: "custom1",
@@ -37,6 +38,7 @@ const Index = () => {
       visible: settings.quick_filter_custom1_visible === "true",
       bgColor: settings.quick_filter_custom1_bg || "#1f1f1f",
       textColor: settings.quick_filter_custom1_text || "#ffffff",
+      style: (settings.quick_filter_custom1_style || "solid") as "solid" | "outline",
     },
     {
       key: "custom2",
@@ -44,6 +46,7 @@ const Index = () => {
       visible: settings.quick_filter_custom2_visible === "true",
       bgColor: settings.quick_filter_custom2_bg || "#1f1f1f",
       textColor: settings.quick_filter_custom2_text || "#ffffff",
+      style: (settings.quick_filter_custom2_style || "solid") as "solid" | "outline",
     },
   ], [settings]);
 
