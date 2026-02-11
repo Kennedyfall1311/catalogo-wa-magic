@@ -57,13 +57,24 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
 
     try {
       const buffer = await file.arrayBuffer();
-      const wb = XLSX.read(buffer);
+      const wb = XLSX.read(buffer, { type: "array", codepage: 65001 });
+      if (!wb.SheetNames.length) {
+        setStatus("error");
+        setMessage("Arquivo vazio ou sem planilhas.");
+        return;
+      }
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<any>(ws);
+      const rows = XLSX.utils.sheet_to_json<any>(ws, { defval: "" });
+
+      console.log("Excel import: sheets found:", wb.SheetNames, "rows:", rows.length);
+      if (rows.length > 0) {
+        console.log("Excel import: first row keys:", Object.keys(rows[0]));
+        console.log("Excel import: first row sample:", JSON.stringify(rows[0]).slice(0, 500));
+      }
 
       if (!rows.length) {
         setStatus("error");
-        setMessage("Arquivo vazio ou formato inválido.");
+        setMessage("Arquivo vazio ou formato inválido. Verifique se a primeira linha contém os cabeçalhos.");
         return;
       }
 
