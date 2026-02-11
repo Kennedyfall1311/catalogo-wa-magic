@@ -228,7 +228,7 @@ export const settingsApi = {
       }
     }
     const { supabase } = await import("@/integrations/supabase/client");
-    const { error } = await supabase.from("store_settings").update({ value }).eq("key", key);
+    const { error } = await supabase.from("store_settings").upsert({ key, value }, { onConflict: "key" });
     return { error };
   },
 };
