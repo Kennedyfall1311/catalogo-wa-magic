@@ -20,6 +20,7 @@ const Index = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
+  const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
   const PAGE_SIZE = 40;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -101,8 +102,13 @@ const Index = () => {
         }
         return true;
       });
+
+    // Apply price sorting
+    if (priceSort === "asc") base.sort((a, b) => a.price - b.price);
+    else if (priceSort === "desc") base.sort((a, b) => b.price - a.price);
+
     return base;
-  }, [products, search, category, hideNoPhoto, activeQuickFilter, settings]);
+  }, [products, search, category, hideNoPhoto, activeQuickFilter, settings, priceSort]);
 
   // Build the display list: first page uses display mode, subsequent pages use normal order
   const visibleProducts = useMemo(() => {
@@ -191,6 +197,8 @@ const Index = () => {
               quickFilters={quickFilters}
               activeQuickFilter={activeQuickFilter}
               onQuickFilterChange={(key) => { setActiveQuickFilter(key); setVisibleCount(PAGE_SIZE); }}
+              priceSort={priceSort}
+              onPriceSortChange={(sort) => { setPriceSort(sort); setVisibleCount(PAGE_SIZE); }}
             />
 
             <h2 className="text-center text-lg font-bold uppercase tracking-wide">

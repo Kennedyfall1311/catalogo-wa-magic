@@ -48,7 +48,7 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
             ) : (
               <ShoppingBag className="h-5 w-5" />
             )}
-            <span className="text-sm md:text-base font-bold tracking-tight uppercase hidden md:inline">
+            <span className="text-xs sm:text-sm md:text-base font-bold tracking-tight uppercase truncate max-w-[140px] sm:max-w-none">
               {storeName || "Catálogo"}
             </span>
           </button>

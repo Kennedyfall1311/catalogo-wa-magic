@@ -1,4 +1,4 @@
-import { Search, ChevronDown, Tag } from "lucide-react";
+import { Search, ChevronDown, Tag, ArrowUpDown } from "lucide-react";
 
 interface QuickFilterButton {
   key: string;
@@ -24,10 +24,20 @@ interface CategoryFilterProps {
   quickFilters?: QuickFilterButton[];
   activeQuickFilter?: string | null;
   onQuickFilterChange?: (key: string | null) => void;
+  priceSort?: "asc" | "desc" | null;
+  onPriceSortChange?: (sort: "asc" | "desc" | null) => void;
 }
 
-export function CategoryFilter({ categories, selected, onSelect, searchQuery, onSearchChange, quickFilters, activeQuickFilter, onQuickFilterChange }: CategoryFilterProps) {
+export function CategoryFilter({ categories, selected, onSelect, searchQuery, onSearchChange, quickFilters, activeQuickFilter, onQuickFilterChange, priceSort, onPriceSortChange }: CategoryFilterProps) {
   const visibleFilters = quickFilters?.filter((f) => f.visible) || [];
+
+  const handlePriceSortClick = () => {
+    if (!priceSort) onPriceSortChange?.("asc");
+    else if (priceSort === "asc") onPriceSortChange?.("desc");
+    else onPriceSortChange?.(null);
+  };
+
+  const priceSortLabel = priceSort === "asc" ? "Menor preço" : priceSort === "desc" ? "Maior preço" : "Preço";
 
   return (
     <div className="flex flex-col sm:flex-row gap-2">
@@ -76,6 +86,16 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
           })}
         </div>
       )}
+
+      <button
+        onClick={handlePriceSortClick}
+        className={`rounded-md sm:rounded-lg border sm:border-2 px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
+          priceSort ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground"
+        }`}
+      >
+        <ArrowUpDown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+        {priceSortLabel}
+      </button>
 
       <div className="relative">
         <select
