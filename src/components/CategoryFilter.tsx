@@ -26,9 +26,12 @@ interface CategoryFilterProps {
   onQuickFilterChange?: (key: string | null) => void;
   priceSort?: "asc" | "desc" | null;
   onPriceSortChange?: (sort: "asc" | "desc" | null) => void;
+  brands?: string[];
+  selectedBrand?: string | null;
+  onBrandChange?: (brand: string | null) => void;
 }
 
-export function CategoryFilter({ categories, selected, onSelect, searchQuery, onSearchChange, quickFilters, activeQuickFilter, onQuickFilterChange, priceSort, onPriceSortChange }: CategoryFilterProps) {
+export function CategoryFilter({ categories, selected, onSelect, searchQuery, onSearchChange, quickFilters, activeQuickFilter, onQuickFilterChange, priceSort, onPriceSortChange, brands, selectedBrand, onBrandChange }: CategoryFilterProps) {
   const visibleFilters = quickFilters?.filter((f) => f.visible) || [];
 
   const handlePriceSortClick = () => {
@@ -109,6 +112,22 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
         </select>
         <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       </div>
+
+      {brands && brands.length > 0 && (
+        <div className="relative">
+          <select
+            value={selectedBrand ?? ""}
+            onChange={(e) => onBrandChange?.(e.target.value || null)}
+            className="w-full sm:w-48 appearance-none rounded-lg border bg-card px-4 py-2.5 pr-8 text-sm font-medium outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">Todas as marcas</option>
+            {brands.map((b) => (
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
     </div>
   );
 }
