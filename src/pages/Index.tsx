@@ -21,6 +21,7 @@ const Index = () => {
   const [category, setCategory] = useState<string | null>(null);
   const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
   const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const PAGE_SIZE = 40;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -56,6 +57,14 @@ const Index = () => {
     [categories]
   );
 
+  const brands = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      if (p.active && (p as any).brand) set.add((p as any).brand);
+    });
+    return Array.from(set).sort();
+  }, [products]);
+
   const hideNoPhoto = settings.hide_products_without_photo === "true";
 
   const displayMode = settings.catalog_first_page_mode || "default";
@@ -78,12 +87,14 @@ const Index = () => {
       .filter((p) => p.active)
       .filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""))
       .filter((p) => !category || p.category_id === category)
+      .filter((p) => !selectedBrand || (p as any).brand === selectedBrand)
       .filter((p) => {
         const q = search.toLowerCase();
         return p.name.toLowerCase().includes(q)
           || (p.code && p.code.toLowerCase().includes(q))
           || (p.manufacturer_code && p.manufacturer_code.toLowerCase().includes(q))
-          || (p.description && p.description.toLowerCase().includes(q));
+          || (p.description && p.description.toLowerCase().includes(q))
+          || ((p as any).brand && (p as any).brand.toLowerCase().includes(q));
       })
       .filter((p) => {
         if (!activeQuickFilter) return true;
@@ -108,12 +119,12 @@ const Index = () => {
     else if (priceSort === "desc") base.sort((a, b) => b.price - a.price);
 
     return base;
-  }, [products, search, category, hideNoPhoto, activeQuickFilter, settings, priceSort]);
+  }, [products, search, category, selectedBrand, hideNoPhoto, activeQuickFilter, settings, priceSort]);
 
   // Build the display list: first page uses display mode, subsequent pages use normal order
   const visibleProducts = useMemo(() => {
     const isFirstPageOnly = visibleCount <= PAGE_SIZE;
-    const hasFilters = !!category || !!search || !!activeQuickFilter;
+    const hasFilters = !!category || !!search || !!activeQuickFilter || !!selectedBrand;
 
     // When filters are active, always use normal filtered list
     if (hasFilters) return filtered.slice(0, visibleCount);
@@ -199,6 +210,9 @@ const Index = () => {
               onQuickFilterChange={(key) => { setActiveQuickFilter(key); setVisibleCount(PAGE_SIZE); }}
               priceSort={priceSort}
               onPriceSortChange={(sort) => { setPriceSort(sort); setVisibleCount(PAGE_SIZE); }}
+              brands={brands}
+              selectedBrand={selectedBrand}
+              onBrandChange={(b) => { setSelectedBrand(b); setVisibleCount(PAGE_SIZE); }}
             />
 
             <h2 className="text-center text-lg font-bold uppercase tracking-wide">
