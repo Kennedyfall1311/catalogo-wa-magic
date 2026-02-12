@@ -24,6 +24,7 @@ export function ProductForm({ product, categories, onSave, onCancel, onUploadIma
     image_url: product?.image_url ?? "",
     category_id: product?.category_id ?? "",
     active: product?.active ?? true,
+    brand: (product as any)?.brand ?? "",
     reference: (product as any)?.reference ?? "",
     manufacturer_code: (product as any)?.manufacturer_code ?? "",
     unit_of_measure: (product as any)?.unit_of_measure ?? "",
@@ -55,6 +56,7 @@ export function ProductForm({ product, categories, onSave, onCancel, onUploadIma
       image_url: form.image_url || "/placeholder.svg",
       category_id: form.category_id || null,
       active: form.active,
+      brand: form.brand || null,
       reference: form.reference || null,
       manufacturer_code: form.manufacturer_code || null,
       unit_of_measure: form.unit_of_measure || null,
@@ -129,6 +131,13 @@ export function ProductForm({ product, categories, onSave, onCancel, onUploadIma
           className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
+
+      <input
+        placeholder="Marca"
+        value={form.brand}
+        onChange={(e) => setForm({ ...form, brand: e.target.value })}
+        className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+      />
 
       <input
         placeholder="Referência"
