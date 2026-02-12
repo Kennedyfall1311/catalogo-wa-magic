@@ -39,6 +39,8 @@ export default function Checkout() {
   const [selectedPayment, setSelectedPayment] = useState("");
   const [data, setData] = useState<CustomerData>({ name: "", phone: "", cpfCnpj: "", notes: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [whatsappLink, setWhatsappLink] = useState("");
 
   if (submitted) {
@@ -137,7 +139,11 @@ export default function Checkout() {
   const formatBRL = (v: number) => v.toFixed(2).replace(".", ",");
 
   const handleSubmit = async () => {
-    if (!isValid) return;
+    if (!isValid || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+
+    const idempotencyKey = crypto.randomUUID();
 
     // Save order to database
     const order = {
@@ -159,7 +165,13 @@ export default function Checkout() {
       unit_price: Number(i.product.price),
       total_price: Number(i.product.price) * i.quantity,
     }));
-    await ordersApi.create(order, orderItems);
+
+    const { error } = await ordersApi.create(order, orderItems, idempotencyKey);
+    if (error) {
+      setSubmitting(false);
+      setSubmitError("Não foi possível enviar o pedido. Verifique sua conexão e tente novamente.");
+      return;
+    }
 
     // Build formatted WhatsApp message
     const storeName = settings.store_name || "Catálogo";
@@ -314,13 +326,20 @@ export default function Checkout() {
             </div>
           </div>
 
+          {submitError && (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <p>{submitError}</p>
+            </div>
+          )}
+
           <button
-            disabled={!isValid}
+            disabled={!isValid || submitting}
             onClick={handleSubmit}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-whatsapp px-6 py-3 font-semibold text-whatsapp-foreground transition-colors hover:bg-whatsapp-hover shadow-sm disabled:opacity-50 disabled:pointer-events-none"
           >
             <MessageCircle className="h-5 w-5" />
-            Enviar Pedido
+            {submitting ? "Enviando..." : "Enviar Pedido"}
           </button>
         </div>
       </main>

@@ -38,6 +38,7 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
               alt={product.name}
               className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
               loading="lazy"
+              onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
             />
             {hasDiscount && (
               <span className="absolute top-1 left-1 rounded bg-sale px-1.5 py-0.5 text-[10px] font-bold text-sale-foreground">
@@ -75,17 +76,17 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
           {catalogSettings.catalog_show_description === "true" && product.description && (
             <p className={`${detailSize} text-muted-foreground line-clamp-2`}>{product.description}</p>
           )}
-          {catalogSettings.catalog_show_reference === "true" && (product as any).reference && (
-            <p className={`${detailSize} text-muted-foreground`}>Ref: {(product as any).reference}</p>
+          {catalogSettings.catalog_show_reference === "true" && product.reference && (
+            <p className={`${detailSize} text-muted-foreground`}>Ref: {product.reference}</p>
           )}
-          {catalogSettings.catalog_show_manufacturer_code === "true" && (product as any).manufacturer_code && (
-            <p className={`${detailSize} text-muted-foreground`}>Fab: {(product as any).manufacturer_code}</p>
+          {catalogSettings.catalog_show_manufacturer_code === "true" && product.manufacturer_code && (
+            <p className={`${detailSize} text-muted-foreground`}>Fab: {product.manufacturer_code}</p>
           )}
-          {catalogSettings.catalog_show_unit_of_measure === "true" && (product as any).unit_of_measure && (
-            <p className={`${detailSize} text-muted-foreground`}>Un: {(product as any).unit_of_measure}</p>
+          {catalogSettings.catalog_show_unit_of_measure === "true" && product.unit_of_measure && (
+            <p className={`${detailSize} text-muted-foreground`}>Un: {product.unit_of_measure}</p>
           )}
-          {catalogSettings.catalog_show_quantity === "true" && (product as any).quantity != null && (
-            <p className={`${detailSize} text-muted-foreground`}>Qtd: {(product as any).quantity}</p>
+          {catalogSettings.catalog_show_quantity === "true" && product.quantity != null && (
+            <p className={`${detailSize} text-muted-foreground`}>Qtd: {product.quantity}</p>
           )}
           <button
             onClick={() => setDialogOpen(true)}

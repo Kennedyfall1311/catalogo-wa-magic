@@ -13,7 +13,7 @@ import { useBanners } from "@/hooks/useBanners";
 
 
 const Index = () => {
-  const { products, categories, loading } = useDbProducts();
+  const { products, categories, loading, error } = useDbProducts();
   const { settings, loading: settingsLoading } = useStoreSettings();
   const { activeBanners } = useBanners();
   
@@ -60,7 +60,7 @@ const Index = () => {
   const brands = useMemo(() => {
     const set = new Set<string>();
     products.forEach((p) => {
-      if (p.active && (p as any).brand) set.add((p as any).brand);
+      if (p.active && p.brand) set.add(p.brand);
     });
     return Array.from(set).sort();
   }, [products]);
@@ -87,14 +87,14 @@ const Index = () => {
       .filter((p) => p.active)
       .filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""))
       .filter((p) => !category || p.category_id === category)
-      .filter((p) => !selectedBrand || (p as any).brand === selectedBrand)
+      .filter((p) => !selectedBrand || p.brand === selectedBrand)
       .filter((p) => {
         const q = search.toLowerCase();
         return p.name.toLowerCase().includes(q)
           || (p.code && p.code.toLowerCase().includes(q))
           || (p.manufacturer_code && p.manufacturer_code.toLowerCase().includes(q))
           || (p.description && p.description.toLowerCase().includes(q))
-          || ((p as any).brand && (p as any).brand.toLowerCase().includes(q));
+          || (p.brand && p.brand.toLowerCase().includes(q));
       })
       .filter((p) => {
         if (!activeQuickFilter) return true;
@@ -224,6 +224,14 @@ const Index = () => {
             {loading ? (
               <div className="py-20 text-center text-muted-foreground">
                 <p className="text-lg">Carregando produtos...</p>
+              </div>
+            ) : error ? (
+              <div className="py-20 text-center text-destructive">
+                <p className="text-lg">⚠️ Erro ao carregar</p>
+                <p className="text-sm mt-1 text-muted-foreground">{error}</p>
+                <button onClick={() => window.location.reload()} className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition">
+                  Tentar novamente
+                </button>
               </div>
             ) : filtered.length === 0 ? (
               <div className="py-20 text-center text-muted-foreground">

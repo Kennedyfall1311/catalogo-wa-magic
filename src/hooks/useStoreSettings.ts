@@ -4,13 +4,20 @@ import { settingsApi, realtimeApi } from "@/lib/api-client";
 export function useStoreSettings() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchSettings = useCallback(async () => {
-    const data = await settingsApi.fetchAll();
-    if (data) {
-      const map: Record<string, string> = {};
-      data.forEach((s) => { map[s.key] = s.value; });
-      setSettings(map);
+    try {
+      const data = await settingsApi.fetchAll();
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((s) => { map[s.key] = s.value; });
+        setSettings(map);
+      }
+      setError(null);
+    } catch (err: any) {
+      console.error("Erro ao carregar configurações:", err);
+      setError("Não foi possível carregar as configurações.");
     }
     setLoading(false);
   }, []);
@@ -28,5 +35,5 @@ export function useStoreSettings() {
     return { error };
   };
 
-  return { settings, loading, updateSetting, refetch: fetchSettings };
+  return { settings, loading, error, updateSetting, refetch: fetchSettings };
 }

@@ -9,15 +9,26 @@ export function useDbProducts() {
   const [products, setProducts] = useState<DbProduct[]>([]);
   const [categories, setCategories] = useState<DbCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchProducts = useCallback(async () => {
-    const data = await productsApi.fetchAll();
-    if (data) setProducts(data);
+    try {
+      const data = await productsApi.fetchAll();
+      if (data) setProducts(data);
+      setError(null);
+    } catch (err: any) {
+      console.error("Erro ao carregar produtos:", err);
+      setError("Não foi possível carregar os produtos. Verifique sua conexão.");
+    }
   }, []);
 
   const fetchCategories = useCallback(async () => {
-    const data = await categoriesApi.fetchAll();
-    if (data) setCategories(data);
+    try {
+      const data = await categoriesApi.fetchAll();
+      if (data) setCategories(data);
+    } catch (err: any) {
+      console.error("Erro ao carregar categorias:", err);
+    }
   }, []);
 
   useEffect(() => {
@@ -68,6 +79,7 @@ export function useDbProducts() {
     products,
     categories,
     loading,
+    error,
     addProduct,
     updateProduct,
     removeProduct,
