@@ -364,6 +364,39 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
         )}
       </div>
 
+      {/* ─── Visibilidade Mobile ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <h3 className="font-semibold text-sm flex items-center gap-2 pt-2">
+          <Eye className="h-4 w-4" />
+          Visibilidade no Mobile
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Escolha quais filtros aparecem na versão mobile do catálogo
+        </p>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Botões rápidos (Promoção, Destaque, Novidades)</p>
+            <p className="text-xs text-muted-foreground">Exibir os botões de filtro rápido no celular</p>
+          </div>
+          <Switch
+            checked={settings.show_quick_filters_mobile === "true"}
+            onCheckedChange={(val) => onUpdate("show_quick_filters_mobile", val ? "true" : "false")}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Dropdown de marcas</p>
+            <p className="text-xs text-muted-foreground">Exibir o filtro por marca no celular</p>
+          </div>
+          <Switch
+            checked={settings.show_brand_filter_mobile === "true"}
+            onCheckedChange={(val) => onUpdate("show_brand_filter_mobile", val ? "true" : "false")}
+          />
+        </div>
+      </div>
+
       {/* ─── Filtros ─── */}
       <div className="rounded-lg border bg-card p-4 space-y-4">
         <h3 className="font-semibold text-sm flex items-center gap-2 pt-2">
