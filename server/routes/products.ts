@@ -44,12 +44,12 @@ productsRouter.get("/code/:code", async (req, res) => {
 // POST create product
 productsRouter.post("/", async (req, res) => {
   try {
-    const { name, code, slug, price, original_price, description, image_url, category_id, active } = req.body;
+    const { name, code, slug, price, original_price, description, image_url, category_id, active, brand, reference, manufacturer_code, unit_of_measure, quantity } = req.body;
     const { rows } = await pool.query(
-      `INSERT INTO products (name, code, slug, price, original_price, description, image_url, category_id, active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO products (name, code, slug, price, original_price, description, image_url, category_id, active, brand, reference, manufacturer_code, unit_of_measure, quantity)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING *`,
-      [name, code, slug, price, original_price || null, description || "", image_url || "/placeholder.svg", category_id || null, active ?? true]
+      [name, code, slug, price, original_price || null, description || "", image_url || "/placeholder.svg", category_id || null, active ?? true, brand || null, reference || null, manufacturer_code || null, unit_of_measure || null, quantity ?? null]
     );
     res.json(rows[0]);
   } catch (err: any) {
@@ -108,8 +108,8 @@ productsRouter.post("/upsert", async (req, res) => {
   try {
     for (const p of products) {
       await pool.query(
-        `INSERT INTO products (name, code, slug, price, original_price, description, image_url, category_id, active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `INSERT INTO products (name, code, slug, price, original_price, description, image_url, category_id, active, brand, reference, manufacturer_code, unit_of_measure, quantity)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          ON CONFLICT (code) DO UPDATE SET
            name = EXCLUDED.name,
            slug = EXCLUDED.slug,
@@ -118,8 +118,13 @@ productsRouter.post("/upsert", async (req, res) => {
            description = EXCLUDED.description,
            image_url = CASE WHEN EXCLUDED.image_url = '/placeholder.svg' THEN products.image_url ELSE EXCLUDED.image_url END,
            category_id = EXCLUDED.category_id,
-           active = EXCLUDED.active`,
-        [p.name, p.code, p.slug, p.price, p.original_price || null, p.description || "", p.image_url || "/placeholder.svg", p.category_id || null, p.active ?? true]
+           active = EXCLUDED.active,
+           brand = COALESCE(EXCLUDED.brand, products.brand),
+           reference = COALESCE(EXCLUDED.reference, products.reference),
+           manufacturer_code = COALESCE(EXCLUDED.manufacturer_code, products.manufacturer_code),
+           unit_of_measure = COALESCE(EXCLUDED.unit_of_measure, products.unit_of_measure),
+           quantity = COALESCE(EXCLUDED.quantity, products.quantity)`,
+        [p.name, p.code, p.slug, p.price, p.original_price || null, p.description || "", p.image_url || "/placeholder.svg", p.category_id || null, p.active ?? true, p.brand || null, p.reference || null, p.manufacturer_code || null, p.unit_of_measure || null, p.quantity ?? null]
       );
     }
     res.json({ success: true });

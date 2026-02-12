@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, LogOut } from "lucide-react";
+import {
+  ArrowLeft, LogOut, BarChart3, Package, FolderOpen,
+  FileDown, Palette, Settings, Plug
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDbProducts } from "@/hooks/useDbProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -17,19 +20,34 @@ import { SalesDashboard } from "@/components/admin/SalesDashboard";
 
 import type { DbProduct } from "@/hooks/useDbProducts";
 
+const TABS = [
+  { key: "sales", label: "Vendas", icon: BarChart3 },
+  { key: "products", label: "Produtos", icon: Package },
+  { key: "categories", label: "Categorias", icon: FolderOpen },
+  { key: "import", label: "Importar", icon: FileDown },
+  { key: "catalog", label: "Catálogo", icon: Palette },
+  { key: "settings", label: "Config", icon: Settings },
+  { key: "integration", label: "ERP", icon: Plug },
+] as const;
+
+type TabKey = typeof TABS[number]["key"];
+
 export default function Admin() {
   const { user, isAdmin, loading: authLoading, signIn, signUp, signOut } = useAuth();
   const { products, categories, loading, addProduct, updateProduct, removeProduct, toggleActive, upsertProducts, uploadImage, refetchCategories } = useDbProducts();
   const { settings, updateSetting } = useStoreSettings();
-  
+
   const [editing, setEditing] = useState<DbProduct | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [tab, setTab] = useState<"sales" | "products" | "categories" | "import" | "catalog" | "settings" | "integration">("sales");
+  const [tab, setTab] = useState<TabKey>("sales");
 
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Carregando...</p>
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
       </div>
     );
   }
@@ -63,55 +81,68 @@ export default function Admin() {
     setEditing(null);
   };
 
-  const tabs = [
-    { key: "sales", label: "Vendas" },
-    { key: "products", label: "Produtos" },
-    { key: "categories", label: "Categorias" },
-    { key: "import", label: "Importar" },
-    { key: "catalog", label: "Catálogo" },
-    { key: "settings", label: "Config" },
-    { key: "integration", label: "ERP" },
-  ] as const;
+  const storeName = settings.store_name || "Painel Admin";
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
+      {/* ─── Header ─── */}
+      <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur-md shadow-sm">
         <div className="container flex h-14 items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/" className="rounded-full p-2 hover:bg-muted transition-colors">
+            <Link to="/" className="rounded-full p-2 hover:bg-muted transition-colors" title="Voltar ao catálogo">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <span className="font-semibold">Painel Admin</span>
+            <div className="flex flex-col leading-tight">
+              <span className="font-bold text-sm">{storeName}</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Administração</span>
+            </div>
           </div>
-          <button onClick={signOut} className="rounded-full p-2 hover:bg-muted transition-colors">
-            <LogOut className="h-4 w-4" />
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            title="Sair"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Sair</span>
           </button>
         </div>
       </header>
 
       <div className="container max-w-3xl">
-        <div className="flex border-b mt-2 overflow-x-auto">
-          {tabs.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
-                tab === t.key
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        {/* ─── Tabs ─── */}
+        <nav className="flex border-b mt-1 overflow-x-auto scrollbar-none">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            const isActive = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`group relative flex items-center gap-1.5 px-3 py-3 text-xs font-medium transition-colors whitespace-nowrap ${
+                  isActive
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
+                {t.label}
+                {isActive && (
+                  <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-primary" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
 
+        {/* ─── Content ─── */}
         <main className="py-6 space-y-4">
           {tab === "sales" && <SalesDashboard />}
 
           {tab === "products" && (
             loading ? (
-              <p className="text-center text-muted-foreground py-8">Carregando...</p>
+              <div className="flex items-center justify-center py-12">
+                <div className="h-6 w-6 animate-spin rounded-full border-3 border-primary border-t-transparent" />
+              </div>
             ) : (
               <ProductManager
                 products={products}
@@ -167,6 +198,13 @@ export default function Admin() {
             <IntegrationPanel settings={settings} onUpdate={updateSetting} />
           )}
         </main>
+
+        {/* ─── Footer ─── */}
+        <footer className="border-t py-4 text-center">
+          <p className="text-[10px] text-muted-foreground">
+            {storeName} · Painel Administrativo
+          </p>
+        </footer>
       </div>
     </div>
   );
