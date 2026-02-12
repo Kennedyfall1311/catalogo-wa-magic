@@ -7,6 +7,31 @@ interface BannerCarouselProps {
   banners: Banner[];
 }
 
+function BannerImage({ banner }: { banner: Banner }) {
+  const img = (
+    <img
+      src={banner.image_url}
+      alt="Banner"
+      className="w-full h-full object-cover"
+      loading="lazy"
+    />
+  );
+
+  const wrapper = (
+    <div className="w-full aspect-[16/5] sm:aspect-[19/5] max-h-[400px] overflow-hidden">
+      {banner.link ? (
+        <a href={banner.link} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+          {img}
+        </a>
+      ) : (
+        img
+      )}
+    </div>
+  );
+
+  return wrapper;
+}
+
 export function BannerCarousel({ banners }: BannerCarouselProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [canPrev, setCanPrev] = useState(false);
@@ -24,47 +49,25 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
     emblaApi.on("select", onSelect);
     emblaApi.on("reInit", onSelect);
 
-    // Auto-play
     const interval = setInterval(() => emblaApi.scrollNext(), 5000);
     return () => clearInterval(interval);
   }, [emblaApi, onSelect]);
 
   if (banners.length === 0) return null;
 
-  // Single banner — no carousel controls
   if (banners.length === 1) {
-    const b = banners[0];
-    const img = <img src={b.image_url} alt="Banner" className="w-full h-auto object-cover max-h-[400px]" />;
-    return (
-      <div className="w-full">
-        {b.link ? (
-          <a href={b.link} target="_blank" rel="noopener noreferrer">{img}</a>
-        ) : img}
-      </div>
-    );
+    return <BannerImage banner={banners[0]} />;
   }
 
   return (
     <div className="relative w-full group">
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex">
-          {banners.map((b) => {
-            const img = (
-              <img
-                key={b.id}
-                src={b.image_url}
-                alt="Banner"
-                className="w-full h-auto object-cover max-h-[400px] flex-[0_0_100%]"
-              />
-            );
-            return (
-              <div key={b.id} className="flex-[0_0_100%] min-w-0">
-                {b.link ? (
-                  <a href={b.link} target="_blank" rel="noopener noreferrer">{img}</a>
-                ) : img}
-              </div>
-            );
-          })}
+          {banners.map((b) => (
+            <div key={b.id} className="flex-[0_0_100%] min-w-0">
+              <BannerImage banner={b} />
+            </div>
+          ))}
         </div>
       </div>
 
