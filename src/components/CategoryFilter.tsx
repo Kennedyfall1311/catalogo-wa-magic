@@ -43,7 +43,7 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
       </div>
 
       {visibleFilters.length > 0 && (
-        <div className="flex gap-1.5">
+        <div className="flex gap-1 sm:gap-1.5 flex-wrap sm:flex-nowrap">
           {visibleFilters.map((filter) => {
             const isActive = activeQuickFilter === filter.key;
             const isSolid = filter.style === "solid";
@@ -60,7 +60,7 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
               <button
                 key={filter.key}
                 onClick={() => onQuickFilterChange?.(isActive ? null : filter.key)}
-                className={`shrink-0 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`rounded-md sm:rounded-lg border sm:border-2 px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
                   !isSolid && isActive ? "opacity-100" : !isSolid ? "opacity-90" : ""
                 }`}
                 style={{
@@ -69,7 +69,7 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
                   borderColor: borderStyle,
                 }}
               >
-                <Tag className="h-3.5 w-3.5" />
+                <Tag className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 {filter.label}
               </button>
             );
