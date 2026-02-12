@@ -91,7 +91,7 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
           }`}
           title={priceSortLabel}
         >
-          <ArrowUpDown className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+          <ArrowUpDown className="h-4 w-4 sm:h-3.5 sm:w-3.5" strokeWidth={2.5} />
           <span className="hidden sm:inline">{priceSortLabel}</span>
         </button>
       </div>
