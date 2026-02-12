@@ -55,7 +55,7 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
         />
       </div>
 
-      <div className="flex gap-1 sm:gap-1.5 flex-wrap sm:flex-nowrap">
+      <div className="hidden sm:flex gap-1.5 flex-nowrap">
         {visibleFilters.map((filter) => {
           const isActive = activeQuickFilter === filter.key;
           const isSolid = filter.style === "solid";
@@ -72,7 +72,7 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
             <button
               key={filter.key}
               onClick={() => onQuickFilterChange?.(isActive ? null : filter.key)}
-              className={`rounded-md sm:rounded-lg border sm:border-2 px-2.5 sm:px-4 py-1.5 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
+              className={`rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 !isSolid && isActive ? "opacity-100" : !isSolid ? "opacity-90" : ""
               }`}
               style={{
@@ -81,7 +81,7 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
                 borderColor: borderStyle,
               }}
             >
-              <Tag className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <Tag className="h-3.5 w-3.5" />
               {filter.label}
             </button>
           );
@@ -89,13 +89,13 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
 
         <button
           onClick={handlePriceSortClick}
-          className={`rounded-md sm:rounded-lg border sm:border-2 p-1.5 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
+          className={`rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
             priceSort ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground"
           }`}
           title={priceSortLabel}
         >
-          <ArrowUpDown className="h-4 w-4 sm:h-3.5 sm:w-3.5" strokeWidth={2.5} />
-          <span className="hidden sm:inline">{priceSortLabel}</span>
+          <ArrowUpDown className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <span>{priceSortLabel}</span>
         </button>
       </div>
 
@@ -114,7 +114,7 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
       </div>
 
       {brands && brands.length > 0 && (
-        <div className="relative">
+        <div className="relative hidden sm:block">
           <select
             value={selectedBrand ?? ""}
             onChange={(e) => onBrandChange?.(e.target.value || null)}
