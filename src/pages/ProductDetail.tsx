@@ -53,6 +53,7 @@ export default function ProductDetail() {
                 src={product.image_url || "/placeholder.svg"}
                 alt={product.name}
                 className="h-full w-full object-cover"
+                onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
               />
             </div>
 
@@ -70,17 +71,17 @@ export default function ProductDetail() {
               {settings.catalog_show_description === "true" && product.description && (
                 <p className="mt-2 text-muted-foreground">{product.description}</p>
               )}
-              {settings.catalog_show_reference === "true" && (product as any).reference && (
-                <p className="text-sm text-muted-foreground">Referência: {(product as any).reference}</p>
+              {settings.catalog_show_reference === "true" && product.reference && (
+                <p className="text-sm text-muted-foreground">Referência: {product.reference}</p>
               )}
-              {settings.catalog_show_manufacturer_code === "true" && (product as any).manufacturer_code && (
-                <p className="text-sm text-muted-foreground">Cód. Fabricante: {(product as any).manufacturer_code}</p>
+              {settings.catalog_show_manufacturer_code === "true" && product.manufacturer_code && (
+                <p className="text-sm text-muted-foreground">Cód. Fabricante: {product.manufacturer_code}</p>
               )}
-              {settings.catalog_show_unit_of_measure === "true" && (product as any).unit_of_measure && (
-                <p className="text-sm text-muted-foreground">Unidade: {(product as any).unit_of_measure}</p>
+              {settings.catalog_show_unit_of_measure === "true" && product.unit_of_measure && (
+                <p className="text-sm text-muted-foreground">Unidade: {product.unit_of_measure}</p>
               )}
-              {settings.catalog_show_quantity === "true" && (product as any).quantity != null && (
-                <p className="text-sm text-muted-foreground">Quantidade: {(product as any).quantity}</p>
+              {settings.catalog_show_quantity === "true" && product.quantity != null && (
+                <p className="text-sm text-muted-foreground">Quantidade: {product.quantity}</p>
               )}
 
               <div className="mt-4">

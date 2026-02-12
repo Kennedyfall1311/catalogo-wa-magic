@@ -951,7 +951,49 @@ server {
 
 ---
 
-## 15. Solução de Problemas
+## 15. Resiliência e Boas Práticas
+
+### Timeout e Retry (api-client.ts)
+
+O frontend implementa mecanismos de resiliência em todas as chamadas REST:
+
+| Configuração | Valor | Descrição |
+|-------------|-------|-----------|
+| **Timeout** | 15 segundos | Requisições são canceladas via `AbortController` após 15s |
+| **Retry** | 2 tentativas | Erros de rede (`Failed to fetch`, `AbortError`) são reenviados automaticamente |
+| **Backoff** | Incremental | 1s na 1ª tentativa, 2s na 2ª |
+
+Erros de negócio (4xx) **não** são reenviados — apenas falhas de rede.
+
+### Idempotência de Pedidos (Checkout)
+
+O checkout gera um `X-Idempotency-Key` (UUID) antes de enviar o pedido:
+
+- O botão "Enviar Pedido" é **desabilitado** imediatamente após o clique
+- Se a API retornar erro, o carrinho **não é limpo** e o erro é exibido
+- O cliente pode tentar novamente com a mesma key sem risco de duplicação
+
+### Estados de Erro
+
+Todos os hooks principais (`useDbProducts`, `useStoreSettings`) expõem um campo `error`:
+
+- Se a API falhar, o catálogo exibe mensagem amigável com botão "Tentar novamente"
+- O loading não fica infinito — o erro é capturado e exibido
+
+### Fallback de Imagens
+
+Todas as tags `<img>` possuem handler `onError` que substitui imagens quebradas pelo placeholder:
+
+```tsx
+<img
+  src={product.image_url || "/placeholder.svg"}
+  onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
+/>
+```
+
+---
+
+## 16. Solução de Problemas
 
 | Problema | Causa provável | Solução |
 |----------|----------------|---------|
@@ -966,6 +1008,8 @@ server {
 | Importação não traz marca/referência | Planilha sem cabeçalhos corretos | Use os nomes: `marca`, `referencia`, `codigo_fabricante`, `unidade_medida`, `quantidade` |
 | Frontend mostra tela em branco | Erros no console | Abra DevTools (F12) e verifique os erros |
 | Pedidos não aparecem no dashboard | Nenhum pedido criado | Faça um pedido de teste pelo catálogo |
+| Pedido duplicado | Reenvio sem idempotency key | O frontend agora envia `X-Idempotency-Key` automaticamente |
+| Loading infinito no catálogo | API indisponível | O frontend agora exibe erro após timeout de 15s com retry |
 
 ---
 

@@ -14,40 +14,85 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export const isPostgresMode = () => API_MODE === "postgres";
 
+// ─── Timeout & Retry Config ───
+
+const DEFAULT_TIMEOUT_MS = 15_000;
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1_000;
+
+async function fetchWithTimeout(
+  input: RequestInfo,
+  init?: RequestInit & { timeoutMs?: number }
+): Promise<Response> {
+  const timeout = init?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(input, { ...init, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      const isRetryable =
+        err.name === "AbortError" ||
+        err.message?.includes("Failed to fetch") ||
+        err.message?.includes("NetworkError");
+      if (!isRetryable || attempt === retries) throw err;
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)));
+    }
+  }
+  throw new Error("Unreachable");
+}
+
 // ─── Generic REST helpers ───
 
 async function restGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`);
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  return withRetry(async () => {
+    const res = await fetchWithTimeout(`${API_URL}${path}`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  });
 }
 
-async function restPost<T>(path: string, body: any): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+async function restPost<T>(path: string, body: any, headers?: Record<string, string>): Promise<T> {
+  return withRetry(async () => {
+    const res = await fetchWithTimeout(`${API_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text);
+    }
+    return res.json();
   });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text);
-  }
-  return res.json();
 }
 
 async function restPut<T>(path: string, body: any): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+  return withRetry(async () => {
+    const res = await fetchWithTimeout(`${API_URL}${path}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
 }
 
 async function restDelete(path: string): Promise<void> {
-  const res = await fetch(`${API_URL}${path}`, { method: "DELETE" });
-  if (!res.ok) throw new Error(await res.text());
+  return withRetry(async () => {
+    const res = await fetchWithTimeout(`${API_URL}${path}`, { method: "DELETE" });
+    if (!res.ok) throw new Error(await res.text());
+  });
 }
 
 // ─── Products API ───
@@ -516,10 +561,12 @@ export const ordersApi = {
     return data || [];
   },
 
-  async create(order: any, items: any[]) {
+  async create(order: any, items: any[], idempotencyKey?: string) {
     if (isPostgresMode()) {
       try {
-        await restPost("/orders", { order, items });
+        const headers: Record<string, string> = {};
+        if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;
+        await restPost("/orders", { order, items }, headers);
         return { error: null };
       } catch (err: any) {
         return { error: { message: err.message } };
