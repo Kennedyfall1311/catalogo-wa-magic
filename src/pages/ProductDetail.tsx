@@ -92,6 +92,11 @@ export default function ProductDetail() {
                 <span className="text-2xl font-bold" style={settings.price_color ? { color: settings.price_color } : undefined}>
                   R$ {Number(product.price).toFixed(2).replace(".", ",")}
                 </span>
+                {settings.catalog_show_installments === "true" && settings.catalog_installments_count && Number(settings.catalog_installments_count) > 1 && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {Number(settings.catalog_installments_count)}x de R$ {(product.price / Number(settings.catalog_installments_count)).toFixed(2).replace(".", ",")}
+                  </p>
+                )}
               </div>
 
               <div className="mt-6">

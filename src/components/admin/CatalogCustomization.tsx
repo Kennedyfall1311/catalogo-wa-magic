@@ -31,6 +31,7 @@ const CATALOG_FIELDS = [
   { key: "catalog_show_manufacturer_code", label: "Código do Fabricante", sampleValue: "FAB-0093" },
   { key: "catalog_show_unit_of_measure", label: "Unidade de Medida", sampleValue: "UN" },
   { key: "catalog_show_quantity", label: "Quantidade", sampleValue: "150" },
+  { key: "catalog_show_installments", label: "Parcelamento", sampleValue: "" },
 ];
 
 export function CatalogCustomization({ settings, onUpdate, products, categories, onUpdateProduct }: Props) {
@@ -247,9 +248,11 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
               {CATALOG_FIELDS.map((field) =>
                 settings[field.key] === "true" ? (
                   <p key={field.key} className="text-[10px] text-muted-foreground">
-                    {field.key === "catalog_show_description"
-                      ? field.sampleValue
-                      : `${field.label}: ${field.sampleValue}`}
+                    {field.key === "catalog_show_installments"
+                      ? `${settings.catalog_installments_count || "3"}x de R$ ${(79.9 / Number(settings.catalog_installments_count || 3)).toFixed(2).replace(".", ",")}`
+                      : field.key === "catalog_show_description"
+                        ? field.sampleValue
+                        : `${field.label}: ${field.sampleValue}`}
                   </p>
                 ) : null
               )}
@@ -295,12 +298,27 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
         <p className="text-xs text-muted-foreground">Ative os campos que deseja exibir no card do produto</p>
 
         {CATALOG_FIELDS.map((item) => (
-          <div key={item.key} className="flex items-center justify-between">
-            <p className="text-sm">{item.label}</p>
-            <Switch
-              checked={settings[item.key] === "true"}
-              onCheckedChange={(val) => onUpdate(item.key, val ? "true" : "false")}
-            />
+          <div key={item.key}>
+            <div className="flex items-center justify-between">
+              <p className="text-sm">{item.label}</p>
+              <Switch
+                checked={settings[item.key] === "true"}
+                onCheckedChange={(val) => onUpdate(item.key, val ? "true" : "false")}
+              />
+            </div>
+            {item.key === "catalog_show_installments" && settings[item.key] === "true" && (
+              <div className="mt-2 ml-1 space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Quantidade de parcelas</label>
+                <input
+                  type="number"
+                  min={2}
+                  max={24}
+                  value={settings.catalog_installments_count || "3"}
+                  onChange={(e) => onUpdate("catalog_installments_count", e.target.value)}
+                  className="w-24 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            )}
           </div>
         ))}
       </div>

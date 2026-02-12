@@ -64,6 +64,11 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
           <p className={`${priceSize} font-bold`} style={priceColor ? { color: priceColor } : undefined}>
             R$ {Number(product.price).toFixed(2).replace(".", ",")}
           </p>
+          {catalogSettings.catalog_show_installments === "true" && catalogSettings.catalog_installments_count && Number(catalogSettings.catalog_installments_count) > 1 && (
+            <p className={`${detailSize} text-muted-foreground`}>
+              {Number(catalogSettings.catalog_installments_count)}x de R$ {(product.price / Number(catalogSettings.catalog_installments_count)).toFixed(2).replace(".", ",")}
+            </p>
+          )}
           {catalogSettings.catalog_show_description === "true" && product.description && (
             <p className={`${detailSize} text-muted-foreground line-clamp-2`}>{product.description}</p>
           )}
