@@ -220,6 +220,7 @@ const Index = () => {
               onBrandChange={(b) => { setSelectedBrand(b); setVisibleCount(PAGE_SIZE); }}
               showQuickFiltersOnMobile={settings.show_quick_filters_mobile === "true"}
               showBrandOnMobile={settings.show_brand_filter_mobile === "true"}
+              showBrandFilter={settings.brand_filter_enabled !== "false"}
             />
 
             <h2 className="text-center text-lg font-bold uppercase tracking-wide">

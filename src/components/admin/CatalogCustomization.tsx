@@ -403,6 +403,18 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
           <EyeOff className="h-4 w-4" />
           Filtros do Catálogo
         </h3>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Filtro por marca</p>
+            <p className="text-xs text-muted-foreground">Exibir o dropdown de marcas no catálogo</p>
+          </div>
+          <Switch
+            checked={settings.brand_filter_enabled !== "false"}
+            onCheckedChange={(val) => onUpdate("brand_filter_enabled", val ? "true" : "false")}
+          />
+        </div>
+
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium">Ocultar produtos sem foto</p>
