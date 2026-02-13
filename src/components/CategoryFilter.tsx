@@ -111,13 +111,12 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
 
         <button
           onClick={handleNameSortClick}
-          className={`rounded-md sm:rounded-lg border sm:border-2 p-1.5 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
+          className={`rounded-md border p-1.5 text-xs font-bold transition-all flex items-center justify-center whitespace-nowrap min-w-[32px] ${
             nameSort ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground"
           }`}
           title={nameSortLabel}
         >
-          <SortAsc className="h-4 w-4 sm:h-3.5 sm:w-3.5" strokeWidth={2.5} />
-          <span className="hidden sm:inline">{nameSortLabel}</span>
+          A{nameSort === "asc" ? "↑" : nameSort === "desc" ? "↓" : ""}
         </button>
       </div>
 
