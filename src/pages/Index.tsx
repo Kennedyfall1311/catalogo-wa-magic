@@ -21,6 +21,7 @@ const Index = () => {
   const [category, setCategory] = useState<string | null>(null);
   const [activeQuickFilter, setActiveQuickFilter] = useState<string | null>(null);
   const [priceSort, setPriceSort] = useState<"asc" | "desc" | null>(null);
+  const [nameSort, setNameSort] = useState<"asc" | "desc" | null>(null);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const PAGE_SIZE = 40;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -114,12 +115,14 @@ const Index = () => {
         return true;
       });
 
-    // Apply price sorting
-    if (priceSort === "asc") base.sort((a, b) => a.price - b.price);
+    // Apply sorting
+    if (nameSort === "asc") base.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+    else if (nameSort === "desc") base.sort((a, b) => b.name.localeCompare(a.name, "pt-BR"));
+    else if (priceSort === "asc") base.sort((a, b) => a.price - b.price);
     else if (priceSort === "desc") base.sort((a, b) => b.price - a.price);
 
     return base;
-  }, [products, search, category, selectedBrand, hideNoPhoto, activeQuickFilter, settings, priceSort]);
+  }, [products, search, category, selectedBrand, hideNoPhoto, activeQuickFilter, settings, priceSort, nameSort]);
 
   // Build the display list: first page uses display mode, subsequent pages use normal order
   const visibleProducts = useMemo(() => {
@@ -209,7 +212,9 @@ const Index = () => {
               activeQuickFilter={activeQuickFilter}
               onQuickFilterChange={(key) => { setActiveQuickFilter(key); setVisibleCount(PAGE_SIZE); }}
               priceSort={priceSort}
-              onPriceSortChange={(sort) => { setPriceSort(sort); setVisibleCount(PAGE_SIZE); }}
+              onPriceSortChange={(sort) => { setPriceSort(sort); setNameSort(null); setVisibleCount(PAGE_SIZE); }}
+              nameSort={nameSort}
+              onNameSortChange={(sort) => { setNameSort(sort); setPriceSort(null); setVisibleCount(PAGE_SIZE); }}
               brands={brands}
               selectedBrand={selectedBrand}
               onBrandChange={(b) => { setSelectedBrand(b); setVisibleCount(PAGE_SIZE); }}
