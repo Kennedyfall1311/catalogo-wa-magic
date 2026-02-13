@@ -676,3 +676,82 @@ Categorias com `slug` duplicado são ignoradas automaticamente (`ON CONFLICT DO 
 - [ ] Verificar que a página de detalhe trata produto `null` (404)
 - [ ] Confirmar que Realtime atualiza a listagem sem refresh manual
 - [ ] Testar estados de loading, erro e catálogo vazio
+
+---
+
+## 9. Glossário
+
+| Termo | Definição |
+|-------|-----------|
+| **Upsert** | Operação que insere um registro se ele não existe ou atualiza se já existe (INSERT + UPDATE) |
+| **Slug** | Versão URL-friendly de um texto. Ex: "Camiseta Preta" → `camiseta-preta`. Usado como identificador em URLs. |
+| **Idempotência** | Propriedade que garante que reenviar a mesma requisição produz o mesmo resultado sem efeitos colaterais |
+| **Code** | Código único do produto no ERP (SKU), usado como **chave de upsert** — é a ponte entre ERP e catálogo |
+| **COALESCE** | Função SQL que retorna o primeiro valor não-nulo. Usada para preservar dados existentes quando campos opcionais são `null` |
+| **Realtime** | Tecnologia WebSocket que notifica o frontend automaticamente quando dados mudam no banco |
+| **Polling** | Alternativa ao Realtime: o frontend consulta a API em intervalos regulares |
+| **Placeholder** | Imagem SVG padrão exibida quando o produto não possui foto (`/placeholder.svg`) |
+| **Category slug** | Identificador URL-friendly da categoria, usado para associar produtos a categorias via API |
+| **Bearer Token** | Método de autenticação via header HTTP `Authorization: Bearer <token>` |
+| **Sincronização incremental** | Envio apenas dos dados que mudaram desde a última sincronização |
+| **Carga completa** | Envio de todos os dados de uma vez (geralmente feito na primeira sincronização) |
+
+---
+
+## 10. FAQ — Perguntas Frequentes
+
+### 1. O que acontece se eu enviar o mesmo produto duas vezes?
+
+O sistema faz **upsert** pelo campo `code`. Se o produto já existe, ele é **atualizado**. Se não existe, é **criado**. Não há risco de duplicação.
+
+### 2. Posso enviar produtos sem categoria?
+
+Sim. O campo `category_slug` é opcional. Produtos sem categoria aparecem na listagem "Todos" do catálogo.
+
+### 3. Posso atualizar apenas o preço sem reenviar todos os campos?
+
+Sim. No endpoint `/products/upsert`, campos opcionais com `null` são **preservados** via `COALESCE`. Enviar apenas `code`, `name`, `slug` e `price` atualiza somente esses campos — os demais ficam inalterados.
+
+### 4. O que acontece com a imagem se eu enviar `image_url: "/placeholder.svg"`?
+
+A API **preserva** a imagem existente do produto. O placeholder não sobrescreve imagens reais — essa é uma proteção para evitar perda acidental de fotos.
+
+### 5. Posso deletar todos os produtos e reenviar?
+
+Não recomendado. Use `active: false` para inativar produtos e reenvie a carga completa com os produtos ativos. A deleção permanente perde histórico de pedidos vinculados.
+
+### 6. Qual o tamanho máximo de um lote?
+
+O endpoint aceita arrays de qualquer tamanho, mas recomendamos **100-200 produtos por lote** para melhor performance. Lotes muito grandes podem causar timeout (30s).
+
+### 7. A API valida o formato do slug?
+
+A API **não valida** o formato do slug — cabe ao ERP gerar slugs corretos (lowercase, hifenizados, sem caracteres especiais). Slugs inválidos podem gerar URLs quebradas no frontend.
+
+### 8. As imagens são enviadas junto com os produtos?
+
+**Não.** A sincronização de imagens é feita em um **endpoint separado** (`POST /erp-sync/images`). Veja `docs/ERP_IMAGE_IMPORT_API.md`.
+
+### 9. Como sei se um produto está visível no catálogo?
+
+O produto precisa ter `active = true` E (opcionalmente) ter imagem se a configuração "ocultar sem foto" estiver ativa.
+
+### 10. Posso reenviar toda a base de produtos diariamente?
+
+Sim, graças à **idempotência** por `code`. O upsert atualiza apenas o que mudou. É seguro e comum em integrações com ERPs.
+
+---
+
+## 11. Troubleshooting
+
+| Problema | Causa provável | Solução |
+|----------|---------------|---------|
+| Produto não aparece no catálogo | `active = false` | Verificar campo `active` no payload |
+| Produto sem categoria | `category_slug` não existe | Criar categoria antes ou verificar slug |
+| Imagem perdida após sincronização | `image_url` sobrescrito | Enviar `null` para preservar (não enviar placeholder) |
+| Erro 400 "products array required" | Payload sem campo `products` | Enviar `{ "products": [...] }` |
+| Slug duplicado gera erro | Dois produtos com mesmo slug | Garantir slugs únicos por produto |
+| Preço aparece como 0 | Campo `price` como `null` ou `0` | `price` é obrigatório e deve ser > 0 |
+| Produto existente virou novo | `code` diferente do original | Manter o mesmo `code` para cada produto |
+| Marca não aparece no filtro | Filtro de marca desativado | Ativar em Admin → Catálogo → Filtros → "Filtro por marca" |
+| Quantidade não atualiza | Campo `quantity` como string | Enviar como número (sem aspas): `"quantity": 50` |

@@ -957,3 +957,44 @@ Para consumir os pedidos desta API, o ERP precisa:
 4. **Atualizar progresso:** `PUT /api/orders/:id` com status apropriado
 
 O ERP é tratado como uma **caixa-preta** — esta documentação não prescreve como os dados devem ser processados internamente. O contrato se limita aos JSONs de request/response descritos acima.
+
+---
+
+## Glossário
+
+| Termo | Definição |
+|-------|-----------|
+| **Checkout** | Fluxo de finalização de compra onde o cliente preenche dados e envia o pedido |
+| **Snapshot** | Cópia do dado no momento da operação (ex: preço do produto no momento da compra) |
+| **Idempotência** | Propriedade que garante que reenviar a mesma requisição não gera duplicatas |
+| **Máquina de estados** | Modelo que define estados possíveis de um pedido e transições válidas |
+| **Guard clause** | Verificação no início de uma função que impede execução duplicada |
+| **RLS** | Row-Level Security — restringe acesso a linhas no PostgreSQL |
+| **Bearer Token** | Autenticação via header `Authorization: Bearer <token>` |
+
+---
+
+## FAQ
+
+### 1. O carrinho é persistido entre sessões?
+**Não.** Gerenciado em memória via React Context. Recarregar a página perde o carrinho.
+
+### 2. O que acontece se a API falhar no checkout?
+O carrinho **não é limpo** e o WhatsApp prossegue independentemente. O pedido pode ser reenviado.
+
+### 3. Os preços nos itens podem diferir dos atuais?
+**Sim.** São snapshots do momento da compra.
+
+### 4. É possível enviar pedidos sem condição de pagamento?
+**Sim.** `payment_method` é `null` quando o módulo está desativado.
+
+---
+
+## Troubleshooting
+
+| Problema | Causa | Solução |
+|----------|-------|---------|
+| Pedido não aparece no dashboard | Filtro de status ativo | Verificar filtro no dashboard |
+| Erro 500 ao criar | Campo obrigatório ausente | `customer_name` e `customer_phone` são obrigatórios |
+| WhatsApp não abre | Bloqueador de pop-up | Verificar configurações do navegador |
+| `total` não confere | Cálculo incorreto | `total` = `subtotal` + `shipping_fee` |
