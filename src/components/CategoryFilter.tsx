@@ -33,9 +33,10 @@ interface CategoryFilterProps {
   onBrandChange?: (brand: string | null) => void;
   showQuickFiltersOnMobile?: boolean;
   showBrandOnMobile?: boolean;
+  showBrandFilter?: boolean;
 }
 
-export function CategoryFilter({ categories, selected, onSelect, searchQuery, onSearchChange, quickFilters, activeQuickFilter, onQuickFilterChange, priceSort, onPriceSortChange, nameSort, onNameSortChange, brands, selectedBrand, onBrandChange, showQuickFiltersOnMobile = false, showBrandOnMobile = false }: CategoryFilterProps) {
+export function CategoryFilter({ categories, selected, onSelect, searchQuery, onSearchChange, quickFilters, activeQuickFilter, onQuickFilterChange, priceSort, onPriceSortChange, nameSort, onNameSortChange, brands, selectedBrand, onBrandChange, showQuickFiltersOnMobile = false, showBrandOnMobile = false, showBrandFilter = true }: CategoryFilterProps) {
   const visibleFilters = quickFilters?.filter((f) => f.visible) || [];
 
   const handlePriceSortClick = () => {
@@ -111,12 +112,13 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
 
         <button
           onClick={handleNameSortClick}
-          className={`rounded-md border p-1.5 text-xs font-bold transition-all flex items-center justify-center whitespace-nowrap min-w-[32px] ${
+          className={`rounded-md sm:rounded-lg border sm:border-2 px-2 sm:px-3 py-1.5 sm:py-2.5 text-xs sm:text-sm font-bold transition-all flex items-center gap-1 whitespace-nowrap ${
             nameSort ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground"
           }`}
           title={nameSortLabel}
         >
-          A{nameSort === "asc" ? "↑" : nameSort === "desc" ? "↓" : ""}
+          <span className="text-[11px] sm:text-sm">A‑Z</span>
+          {nameSort && <span className="text-[10px] sm:text-xs">{nameSort === "asc" ? "↑" : "↓"}</span>}
         </button>
       </div>
 
@@ -134,7 +136,7 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
         <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       </div>
 
-      {brands && brands.length > 0 && (
+      {showBrandFilter && brands && brands.length > 0 && (
         <div className={`relative ${showBrandOnMobile ? '' : 'hidden sm:block'}`}>
           <select
             value={selectedBrand ?? ""}
