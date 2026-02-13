@@ -1,4 +1,4 @@
-import { Search, ChevronDown, Tag, ArrowUpDown } from "lucide-react";
+import { Search, ChevronDown, Tag, ArrowUpDown, SortAsc } from "lucide-react";
 
 interface QuickFilterButton {
   key: string;
@@ -26,6 +26,8 @@ interface CategoryFilterProps {
   onQuickFilterChange?: (key: string | null) => void;
   priceSort?: "asc" | "desc" | null;
   onPriceSortChange?: (sort: "asc" | "desc" | null) => void;
+  nameSort?: "asc" | "desc" | null;
+  onNameSortChange?: (sort: "asc" | "desc" | null) => void;
   brands?: string[];
   selectedBrand?: string | null;
   onBrandChange?: (brand: string | null) => void;
@@ -33,7 +35,7 @@ interface CategoryFilterProps {
   showBrandOnMobile?: boolean;
 }
 
-export function CategoryFilter({ categories, selected, onSelect, searchQuery, onSearchChange, quickFilters, activeQuickFilter, onQuickFilterChange, priceSort, onPriceSortChange, brands, selectedBrand, onBrandChange, showQuickFiltersOnMobile = false, showBrandOnMobile = false }: CategoryFilterProps) {
+export function CategoryFilter({ categories, selected, onSelect, searchQuery, onSearchChange, quickFilters, activeQuickFilter, onQuickFilterChange, priceSort, onPriceSortChange, nameSort, onNameSortChange, brands, selectedBrand, onBrandChange, showQuickFiltersOnMobile = false, showBrandOnMobile = false }: CategoryFilterProps) {
   const visibleFilters = quickFilters?.filter((f) => f.visible) || [];
 
   const handlePriceSortClick = () => {
@@ -42,7 +44,14 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
     else onPriceSortChange?.(null);
   };
 
+  const handleNameSortClick = () => {
+    if (!nameSort) onNameSortChange?.("asc");
+    else if (nameSort === "asc") onNameSortChange?.("desc");
+    else onNameSortChange?.(null);
+  };
+
   const priceSortLabel = priceSort === "asc" ? "Menor preço" : priceSort === "desc" ? "Maior preço" : "Preço";
+  const nameSortLabel = nameSort === "asc" ? "A → Z" : nameSort === "desc" ? "Z → A" : "A-Z";
 
   return (
     <div className="flex flex-col sm:flex-row gap-2">
@@ -98,6 +107,17 @@ export function CategoryFilter({ categories, selected, onSelect, searchQuery, on
         >
           <ArrowUpDown className="h-4 w-4 sm:h-3.5 sm:w-3.5" strokeWidth={2.5} />
           <span className="hidden sm:inline">{priceSortLabel}</span>
+        </button>
+
+        <button
+          onClick={handleNameSortClick}
+          className={`rounded-md sm:rounded-lg border sm:border-2 p-1.5 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold transition-all flex items-center gap-1 sm:gap-1.5 whitespace-nowrap ${
+            nameSort ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-foreground"
+          }`}
+          title={nameSortLabel}
+        >
+          <SortAsc className="h-4 w-4 sm:h-3.5 sm:w-3.5" strokeWidth={2.5} />
+          <span className="hidden sm:inline">{nameSortLabel}</span>
         </button>
       </div>
 
