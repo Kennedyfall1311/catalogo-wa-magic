@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Share2, Check } from "lucide-react";
 import { useProductBySlug } from "@/hooks/useProductBySlug";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { WhatsAppFloating } from "@/components/WhatsAppFloating";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { AddToCartDialog } from "@/components/AddToCartDialog";
+import { toast } from "@/hooks/use-toast";
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -103,7 +104,7 @@ export default function ProductDetail() {
                 })()}
               </div>
 
-              <div className="mt-6">
+              <div className="mt-6 space-y-3">
                 <button
                   onClick={() => setDialogOpen(true)}
                   className={`flex items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold transition-colors shadow-sm w-full ${settings.button_color ? 'text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
@@ -111,6 +112,18 @@ export default function ProductDetail() {
                 >
                   <ShoppingBag className="h-5 w-5" />
                   Comprar
+                </button>
+                <button
+                  onClick={() => {
+                    const url = window.location.href;
+                    navigator.clipboard.writeText(url).then(() => {
+                      toast({ title: "Link copiado!", description: "Compartilhe com quem quiser." });
+                    });
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-full border px-6 py-3 font-medium text-sm w-full hover:bg-muted transition-colors"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Compartilhar produto
                 </button>
               </div>
             </div>
