@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { DbProduct } from "@/hooks/useDbProducts";
-import { ShoppingBag, Share2 } from "lucide-react";
-import { AddToCartDialog } from "@/components/AddToCartDialog";
+import { ShoppingBag, Share2, Minus, Plus } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
 import { toast } from "@/hooks/use-toast";
 
 interface ProductCardProps {
@@ -19,102 +19,116 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
   const nameSize = "text-[11px] md:text-xs";
   const priceSize = "text-sm";
   const detailSize = "text-[10px]";
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const { addItem } = useCart();
   const hasDiscount = product.original_price && product.original_price > product.price;
 
-  const whatsappMessage = encodeURIComponent(
-    `Olá, quero pedir este produto:\n\nProduto: ${product.name}\nCódigo: ${product.code || "N/A"}\nPreço: R$ ${Number(product.price).toFixed(2).replace(".", ",")}`
-  );
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
+  const handleAddToCart = () => {
+    addItem(product, quantity);
+    toast({ title: "Adicionado à sacola!", description: `${quantity}x ${product.name}` });
+    setQuantity(1);
+  };
 
   return (
-    <>
-      <div
-        className="group flex flex-col border-r border-b"
-      >
-        <Link to={`/produto/${product.slug}`}>
-          <div className="relative aspect-square overflow-hidden bg-card p-2">
-            <img
-              src={product.image_url || "/placeholder.svg"}
-              alt={product.name}
-              className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
-              onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
-            />
-            {hasDiscount && (
-              <span className="absolute top-1 left-1 rounded bg-sale px-1.5 py-0.5 text-[10px] font-bold text-sale-foreground">
-                OFERTA
-              </span>
-            )}
-          </div>
-        </Link>
-
-        <div className="px-2 py-3 text-center border-t space-y-1">
-          <Link to={`/produto/${product.slug}`}>
-            <h3 className={`${nameSize} font-semibold uppercase leading-tight line-clamp-2 hover:underline`} style={textColor ? { color: textColor } : undefined}>
-              {product.name}
-            </h3>
-          </Link>
-          {product.code && (
-            <p className={`${detailSize} text-muted-foreground`}>Cód: {product.code}</p>
-          )}
+    <div className="group flex flex-col border-r border-b">
+      <Link to={`/produto/${product.slug}`}>
+        <div className="relative aspect-square overflow-hidden bg-card p-2">
+          <img
+            src={product.image_url || "/placeholder.svg"}
+            alt={product.name}
+            className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
+          />
           {hasDiscount && (
-            <p className={`${detailSize} text-muted-foreground line-through`}>
-              de R$ {Number(product.original_price!).toFixed(2).replace(".", ",")}
-            </p>
+            <span className="absolute top-1 left-1 rounded bg-sale px-1.5 py-0.5 text-[10px] font-bold text-sale-foreground">
+              OFERTA
+            </span>
           )}
-          <p className={`${priceSize} font-bold`} style={priceColor ? { color: priceColor } : undefined}>
-            R$ {Number(product.price).toFixed(2).replace(".", ",")}
+        </div>
+      </Link>
+
+      <div className="px-2 py-3 text-center border-t space-y-1">
+        <Link to={`/produto/${product.slug}`}>
+          <h3 className={`${nameSize} font-semibold uppercase leading-tight line-clamp-2 hover:underline`} style={textColor ? { color: textColor } : undefined}>
+            {product.name}
+          </h3>
+        </Link>
+        {product.code && (
+          <p className={`${detailSize} text-muted-foreground`}>Cód: {product.code}</p>
+        )}
+        {hasDiscount && (
+          <p className={`${detailSize} text-muted-foreground line-through`}>
+            de R$ {Number(product.original_price!).toFixed(2).replace(".", ",")}
           </p>
-          {catalogSettings.catalog_show_installments === "true" && (() => {
-            const count = Number(catalogSettings.catalog_installments_count) || 3;
-            return count > 1 ? (
-              <p className={`${detailSize} text-muted-foreground`}>
-                {count}x de R$ {(product.price / count).toFixed(2).replace(".", ",")}
-              </p>
-            ) : null;
-          })()}
-          {catalogSettings.catalog_show_description === "true" && product.description && (
-            <p className={`${detailSize} text-muted-foreground line-clamp-2`}>{product.description}</p>
-          )}
-          {catalogSettings.catalog_show_reference === "true" && product.reference && (
-            <p className={`${detailSize} text-muted-foreground`}>Ref: {product.reference}</p>
-          )}
-          {catalogSettings.catalog_show_manufacturer_code === "true" && product.manufacturer_code && (
-            <p className={`${detailSize} text-muted-foreground`}>Fab: {product.manufacturer_code}</p>
-          )}
-          {catalogSettings.catalog_show_unit_of_measure === "true" && product.unit_of_measure && (
-            <p className={`${detailSize} text-muted-foreground`}>Un: {product.unit_of_measure}</p>
-          )}
-          {catalogSettings.catalog_show_quantity === "true" && product.quantity != null && (
-            <p className={`${detailSize} text-muted-foreground`}>Qtd: {product.quantity}</p>
-          )}
-          <div className="mt-1 flex gap-1.5">
-            <button
-              onClick={() => setDialogOpen(true)}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${buttonColor ? 'text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
-              style={buttonColor ? { backgroundColor: buttonColor } : undefined}
-            >
-              <ShoppingBag className="h-3.5 w-3.5" />
-              Comprar
-            </button>
-            <button
-              onClick={() => {
-                const url = `${window.location.origin}/produto/${product.slug}`;
-                navigator.clipboard.writeText(url).then(() => {
-                  toast({ title: "Link copiado!", description: url });
-                });
-              }}
-              className="flex items-center justify-center rounded-md border px-2 py-2 text-muted-foreground hover:bg-muted transition-colors"
-              title="Copiar link do produto"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
+        )}
+        <p className={`${priceSize} font-bold`} style={priceColor ? { color: priceColor } : undefined}>
+          R$ {Number(product.price).toFixed(2).replace(".", ",")}
+        </p>
+        {catalogSettings.catalog_show_installments === "true" && (() => {
+          const count = Number(catalogSettings.catalog_installments_count) || 3;
+          return count > 1 ? (
+            <p className={`${detailSize} text-muted-foreground`}>
+              {count}x de R$ {(product.price / count).toFixed(2).replace(".", ",")}
+            </p>
+          ) : null;
+        })()}
+        {catalogSettings.catalog_show_description === "true" && product.description && (
+          <p className={`${detailSize} text-muted-foreground line-clamp-2`}>{product.description}</p>
+        )}
+        {catalogSettings.catalog_show_reference === "true" && product.reference && (
+          <p className={`${detailSize} text-muted-foreground`}>Ref: {product.reference}</p>
+        )}
+        {catalogSettings.catalog_show_manufacturer_code === "true" && product.manufacturer_code && (
+          <p className={`${detailSize} text-muted-foreground`}>Fab: {product.manufacturer_code}</p>
+        )}
+        {catalogSettings.catalog_show_unit_of_measure === "true" && product.unit_of_measure && (
+          <p className={`${detailSize} text-muted-foreground`}>Un: {product.unit_of_measure}</p>
+        )}
+        {catalogSettings.catalog_show_quantity === "true" && product.quantity != null && (
+          <p className={`${detailSize} text-muted-foreground`}>Qtd: {product.quantity}</p>
+        )}
+
+        {/* Quantity selector */}
+        <div className="flex items-center justify-center gap-2 mt-1">
+          <button
+            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+            className="flex h-6 w-6 items-center justify-center rounded border hover:bg-muted transition-colors"
+          >
+            <Minus className="h-3 w-3" />
+          </button>
+          <span className="w-6 text-center text-xs font-semibold tabular-nums">{quantity}</span>
+          <button
+            onClick={() => setQuantity((q) => q + 1)}
+            className="flex h-6 w-6 items-center justify-center rounded border hover:bg-muted transition-colors"
+          >
+            <Plus className="h-3 w-3" />
+          </button>
+        </div>
+
+        <div className="mt-1 flex gap-1.5">
+          <button
+            onClick={handleAddToCart}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${buttonColor ? 'text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
+            style={buttonColor ? { backgroundColor: buttonColor } : undefined}
+          >
+            <ShoppingBag className="h-3.5 w-3.5" />
+            Comprar
+          </button>
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}/produto/${product.slug}`;
+              navigator.clipboard.writeText(url).then(() => {
+                toast({ title: "Link copiado!", description: url });
+              });
+            }}
+            className="flex items-center justify-center rounded-md border px-2 py-2 text-muted-foreground hover:bg-muted transition-colors"
+            title="Copiar link do produto"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
-
-      {dialogOpen && <AddToCartDialog product={product} open={dialogOpen} onOpenChange={setDialogOpen} />}
-    </>
+    </div>
   );
 }
