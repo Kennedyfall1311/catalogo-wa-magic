@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { DbProduct } from "@/hooks/useDbProducts";
-import { MessageCircle, ShoppingBag } from "lucide-react";
+import { ShoppingBag, Share2 } from "lucide-react";
 import { AddToCartDialog } from "@/components/AddToCartDialog";
+import { toast } from "@/hooks/use-toast";
 
 interface ProductCardProps {
   product: DbProduct;
@@ -88,14 +89,28 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
           {catalogSettings.catalog_show_quantity === "true" && product.quantity != null && (
             <p className={`${detailSize} text-muted-foreground`}>Qtd: {product.quantity}</p>
           )}
-          <button
-            onClick={() => setDialogOpen(true)}
-            className={`mt-1 flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${buttonColor ? 'text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
-            style={buttonColor ? { backgroundColor: buttonColor } : undefined}
-          >
-            <ShoppingBag className="h-3.5 w-3.5" />
-            Comprar
-          </button>
+          <div className="mt-1 flex gap-1.5">
+            <button
+              onClick={() => setDialogOpen(true)}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${buttonColor ? 'text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
+              style={buttonColor ? { backgroundColor: buttonColor } : undefined}
+            >
+              <ShoppingBag className="h-3.5 w-3.5" />
+              Comprar
+            </button>
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/produto/${product.slug}`;
+                navigator.clipboard.writeText(url).then(() => {
+                  toast({ title: "Link copiado!", description: url });
+                });
+              }}
+              className="flex items-center justify-center rounded-md border px-2 py-2 text-muted-foreground hover:bg-muted transition-colors"
+              title="Copiar link do produto"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
