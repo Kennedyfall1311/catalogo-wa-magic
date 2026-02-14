@@ -32,8 +32,6 @@ export function ProductManager({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkCategory, setBulkCategory] = useState<string>("");
   const [applyingBulk, setApplyingBulk] = useState(false);
-  const [editingQtyId, setEditingQtyId] = useState<string | null>(null);
-  const [editingQtyValue, setEditingQtyValue] = useState("");
 
   const filtered = useMemo(() => {
     let list = products;
@@ -256,46 +254,6 @@ export function ProductManager({
                   R$ {Number(p.price).toFixed(2).replace(".", ",")}
                   {cat && ` · ${cat.name}`}
                 </p>
-                {/* Inline quantity editor */}
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-[10px] text-muted-foreground">Qtd:</span>
-                  {editingQtyId === p.id ? (
-                    <form
-                      className="flex items-center gap-1"
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const val = editingQtyValue.trim() === "" ? null : parseFloat(editingQtyValue);
-                        await onUpdateProduct(p.id, { quantity: val });
-                        toast({ title: "Quantidade atualizada!" });
-                        setEditingQtyId(null);
-                      }}
-                    >
-                      <input
-                        type="number"
-                        step="1"
-                        value={editingQtyValue}
-                        onChange={(e) => setEditingQtyValue(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-16 rounded border bg-background px-1.5 py-0.5 text-xs outline-none focus:ring-1 focus:ring-ring"
-                        autoFocus
-                      />
-                      <button type="submit" onClick={(e) => e.stopPropagation()} className="text-[10px] font-semibold text-primary hover:underline">OK</button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setEditingQtyId(null); }} className="text-[10px] text-muted-foreground hover:underline">✕</button>
-                    </form>
-                  ) : (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingQtyId(p.id);
-                        setEditingQtyValue(p.quantity != null ? String(p.quantity) : "");
-                      }}
-                      className="text-xs font-medium text-primary hover:underline"
-                    >
-                      {p.quantity != null ? p.quantity : "—"}
-                    </button>
-                  )}
-                </div>
               </div>
               {!selectionMode && (
                 <div className="flex items-center gap-1 shrink-0">
