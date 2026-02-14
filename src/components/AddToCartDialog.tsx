@@ -75,9 +75,17 @@ export function AddToCartDialog({ product, open, onOpenChange }: AddToCartDialog
             >
               <Minus className="h-4 w-4" />
             </button>
-            <span className="w-10 text-center text-lg font-semibold tabular-nums">
-              {quantity}
-            </span>
+            <input
+              type="number"
+              min={1}
+              value={quantity}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                if (!isNaN(val) && val >= 1) setQuantity(val);
+                else if (e.target.value === "") setQuantity(1);
+              }}
+              className="w-16 text-center text-lg font-semibold tabular-nums rounded-md border bg-background px-2 py-1 outline-none focus:ring-2 focus:ring-ring [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
             <button
               onClick={() => setQuantity((q) => q + 1)}
               className="flex h-8 w-8 items-center justify-center rounded-md border hover:bg-muted transition-colors"
