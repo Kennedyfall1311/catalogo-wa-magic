@@ -1,135 +1,113 @@
-# 📦 Guia de Instalação Local do Catálogo
+# 📦 Guia de Instalação em VPS — Catálogo
 
-> Documentação completa para rodar o catálogo em ambiente local com banco de dados **PostgreSQL** e servidor **Express.js**.
+> Documentação completa para instalar e rodar o catálogo em uma **VPS** (Ubuntu/Debian) com **PostgreSQL**, **Express.js** e **Nginx**.
 
 ---
 
 ## 📋 Índice
 
-1. [Pré-requisitos](#1-pré-requisitos)
-2. [Clonar o Repositório](#2-clonar-o-repositório)
-3. [Instalar Dependências do Projeto](#3-instalar-dependências-do-projeto)
-4. [Instalar e Configurar o PostgreSQL](#4-instalar-e-configurar-o-postgresql)
-5. [Configurar Variáveis de Ambiente](#5-configurar-variáveis-de-ambiente)
-6. [Iniciar o Backend (Express.js)](#6-iniciar-o-backend-expressjs)
-7. [Iniciar o Frontend (React + Vite)](#7-iniciar-o-frontend-react--vite)
-8. [Upload de Imagens](#8-upload-de-imagens)
-9. [Estrutura do Projeto](#9-estrutura-do-projeto)
-10. [Estrutura do Banco de Dados](#10-estrutura-do-banco-de-dados)
-11. [API REST — Referência Completa](#11-api-rest--referência-completa)
-12. [Arquitetura Dual Mode](#12-arquitetura-dual-mode)
-13. [Comandos Úteis](#13-comandos-úteis)
-14. [Build para Produção](#14-build-para-produção)
-15. [Solução de Problemas](#15-solução-de-problemas)
+1. [Requisitos da VPS](#1-requisitos-da-vps)
+2. [Preparar o Servidor](#2-preparar-o-servidor)
+3. [Instalar Node.js](#3-instalar-nodejs)
+4. [Instalar e Configurar PostgreSQL](#4-instalar-e-configurar-postgresql)
+5. [Criar o Banco e Todas as Tabelas](#5-criar-o-banco-e-todas-as-tabelas)
+6. [Clonar e Configurar o Projeto](#6-clonar-e-configurar-o-projeto)
+7. [Liberar Portas no Firewall](#7-liberar-portas-no-firewall)
+8. [Iniciar o Backend com PM2](#8-iniciar-o-backend-com-pm2)
+9. [Build do Frontend](#9-build-do-frontend)
+10. [Configurar Nginx](#10-configurar-nginx)
+11. [SSL com Let's Encrypt (HTTPS)](#11-ssl-com-lets-encrypt-https)
+12. [Verificar se Tudo Funciona](#12-verificar-se-tudo-funciona)
+13. [Estrutura de Arquivos na VPS](#13-estrutura-de-arquivos-na-vps)
+14. [API REST — Referência](#14-api-rest--referência)
+15. [Comandos Úteis](#15-comandos-úteis)
+16. [Solução de Problemas](#16-solução-de-problemas)
+17. [Backup Automático](#17-backup-automático)
 
 ---
 
-## 1. Pré-requisitos
+## 1. Requisitos da VPS
 
-| Ferramenta | Versão mínima | Link de download |
-|------------|---------------|------------------|
-| **Node.js** | 18+ | https://nodejs.org |
-| **npm** ou **bun** | npm 9+ / bun 1+ | Incluso com Node.js / https://bun.sh |
-| **Git** | 2.30+ | https://git-scm.com |
-| **PostgreSQL** | 15+ | https://www.postgresql.org/download |
+| Recurso | Mínimo | Recomendado |
+|---------|--------|-------------|
+| **RAM** | 1 GB | 2 GB+ |
+| **CPU** | 1 vCPU | 2 vCPU |
+| **Disco** | 20 GB SSD | 40 GB+ SSD |
+| **SO** | Ubuntu 22.04+ / Debian 12+ | Ubuntu 24.04 LTS |
+| **Acesso** | SSH root ou sudo | — |
 
-> 💡 **Dica:** Recomendamos o uso do **bun** para instalação mais rápida das dependências.
-
----
-
-## 2. Clonar o Repositório
-
-```bash
-git clone <URL_DO_REPOSITORIO>
-cd catalogo
-```
+Provedores populares: **Contabo**, **Hetzner**, **DigitalOcean**, **Vultr**, **Oracle Cloud** (free tier).
 
 ---
 
-## 3. Instalar Dependências do Projeto
+## 2. Preparar o Servidor
+
+Conecte à VPS via SSH e atualize tudo:
 
 ```bash
-# Com npm
-npm install
+ssh root@SEU_IP_DA_VPS
 
-# Ou com bun (mais rápido)
-bun install
+# Atualizar pacotes
+apt update && apt upgrade -y
+
+# Instalar utilitários essenciais
+apt install -y curl git build-essential ufw nginx
 ```
-
-As principais dependências do projeto são:
-
-| Pacote | Função |
-|--------|--------|
-| `react` + `react-dom` | Framework da interface |
-| `vite` | Build tool e dev server |
-| `tailwindcss` | Estilização CSS utility-first |
-| `express` | Servidor backend REST |
-| `pg` | Driver PostgreSQL para Node.js |
-| `tsx` | Executor de TypeScript para o servidor |
-| `multer` | Middleware para upload de arquivos |
-| `xlsx` | Leitura/escrita de planilhas Excel |
-| `zod` | Validação de schemas |
-| `@supabase/supabase-js` | Cliente Supabase (usado no modo cloud) |
 
 ---
 
-## 4. Instalar e Configurar o PostgreSQL
-
-### 4.1 — Instalar o PostgreSQL
-
-**Linux (Ubuntu/Debian):**
-```bash
-sudo apt update
-sudo apt install postgresql postgresql-contrib
-sudo systemctl start postgresql
-sudo systemctl enable postgresql
-```
-
-**macOS (Homebrew):**
-```bash
-brew install postgresql@15
-brew services start postgresql@15
-```
-
-**Windows:**
-Baixe o instalador em https://www.postgresql.org/download/windows/ e siga o assistente.
-Durante a instalação, **anote a senha** que definir para o usuário `postgres`.
-
-### 4.2 — Verificar se está rodando
+## 3. Instalar Node.js
 
 ```bash
-# Linux
-sudo systemctl status postgresql
+# Instalar Node.js 20 LTS via NodeSource
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs
 
-# macOS
-brew services list | grep postgresql
+# Verificar instalação
+node -v    # v20.x.x
+npm -v     # 10.x.x
 
-# Windows — verificar no "Serviços" do Windows (services.msc)
+# Instalar PM2 globalmente (gerenciador de processos)
+npm install -g pm2
 ```
 
-### 4.3 — Configurar acesso à rede
+---
 
-O PostgreSQL roda na porta **5432** por padrão.
+## 4. Instalar e Configurar PostgreSQL
 
-**Liberar porta no firewall (se necessário):**
+### 4.1 — Instalar
+
 ```bash
-# Linux (UFW)
-sudo ufw allow 5432/tcp
-
-# Linux (firewalld)
-sudo firewall-cmd --add-port=5432/tcp --permanent
-sudo firewall-cmd --reload
-
-# Windows — crie regra de entrada para porta 5432 no Firewall do Windows
+apt install -y postgresql postgresql-contrib
+systemctl start postgresql
+systemctl enable postgresql
 ```
 
-**Configurar autenticação — `pg_hba.conf`:**
+### 4.2 — Definir senha do usuário postgres
 
-Localize o arquivo conforme seu sistema:
+```bash
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'SUA_SENHA_FORTE_AQUI';"
 ```
-Linux:   /etc/postgresql/15/main/pg_hba.conf
-macOS:   /opt/homebrew/var/postgresql@15/pg_hba.conf
-Windows: C:\Program Files\PostgreSQL\15\data\pg_hba.conf
+
+> ⚠️ **ANOTE ESTA SENHA** — você vai usá-la na `DATABASE_URL`.
+
+### 4.3 — Verificar se está rodando
+
+```bash
+systemctl status postgresql
+# Deve mostrar: active (running)
+```
+
+### 4.4 — Configurar acesso local
+
+Edite o arquivo `pg_hba.conf`:
+
+```bash
+# Encontrar o arquivo
+find /etc/postgresql -name pg_hba.conf
+# Geralmente: /etc/postgresql/16/main/pg_hba.conf
+
+nano /etc/postgresql/16/main/pg_hba.conf
 ```
 
 Certifique-se de que estas linhas existam:
@@ -140,71 +118,60 @@ host    all             all             127.0.0.1/32            md5
 host    all             all             ::1/128                 md5
 ```
 
-**Configurar escuta — `postgresql.conf`:**
-
-No mesmo diretório do `pg_hba.conf`:
-```
-listen_addresses = 'localhost'
-port = 5432
-```
-
-**Reiniciar após alterações:**
+Reinicie após alterar:
 ```bash
-# Linux
-sudo systemctl restart postgresql
-
-# macOS
-brew services restart postgresql@15
+systemctl restart postgresql
 ```
-
-### 4.4 — Definir senha do usuário postgres
-
-```bash
-sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'sua_senha_aqui';"
-```
-
-> ⚠️ **Importante:** Guarde esta senha — ela será usada na variável `DATABASE_URL`.
 
 ### 4.5 — Testar conexão
 
 ```bash
 psql -U postgres -h localhost -p 5432
-# Se conectar com sucesso, você verá: postgres=#
+# Se pedir senha, digite a que você definiu
+# Se conectar com sucesso: postgres=#
 # Para sair: \q
 ```
 
-### 4.6 — Criar o banco de dados
+---
+
+## 5. Criar o Banco e Todas as Tabelas
+
+### 5.1 — Criar o banco de dados
 
 ```bash
-psql -U postgres -h localhost -p 5432
+sudo -u postgres psql -c "CREATE DATABASE catalogo;"
+```
+
+### 5.2 — Executar o schema completo
+
+Conecte ao banco e execute **todo** o SQL abaixo:
+
+```bash
+psql -U postgres -h localhost -d catalogo
 ```
 
 ```sql
-CREATE DATABASE catalogo;
-\c catalogo
-```
+-- ═══════════════════════════════════════════════════════════
+-- SCHEMA COMPLETO DO CATÁLOGO — VPS
+-- Execute este bloco inteiro de uma vez
+-- ═══════════════════════════════════════════════════════════
 
-### 4.7 — Criar as tabelas
-
-Execute o SQL abaixo **dentro do banco `catalogo`**:
-
-```sql
--- ═══════════════════════════════════════════════════
--- EXTENSÕES
--- ═══════════════════════════════════════════════════
+-- Extensões
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- ═══════════════════════════════════════════════════
--- TIPOS CUSTOMIZADOS
--- ═══════════════════════════════════════════════════
-CREATE TYPE public.app_role AS ENUM ('admin');
+-- Tipos customizados
+DO $$ BEGIN
+  CREATE TYPE public.app_role AS ENUM ('admin');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
--- ═══════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════
 -- TABELAS
--- ═══════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════
 
--- Roles de usuário (usado no modo Supabase)
-CREATE TABLE public.user_roles (
+-- Roles de usuário (compatibilidade)
+CREATE TABLE IF NOT EXISTS public.user_roles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   role app_role NOT NULL,
@@ -213,7 +180,7 @@ CREATE TABLE public.user_roles (
 );
 
 -- Categorias de produto
-CREATE TABLE public.categories (
+CREATE TABLE IF NOT EXISTS public.categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
@@ -221,7 +188,7 @@ CREATE TABLE public.categories (
 );
 
 -- Produtos
-CREATE TABLE public.products (
+CREATE TABLE IF NOT EXISTS public.products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   code TEXT UNIQUE,
@@ -246,14 +213,14 @@ CREATE TABLE public.products (
 );
 
 -- Configurações da loja
-CREATE TABLE public.store_settings (
+CREATE TABLE IF NOT EXISTS public.store_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   key TEXT NOT NULL UNIQUE,
   value TEXT NOT NULL DEFAULT ''
 );
 
 -- Condições de pagamento
-CREATE TABLE public.payment_conditions (
+CREATE TABLE IF NOT EXISTS public.payment_conditions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   active BOOLEAN NOT NULL DEFAULT true,
@@ -262,7 +229,7 @@ CREATE TABLE public.payment_conditions (
 );
 
 -- Banners (carrossel)
-CREATE TABLE public.banners (
+CREATE TABLE IF NOT EXISTS public.banners (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   image_url TEXT NOT NULL,
   link TEXT,
@@ -272,7 +239,7 @@ CREATE TABLE public.banners (
 );
 
 -- Abas do catálogo (filtros rápidos customizáveis)
-CREATE TABLE public.catalog_tabs (
+CREATE TABLE IF NOT EXISTS public.catalog_tabs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   filter_type TEXT NOT NULL DEFAULT 'all',
@@ -284,7 +251,7 @@ CREATE TABLE public.catalog_tabs (
 );
 
 -- Pedidos
-CREATE TABLE public.orders (
+CREATE TABLE IF NOT EXISTS public.orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_name TEXT NOT NULL,
   customer_phone TEXT NOT NULL,
@@ -300,7 +267,7 @@ CREATE TABLE public.orders (
 );
 
 -- Itens do pedido
-CREATE TABLE public.order_items (
+CREATE TABLE IF NOT EXISTS public.order_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
   product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
@@ -312,9 +279,9 @@ CREATE TABLE public.order_items (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ═══════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════
 -- FUNÇÕES E TRIGGERS
--- ═══════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════
 
 -- Atualizar updated_at automaticamente
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
@@ -325,15 +292,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Trigger para products
+DROP TRIGGER IF EXISTS update_products_updated_at ON public.products;
 CREATE TRIGGER update_products_updated_at
   BEFORE UPDATE ON public.products
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+-- Trigger para orders
+DROP TRIGGER IF EXISTS update_orders_updated_at ON public.orders;
 CREATE TRIGGER update_orders_updated_at
   BEFORE UPDATE ON public.orders
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- Verificar role do usuário (compatibilidade com Supabase)
+-- Função de verificação de role (compatibilidade)
 CREATE OR REPLACE FUNCTION public.has_role(_user_id UUID, _role app_role)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -344,11 +315,11 @@ AS $$
     WHERE user_id = _user_id AND role = _role
   )
 $$;
-```
 
-### 4.8 — Inserir dados iniciais
+-- ═══════════════════════════════════════════════════════════
+-- DADOS INICIAIS
+-- ═══════════════════════════════════════════════════════════
 
-```sql
 INSERT INTO public.store_settings (key, value) VALUES
   ('whatsapp_number', '5511999999999'),
   ('store_name', 'Catálogo'),
@@ -372,483 +343,490 @@ INSERT INTO public.categories (name, slug) VALUES
 ON CONFLICT (slug) DO NOTHING;
 ```
 
+### 5.3 — Verificar se as tabelas foram criadas
+
+```bash
+psql -U postgres -h localhost -d catalogo -c "\dt"
+```
+
+Resultado esperado:
+```
+              List of relations
+ Schema |        Name        | Type  |  Owner
+--------+--------------------+-------+----------
+ public | banners            | table | postgres
+ public | catalog_tabs       | table | postgres
+ public | categories         | table | postgres
+ public | order_items        | table | postgres
+ public | orders             | table | postgres
+ public | payment_conditions | table | postgres
+ public | products           | table | postgres
+ public | store_settings     | table | postgres
+ public | user_roles         | table | postgres
+```
+
 ---
 
-## 5. Configurar Variáveis de Ambiente
+## 6. Clonar e Configurar o Projeto
 
-Crie o arquivo `.env` na **raiz** do projeto:
+### 6.1 — Clonar o repositório
 
-```env
+```bash
+mkdir -p /var/www
+cd /var/www
+git clone <URL_DO_REPOSITORIO> catalogo
+cd catalogo
+```
+
+### 6.2 — Instalar dependências
+
+```bash
+npm install
+```
+
+### 6.3 — Criar a pasta de uploads
+
+```bash
+mkdir -p public/uploads
+chmod 755 public/uploads
+```
+
+### 6.4 — Configurar variáveis de ambiente
+
+Crie o arquivo `.env` na raiz do projeto:
+
+```bash
+cat > .env << 'EOF'
 # ═══════════════════════════════════════════════════
-# MODO DE OPERAÇÃO
+# MODO DE OPERAÇÃO — OBRIGATÓRIO para VPS
 # ═══════════════════════════════════════════════════
-# "postgres" = usa PostgreSQL local com Express.js
-# Deixe vazio ou remova para usar o Supabase Cloud
 VITE_API_MODE=postgres
 
 # ═══════════════════════════════════════════════════
-# BACKEND EXPRESS
+# URL DA API (será proxiada pelo Nginx)
 # ═══════════════════════════════════════════════════
-# URL base da API Express (usada pelo frontend)
-VITE_API_URL=http://localhost:3001/api
+# Em produção com Nginx, use o domínio/IP público:
+VITE_API_URL=http://SEU_DOMINIO_OU_IP/api
 
 # ═══════════════════════════════════════════════════
 # BANCO DE DADOS
 # ═══════════════════════════════════════════════════
-# Formato: postgresql://USUARIO:SENHA@HOST:PORTA/BANCO
-DATABASE_URL=postgresql://postgres:sua_senha@localhost:5432/catalogo
+DATABASE_URL=postgresql://postgres:SUA_SENHA@localhost:5432/catalogo
+
+# ═══════════════════════════════════════════════════
+# PORTA DO BACKEND (padrão: 3001)
+# ═══════════════════════════════════════════════════
+PORT=3001
+EOF
 ```
 
-> ⚠️ **Substitua `sua_senha` pela senha real** que você definiu no passo 4.4.
+> ⚠️ **SUBSTITUA:**
+> - `SUA_SENHA` → senha que você definiu no passo 4.2
+> - `SEU_DOMINIO_OU_IP` → seu domínio (ex: `catalogo.meusite.com`) ou IP público da VPS (ex: `123.45.67.89`)
 
 ---
 
-## 6. Iniciar o Backend (Express.js)
+## 7. Liberar Portas no Firewall
 
-O backend é um servidor Express.js que se conecta diretamente ao PostgreSQL.
+O catálogo precisa das seguintes portas:
+
+| Porta | Serviço | Acesso |
+|-------|---------|--------|
+| **22** | SSH | Remoto (você) |
+| **80** | HTTP (Nginx) | Público |
+| **443** | HTTPS (Nginx + SSL) | Público |
+| **3001** | Backend Express | Apenas local (via Nginx proxy) |
+| **5432** | PostgreSQL | Apenas local |
+
+### Configurar UFW (Firewall do Ubuntu)
 
 ```bash
-npx tsx server/index.ts
+# Habilitar UFW
+ufw enable
+
+# Liberar SSH (IMPORTANTE: faça isso PRIMEIRO para não perder acesso!)
+ufw allow 22/tcp
+
+# Liberar HTTP e HTTPS
+ufw allow 80/tcp
+ufw allow 443/tcp
+
+# NÃO libere 3001 e 5432 externamente (segurança!)
+# O Nginx faz proxy reverso para o Express na porta 3001
+# O PostgreSQL só aceita conexões locais
+
+# Verificar regras
+ufw status verbose
 ```
 
-Saída esperada:
+Resultado esperado:
 ```
-🚀 Servidor backend rodando em http://localhost:3001
-📦 Modo: PostgreSQL direto
+Status: active
+
+To                         Action      From
+--                         ------      ----
+22/tcp                     ALLOW       Anywhere
+80/tcp                     ALLOW       Anywhere
+443/tcp                    ALLOW       Anywhere
 ```
 
-**Verificar se está funcionando:**
+> 🔒 **Segurança:** As portas 3001 (Express) e 5432 (PostgreSQL) ficam **fechadas** para acesso externo. O Nginx faz o proxy.
+
+---
+
+## 8. Iniciar o Backend com PM2
+
 ```bash
+cd /var/www/catalogo
+
+# Iniciar o backend
+pm2 start "npx tsx server/index.ts" --name catalogo-api --cwd /var/www/catalogo
+
+# Verificar se está rodando
+pm2 status
+
+# Ver logs em tempo real
+pm2 logs catalogo-api
+
+# Testar localmente
 curl http://localhost:3001/api/health
 # Resposta: {"status":"ok","mode":"postgres"}
+
+# Configurar para iniciar automaticamente no boot
+pm2 startup
+pm2 save
 ```
 
-### Arquivos do Backend
-
-```
-server/
-├── index.ts              # Ponto de entrada — configura Express, CORS, rotas
-├── db.ts                 # Pool de conexão PostgreSQL (usa DATABASE_URL)
-└── routes/
-    ├── products.ts       # CRUD de produtos + upsert em lote
-    ├── categories.ts     # CRUD de categorias
-    ├── settings.ts       # Leitura/escrita de configurações da loja
-    ├── banners.ts        # CRUD de banners do carrossel
-    ├── payment-conditions.ts  # CRUD de condições de pagamento
-    ├── upload.ts         # Upload de imagens (multipart + base64)
-    └── auth.ts           # Mock de autenticação (admin sempre aberto)
-```
-
-### Detalhes Técnicos do Backend
-
-- **Porta:** 3001 (configurável via variável `PORT`)
-- **CORS:** Habilitado para todas as origens
-- **Body limit:** 50MB (para suportar uploads base64)
-- **Imagens:** Salvas em `public/uploads/` e servidas via `/uploads/`
-- **Autenticação:** Desativada — o painel admin é aberto no modo local
-
----
-
-## 7. Iniciar o Frontend (React + Vite)
-
-Em **outro terminal** (o backend precisa continuar rodando):
+### Comandos PM2 úteis
 
 ```bash
-# Com npm
-npm run dev
-
-# Ou com bun
-bun run dev
+pm2 restart catalogo-api    # Reiniciar
+pm2 stop catalogo-api       # Parar
+pm2 delete catalogo-api     # Remover
+pm2 logs catalogo-api       # Ver logs
+pm2 monit                   # Monitor em tempo real
 ```
-
-Saída esperada:
-```
-VITE v5.x.x  ready in XXXms
-
-➜  Local:   http://localhost:8080/
-➜  Network: http://X.X.X.X:8080/
-```
-
-### Rotas do Frontend
-
-| Rota | Descrição |
-|------|-----------|
-| `/` | 🏪 Catálogo público — vitrine de produtos |
-| `/produto/:slug` | 📦 Página de detalhe do produto |
-| `/carrinho` | 🛒 Carrinho de compras |
-| `/checkout` | 💳 Finalização do pedido |
-| `/admin` | ⚙️ Painel administrativo |
-
-### Abas do Painel Administrativo
-
-| Aba | Descrição |
-|-----|-----------|
-| **Vendas** | Dashboard com métricas, filtro por período, lista de pedidos com impressão |
-| **Produtos** | CRUD completo, filtros, seleção em lote, upload rápido de fotos |
-| **Categorias** | Gerenciamento de categorias com criação e remoção |
-| **Importar** | Importação em lote via Excel/CSV + importação de imagens Base64 |
-| **Catálogo** | Customização visual: cores, campos visíveis, botões rápidos, destaques, mobile |
-| **Config** | Loja, aparência, banners, empresa, redes sociais, frete, pedido mínimo, pagamento |
-| **ERP** | Configuração de integração com sistemas ERP externos |
-
-> 💡 No modo PostgreSQL local, o painel admin é aberto (sem autenticação).
-> Para protegê-lo em produção, configure um proxy reverso (Nginx) com autenticação básica.
 
 ---
 
-## 8. Upload de Imagens
+## 9. Build do Frontend
 
-No modo PostgreSQL, as imagens são salvas **localmente** na pasta `public/uploads/`.
+```bash
+cd /var/www/catalogo
 
+# Compilar o frontend para produção
+npm run build
+
+# Os arquivos estáticos serão gerados em dist/
+ls dist/
+# Deve conter: index.html, assets/, etc.
 ```
-public/
-  uploads/
-    abc123.jpg        ← imagens de produtos
-    banner-xyz.png    ← imagens de banners
-    logo-abc.png      ← logo da loja
-```
-
-O servidor Express serve esses arquivos automaticamente via `/uploads/`.
-
-**Formatos de upload suportados:**
-- **Multipart** (`POST /api/upload/image`) — usado pelo formulário de produto e banners
-- **Base64** (`POST /api/upload/base64`) — usado pela importação de imagens em lote
 
 ---
 
-## 9. Estrutura do Projeto
+## 10. Configurar Nginx
+
+### 10.1 — Criar a configuração do site
+
+```bash
+nano /etc/nginx/sites-available/catalogo
+```
+
+Cole o conteúdo abaixo:
+
+```nginx
+server {
+    listen 80;
+    server_name SEU_DOMINIO_OU_IP;
+
+    # Tamanho máximo de upload (50MB para imagens)
+    client_max_body_size 50M;
+
+    # ─── Frontend estático (React build) ───
+    root /var/www/catalogo/dist;
+    index index.html;
+
+    # SPA — todas as rotas redirecionam para index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # ─── Proxy reverso para API Express ───
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300s;
+    }
+
+    # ─── Imagens uploadadas ───
+    location /uploads/ {
+        alias /var/www/catalogo/public/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # ─── Cache para assets estáticos ───
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
+
+> ⚠️ **Substitua `SEU_DOMINIO_OU_IP`** pelo seu domínio ou IP.
+
+### 10.2 — Ativar o site e reiniciar Nginx
+
+```bash
+# Ativar o site
+ln -sf /etc/nginx/sites-available/catalogo /etc/nginx/sites-enabled/
+
+# Remover configuração padrão (opcional)
+rm -f /etc/nginx/sites-enabled/default
+
+# Testar configuração
+nginx -t
+# Deve retornar: syntax is ok / test is successful
+
+# Reiniciar Nginx
+systemctl restart nginx
+systemctl enable nginx
+```
+
+---
+
+## 11. SSL com Let's Encrypt (HTTPS)
+
+> 📌 **Só funciona com domínio** — se estiver usando apenas IP, pule esta etapa.
+
+```bash
+# Instalar Certbot
+apt install -y certbot python3-certbot-nginx
+
+# Gerar certificado SSL
+certbot --nginx -d SEU_DOMINIO
+
+# Seguir as instruções interativas (email, aceitar termos)
+# O Certbot configurará o Nginx automaticamente para HTTPS
+
+# Renovação automática (já vem configurada, mas teste):
+certbot renew --dry-run
+```
+
+Após o SSL, atualize o `.env` para usar HTTPS:
+```bash
+# No .env, mude:
+VITE_API_URL=https://SEU_DOMINIO/api
+```
+
+E faça rebuild do frontend:
+```bash
+cd /var/www/catalogo
+npm run build
+```
+
+---
+
+## 12. Verificar se Tudo Funciona
+
+### Checklist de verificação
+
+```bash
+# 1. PostgreSQL rodando?
+systemctl status postgresql
+
+# 2. Tabelas existem?
+psql -U postgres -h localhost -d catalogo -c "\dt"
+
+# 3. Backend rodando?
+pm2 status
+curl http://localhost:3001/api/health
+
+# 4. Nginx rodando?
+systemctl status nginx
+
+# 5. Acessar pelo navegador:
+#    http://SEU_DOMINIO_OU_IP        → Catálogo público
+#    http://SEU_DOMINIO_OU_IP/admin  → Painel administrativo
+
+# 6. Testar criação de produto via API:
+curl -X POST http://localhost:3001/api/products \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Produto Teste",
+    "code": "TST001",
+    "slug": "produto-teste",
+    "price": 29.90,
+    "active": true
+  }'
+
+# 7. Verificar se o produto aparece:
+curl http://localhost:3001/api/products | head -c 200
+```
+
+### Testar o fluxo completo
+
+1. Acesse `http://SEU_DOMINIO_OU_IP/admin`
+2. Clique em **Produtos** → **Novo**
+3. Preencha nome, código, preço
+4. Salve — o produto deve aparecer no catálogo público
+
+---
+
+## 13. Estrutura de Arquivos na VPS
 
 ```
-catalogo/
-├── docs/                          # Documentação
-│   ├── INSTALACAO_LOCAL.md        # Este guia
-│   ├── ERP_INTEGRATION_API.md     # Especificação da API de integração ERP
-│   ├── ERP_IMAGE_IMPORT_API.md    # API de importação de imagens
-│   └── ERP_OUTBOUND_API.md        # API de pedidos (outbound)
-│
-├── server/                        # Backend Express.js (modo local)
-│   ├── index.ts                   # Servidor principal
-│   ├── db.ts                      # Conexão PostgreSQL
-│   └── routes/                    # Rotas REST
-│
-├── src/                           # Frontend React
-│   ├── main.tsx                   # Ponto de entrada React
-│   ├── App.tsx                    # Router principal
-│   ├── index.css                  # Tokens de design (CSS variables)
-│   ├── pages/                     # Páginas da aplicação
-│   │   ├── Index.tsx              # Catálogo público
-│   │   ├── Admin.tsx              # Painel administrativo
-│   │   ├── ProductDetail.tsx      # Detalhe do produto
-│   │   ├── Cart.tsx               # Carrinho
-│   │   ├── Checkout.tsx           # Checkout
-│   │   └── NotFound.tsx           # 404
-│   ├── components/                # Componentes React
-│   │   ├── admin/                 # Componentes do painel admin
-│   │   └── ui/                    # Componentes base (shadcn/ui)
-│   ├── hooks/                     # React hooks customizados
-│   ├── lib/                       # Utilitários e API client
-│   ├── contexts/                  # React contexts (carrinho)
-│   ├── types/                     # Tipos TypeScript
-│   └── integrations/              # Integração Supabase (modo cloud)
-│
-├── public/                        # Arquivos estáticos
-│   └── uploads/                   # Imagens uploadadas (modo local)
-│
-├── supabase/                      # Configuração Supabase (modo cloud)
-│   ├── config.toml
-│   └── functions/                 # Edge functions
-│
+/var/www/catalogo/
+├── dist/                          # Frontend compilado (servido pelo Nginx)
+├── server/                        # Backend Express.js
+│   ├── index.ts                   # Servidor principal (porta 3001)
+│   ├── db.ts                      # Pool de conexão PostgreSQL
+│   └── routes/
+│       ├── products.ts            # CRUD de produtos + upsert em lote
+│       ├── categories.ts          # CRUD de categorias
+│       ├── settings.ts            # Configurações da loja
+│       ├── banners.ts             # CRUD de banners
+│       ├── payment-conditions.ts  # Condições de pagamento
+│       ├── upload.ts              # Upload de imagens (multipart + base64)
+│       └── auth.ts                # Autenticação mock (admin aberto)
+├── public/
+│   └── uploads/                   # Imagens uploadadas (produtos, banners, logo)
+├── src/                           # Código fonte React (só para desenvolvimento)
 ├── .env                           # Variáveis de ambiente
-├── vite.config.ts                 # Configuração Vite
-├── tailwind.config.ts             # Configuração Tailwind CSS
-├── tsconfig.json                  # Configuração TypeScript
-└── package.json                   # Dependências do projeto
+└── package.json                   # Dependências
 ```
 
 ---
 
-## 10. Estrutura do Banco de Dados
+## 14. API REST — Referência
 
-### Tabela `products` — Produtos
-
-| Coluna | Tipo | Obrigatório | Padrão | Descrição |
-|--------|------|-------------|--------|-----------|
-| `id` | UUID | ✅ | auto | Identificador único |
-| `name` | TEXT | ✅ | — | Nome do produto |
-| `code` | TEXT | ❌ | null | Código/SKU (único) |
-| `slug` | TEXT | ✅ | — | URL amigável |
-| `price` | NUMERIC(10,2) | ✅ | — | Preço atual |
-| `original_price` | NUMERIC(10,2) | ❌ | null | Preço original (promoção) |
-| `description` | TEXT | ❌ | '' | Descrição do produto |
-| `image_url` | TEXT | ❌ | '/placeholder.svg' | URL da imagem |
-| `category_id` | UUID (FK) | ❌ | null | Referência à categoria |
-| `active` | BOOLEAN | ✅ | true | Produto visível no catálogo |
-| `featured` | BOOLEAN | ✅ | false | Produto em destaque |
-| `featured_order` | INTEGER | ✅ | 0 | Ordem de exibição dos destaques |
-| `quick_filter_1` | BOOLEAN | ✅ | false | Filtro rápido personalizado 1 |
-| `quick_filter_2` | BOOLEAN | ✅ | false | Filtro rápido personalizado 2 |
-| `brand` | TEXT | ❌ | null | Marca do produto |
-| `reference` | TEXT | ❌ | null | Referência interna |
-| `manufacturer_code` | TEXT | ❌ | null | Código do fabricante |
-| `unit_of_measure` | TEXT | ❌ | null | Unidade de medida (UN, KG, etc.) |
-| `quantity` | NUMERIC | ❌ | null | Quantidade em estoque |
-| `created_at` | TIMESTAMPTZ | ✅ | now() | Data de criação |
-| `updated_at` | TIMESTAMPTZ | ✅ | now() | Data de atualização (auto) |
-
-### Tabela `categories` — Categorias
-
-| Coluna | Tipo | Obrigatório | Padrão | Descrição |
-|--------|------|-------------|--------|-----------|
-| `id` | UUID | ✅ | auto | Identificador único |
-| `name` | TEXT | ✅ | — | Nome da categoria |
-| `slug` | TEXT | ✅ | — | URL amigável (único) |
-| `created_at` | TIMESTAMPTZ | ✅ | now() | Data de criação |
-
-### Tabela `orders` — Pedidos
-
-| Coluna | Tipo | Obrigatório | Padrão | Descrição |
-|--------|------|-------------|--------|-----------|
-| `id` | UUID | ✅ | auto | Identificador único |
-| `customer_name` | TEXT | ✅ | — | Nome do cliente |
-| `customer_phone` | TEXT | ✅ | — | Telefone do cliente |
-| `customer_cpf_cnpj` | TEXT | ❌ | null | CPF ou CNPJ |
-| `payment_method` | TEXT | ❌ | null | Forma de pagamento |
-| `notes` | TEXT | ❌ | null | Observações |
-| `subtotal` | NUMERIC | ✅ | 0 | Subtotal dos itens |
-| `shipping_fee` | NUMERIC | ✅ | 0 | Taxa de frete |
-| `total` | NUMERIC | ✅ | 0 | Total do pedido |
-| `status` | TEXT | ✅ | 'pending' | Status: pending, confirmed, etc. |
-| `created_at` | TIMESTAMPTZ | ✅ | now() | Data do pedido |
-| `updated_at` | TIMESTAMPTZ | ✅ | now() | Última atualização |
-
-### Tabela `order_items` — Itens do Pedido
-
-| Coluna | Tipo | Obrigatório | Padrão | Descrição |
-|--------|------|-------------|--------|-----------|
-| `id` | UUID | ✅ | auto | Identificador único |
-| `order_id` | UUID (FK) | ✅ | — | Referência ao pedido |
-| `product_id` | UUID (FK) | ❌ | null | Referência ao produto |
-| `product_name` | TEXT | ✅ | — | Nome (snapshot) |
-| `product_code` | TEXT | ❌ | null | Código (snapshot) |
-| `unit_price` | NUMERIC | ✅ | — | Preço unitário |
-| `quantity` | INTEGER | ✅ | 1 | Quantidade |
-| `total_price` | NUMERIC | ✅ | — | Preço total da linha |
-| `created_at` | TIMESTAMPTZ | ✅ | now() | Data de criação |
-
-### Tabelas adicionais
-
-| Tabela | Descrição |
-|--------|-----------|
-| `store_settings` | Configurações chave-valor da loja (WhatsApp, cores, frete, etc.) |
-| `banners` | Imagens do carrossel da página inicial |
-| `payment_conditions` | Condições de pagamento configuráveis |
-| `catalog_tabs` | Abas de filtro customizáveis do catálogo |
-| `user_roles` | Roles de usuário (usado no modo Supabase) |
-
-### Diagrama de Relacionamentos
-
-```
-┌──────────────────┐
-│   categories     │
-│──────────────────│
-│ id (PK)          │◄─────────────┐
-│ name             │              │ category_id (FK)
-│ slug (unique)    │              │
-│ created_at       │     ┌────────┴─────────┐
-└──────────────────┘     │    products       │
-                         │──────────────────│
-                         │ id (PK)          │◄──────────┐
-                         │ name             │           │
-                         │ code (unique)    │           │
-                         │ slug             │           │
-                         │ price            │           │
-                         │ original_price   │           │
-                         │ description      │           │ product_id (FK)
-                         │ image_url        │           │
-                         │ brand            │           │
-                         │ reference        │  ┌────────┴─────────┐
-                         │ manufacturer_code│  │  order_items      │
-                         │ unit_of_measure  │  │──────────────────│
-                         │ quantity         │  │ id (PK)          │
-                         │ active           │  │ order_id (FK)    │──┐
-                         │ featured         │  │ product_id (FK)  │  │
-                         │ quick_filter_1   │  │ product_name     │  │
-                         │ quick_filter_2   │  │ product_code     │  │
-                         │ created_at       │  │ unit_price       │  │
-                         │ updated_at       │  │ quantity         │  │
-                         └──────────────────┘  │ total_price      │  │
-                                               │ created_at       │  │
-┌──────────────────┐                           └──────────────────┘  │
-│  store_settings  │                                                 │
-│──────────────────│     ┌──────────────────┐                        │
-│ id (PK)          │     │    orders         │◄───────────────────────┘
-│ key (unique)     │     │──────────────────│
-│ value            │     │ id (PK)          │
-└──────────────────┘     │ customer_name    │
-                         │ customer_phone   │
-┌──────────────────┐     │ customer_cpf_cnpj│
-│payment_conditions│     │ payment_method   │
-│──────────────────│     │ notes            │
-│ id (PK)          │     │ subtotal         │
-│ name             │     │ shipping_fee     │
-│ active           │     │ total            │
-│ sort_order       │     │ status           │
-│ created_at       │     │ created_at       │
-└──────────────────┘     │ updated_at       │
-                         └──────────────────┘
-┌──────────────────┐
-│    banners       │     ┌──────────────────┐
-│──────────────────│     │  catalog_tabs    │
-│ id (PK)          │     │──────────────────│
-│ image_url        │     │ id (PK)          │
-│ link             │     │ name             │
-│ sort_order       │     │ filter_type      │
-│ active           │     │ filter_value     │
-│ created_at       │     │ icon             │
-└──────────────────┘     │ sort_order       │
-                         │ active           │
-                         │ created_at       │
-                         └──────────────────┘
-```
-
----
-
-## 11. API REST — Referência Completa
-
-Base URL: `http://localhost:3001/api`
+Base URL: `http://SEU_DOMINIO_OU_IP/api`
 
 ### Produtos
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | `GET` | `/products` | Listar todos os produtos |
-| `GET` | `/products/slug/:slug` | Buscar produto por slug |
-| `GET` | `/products/code/:code` | Buscar produto por código |
-| `POST` | `/products` | Criar um novo produto |
-| `PUT` | `/products/:id` | Atualizar produto existente |
+| `GET` | `/products/slug/:slug` | Buscar por slug (URL amigável) |
+| `GET` | `/products/code/:code` | Buscar por código/SKU |
+| `POST` | `/products` | Criar produto |
+| `PUT` | `/products/:id` | Atualizar produto |
 | `DELETE` | `/products/:id` | Remover produto |
-| `POST` | `/products/upsert` | Upsert em lote (importação) |
+| `POST` | `/products/upsert` | Importação em lote (upsert por código) |
 
-**Campos aceitos no POST/PUT de produto:**
-
-```json
-{
-  "name": "Camiseta Básica",
-  "code": "CAM001",
-  "slug": "camiseta-basica",
-  "price": 49.90,
-  "original_price": 69.90,
-  "description": "Camiseta de algodão",
-  "image_url": "/uploads/cam001.jpg",
-  "category_id": "uuid-da-categoria",
-  "active": true,
-  "brand": "Marca X",
-  "reference": "REF-001",
-  "manufacturer_code": "FAB-001",
-  "unit_of_measure": "UN",
-  "quantity": 100
-}
+**Exemplo — criar produto via cURL:**
+```bash
+curl -X POST http://SEU_DOMINIO_OU_IP/api/products \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Camiseta Básica",
+    "code": "CAM001",
+    "slug": "camiseta-basica",
+    "price": 49.90,
+    "original_price": 69.90,
+    "description": "Camiseta de algodão",
+    "image_url": "/placeholder.svg",
+    "category_id": null,
+    "active": true,
+    "brand": "Marca X",
+    "reference": "REF-001",
+    "manufacturer_code": "FAB-001",
+    "unit_of_measure": "UN",
+    "quantity": 100
+  }'
 ```
 
 ### Categorias
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/categories` | Listar categorias |
-| `POST` | `/categories` | Criar categoria |
-| `PUT` | `/categories/:id` | Atualizar categoria |
-| `DELETE` | `/categories/:id` | Remover categoria |
+| `GET` | `/categories` | Listar |
+| `POST` | `/categories` | Criar |
+| `POST` | `/categories/batch` | Criar em lote |
+| `PUT` | `/categories/:id` | Atualizar |
+| `DELETE` | `/categories/:id` | Remover |
 
 ### Configurações
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/settings` | Listar todas as configurações |
-| `PUT` | `/settings/:key` | Atualizar uma configuração |
+| `GET` | `/settings` | Listar todas |
+| `PUT` | `/settings/:key` | Atualizar configuração |
 
 ### Banners
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/banners` | Listar banners |
-| `POST` | `/banners` | Criar banner |
-| `PUT` | `/banners/:id` | Atualizar banner |
-| `DELETE` | `/banners/:id` | Remover banner |
+| `GET` | `/banners` | Listar |
+| `POST` | `/banners` | Criar |
+| `PUT` | `/banners/:id` | Atualizar |
+| `DELETE` | `/banners/:id` | Remover |
 
 ### Condições de Pagamento
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/payment-conditions` | Listar condições |
-| `POST` | `/payment-conditions` | Criar condição |
+| `GET` | `/payment-conditions` | Listar |
+| `POST` | `/payment-conditions` | Criar |
 | `PUT` | `/payment-conditions/:id` | Atualizar |
 | `DELETE` | `/payment-conditions/:id` | Remover |
 
-### Upload
+### Upload de Imagens
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `POST` | `/upload/image` | Upload multipart (form-data, campo `image`) |
+| `POST` | `/upload/image` | Upload multipart (campo `image`) |
 | `POST` | `/upload/base64` | Upload base64 (`{ data, filename }`) |
 
-### Autenticação
+### Autenticação (modo VPS)
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/auth/session` | Retorna sessão mock (admin sempre logado) |
+| `GET` | `/auth/session` | Retorna sessão admin (sempre autenticado) |
 | `POST` | `/auth/login` | Login mock |
 | `POST` | `/auth/logout` | Logout mock |
+
+> ⚠️ No modo VPS/PostgreSQL, o admin é **aberto** (sem autenticação). Para proteger, use **autenticação básica no Nginx** (veja seção 16).
 
 ### Health Check
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/health` | Verifica se o servidor está rodando |
+| `GET` | `/health` | Status do servidor |
 
 ---
 
-## 12. Arquitetura Dual Mode
-
-O catálogo suporta dois modos de operação, alternados pela variável `VITE_API_MODE`:
-
-| | **Modo PostgreSQL (local)** | **Modo Supabase (cloud)** |
-|---|---|---|
-| **Variável** | `VITE_API_MODE=postgres` | (padrão, sem variável) |
-| **Backend** | Express.js local (porta 3001) | Supabase Cloud gerenciado |
-| **Banco** | PostgreSQL direto | PostgreSQL gerenciado |
-| **Auth** | Desativada (admin aberto) | Supabase Auth (email/senha) |
-| **Storage** | Pasta `public/uploads/` | Supabase Storage (buckets) |
-| **Realtime** | Polling (5s) | WebSocket nativo |
-| **Upload** | Multer → disco local | Supabase Storage API |
-| **Deploy** | Manual (Nginx + Node.js) | Automático via Lovable |
-
-Para alternar, basta mudar a variável `VITE_API_MODE` no `.env` e reiniciar o frontend.
-
----
-
-## 13. Comandos Úteis
+## 15. Comandos Úteis
 
 ### PostgreSQL
 
 ```bash
 # Conectar ao banco
-psql -U postgres -d catalogo
+psql -U postgres -h localhost -d catalogo
 
 # Listar tabelas
 \dt
 
-# Descrever estrutura de uma tabela
+# Ver estrutura de uma tabela
 \d products
 
-# Contar registros
+# Contar produtos
 SELECT COUNT(*) FROM products;
-SELECT COUNT(*) FROM orders;
 
 # Ver produtos sem imagem
-SELECT name, code FROM products WHERE image_url = '/placeholder.svg' OR image_url IS NULL;
+SELECT name, code FROM products
+WHERE image_url = '/placeholder.svg' OR image_url IS NULL;
 
 # Backup do banco
-pg_dump -U postgres catalogo > backup_catalogo.sql
+pg_dump -U postgres catalogo > /root/backup_catalogo_$(date +%Y%m%d).sql
 
 # Restaurar backup
 psql -U postgres catalogo < backup_catalogo.sql
@@ -857,138 +835,18 @@ psql -U postgres catalogo < backup_catalogo.sql
 ### Projeto
 
 ```bash
-# Instalar dependências
+# Atualizar código (git pull + rebuild)
+cd /var/www/catalogo
+git pull
 npm install
-
-# Iniciar backend (terminal 1)
-npx tsx server/index.ts
-
-# Iniciar frontend (terminal 2)
-npm run dev
-
-# Build para produção
 npm run build
-
-# Verificar tipos TypeScript
-npx tsc --noEmit
-```
-
----
-
-## 14. Build para Produção
-
-### Compilar o Frontend
-
-```bash
-npm run build
-```
-
-Os arquivos estáticos serão gerados na pasta `dist/`.
-
-### Configuração do Servidor de Produção
-
-1. **Sirva a pasta `dist/`** com Nginx ou outro servidor de arquivos estáticos
-2. **Rode o backend:** `npx tsx server/index.ts` (ou use PM2 para manter rodando)
-3. **Configure proxy reverso** para `/api` apontar para o Express
-4. **Configure variáveis de ambiente** no servidor
-
-### Usando PM2 (recomendado)
-
-```bash
-# Instalar PM2 globalmente
-npm install -g pm2
-
-# Iniciar o backend com PM2
-pm2 start "npx tsx server/index.ts" --name catalogo-api
-
-# Verificar status
-pm2 status
-
-# Ver logs
-pm2 logs catalogo-api
-
-# Reiniciar
 pm2 restart catalogo-api
 
-# Configurar para iniciar no boot
-pm2 startup
-pm2 save
-```
+# Ver logs do backend
+pm2 logs catalogo-api --lines 50
 
-### Exemplo de Configuração Nginx
-
-```nginx
-server {
-    listen 80;
-    server_name catalogo.exemplo.com;
-
-    # Frontend estático
-    root /var/www/catalogo/dist;
-    index index.html;
-
-    # SPA — redireciona todas as rotas para index.html
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Proxy para API Express
-    location /api/ {
-        proxy_pass http://localhost:3001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Imagens uploadadas
-    location /uploads/ {
-        alias /var/www/catalogo/public/uploads/;
-        expires 30d;
-        add_header Cache-Control "public, immutable";
-    }
-}
-```
-
----
-
-## 15. Resiliência e Boas Práticas
-
-### Timeout e Retry (api-client.ts)
-
-O frontend implementa mecanismos de resiliência em todas as chamadas REST:
-
-| Configuração | Valor | Descrição |
-|-------------|-------|-----------|
-| **Timeout** | 15 segundos | Requisições são canceladas via `AbortController` após 15s |
-| **Retry** | 2 tentativas | Erros de rede (`Failed to fetch`, `AbortError`) são reenviados automaticamente |
-| **Backoff** | Incremental | 1s na 1ª tentativa, 2s na 2ª |
-
-Erros de negócio (4xx) **não** são reenviados — apenas falhas de rede.
-
-### Idempotência de Pedidos (Checkout)
-
-O checkout gera um `X-Idempotency-Key` (UUID) antes de enviar o pedido:
-
-- O botão "Enviar Pedido" é **desabilitado** imediatamente após o clique
-- Se a API retornar erro, o carrinho **não é limpo** e o erro é exibido
-- O cliente pode tentar novamente com a mesma key sem risco de duplicação
-
-### Estados de Erro
-
-Todos os hooks principais (`useDbProducts`, `useStoreSettings`) expõem um campo `error`:
-
-- Se a API falhar, o catálogo exibe mensagem amigável com botão "Tentar novamente"
-- O loading não fica infinito — o erro é capturado e exibido
-
-### Fallback de Imagens
-
-Todas as tags `<img>` possuem handler `onError` que substitui imagens quebradas pelo placeholder:
-
-```tsx
-<img
-  src={product.image_url || "/placeholder.svg"}
-  onError={(e) => { e.currentTarget.src = "/placeholder.svg"; }}
-/>
+# Verificar uso de disco das imagens
+du -sh /var/www/catalogo/public/uploads/
 ```
 
 ---
@@ -997,42 +855,131 @@ Todas as tags `<img>` possuem handler `onError` que substitui imagens quebradas 
 
 | Problema | Causa provável | Solução |
 |----------|----------------|---------|
-| `relation "products" does not exist` | Tabelas não foram criadas | Execute o SQL da seção 4.7 |
-| `role "postgres" does not exist` | PostgreSQL sem role padrão | Crie: `createuser -s postgres` |
-| `connection refused` (porta 5432) | PostgreSQL não está rodando | `sudo systemctl start postgresql` |
-| `connection refused` (porta 3001) | Backend não está rodando | `npx tsx server/index.ts` |
-| `CORS error` no navegador | VITE_API_URL incorreta | Verifique o `.env` — deve ser `http://localhost:3001/api` |
-| Imagens não aparecem | Pasta não existe | Crie: `mkdir -p public/uploads` |
-| Produtos não aparecem | Nenhum produto ativo | Verifique: `SELECT * FROM products WHERE active = true LIMIT 5;` |
-| `column "brand" does not exist` | Schema desatualizado | Execute o SQL da seção 4.7 novamente (cria as colunas novas) |
-| Importação não traz marca/referência | Planilha sem cabeçalhos corretos | Use os nomes: `marca`, `referencia`, `codigo_fabricante`, `unidade_medida`, `quantidade` |
-| Frontend mostra tela em branco | Erros no console | Abra DevTools (F12) e verifique os erros |
-| Pedidos não aparecem no dashboard | Nenhum pedido criado | Faça um pedido de teste pelo catálogo |
-| Pedido duplicado | Reenvio sem idempotency key | O frontend agora envia `X-Idempotency-Key` automaticamente |
-| Loading infinito no catálogo | API indisponível | O frontend agora exibe erro após timeout de 15s com retry |
+| `relation "products" does not exist` | Tabelas não foram criadas | Execute o SQL da seção 5.2 |
+| `connection refused` (5432) | PostgreSQL parado | `systemctl start postgresql` |
+| `connection refused` (3001) | Backend parado | `pm2 restart catalogo-api` |
+| Site não carrega pelo IP | Nginx parado ou mal configurado | `nginx -t && systemctl restart nginx` |
+| `502 Bad Gateway` | Backend não está rodando | `pm2 status` → reinicie se offline |
+| `413 Request Entity Too Large` | Nginx bloqueando upload grande | Adicione `client_max_body_size 50M;` no Nginx |
+| Imagens não aparecem | Pasta uploads inexistente ou path errado | `mkdir -p /var/www/catalogo/public/uploads` |
+| Produto criado no admin não aparece | `active = false` ou erro silencioso | Verifique: `SELECT * FROM products ORDER BY created_at DESC LIMIT 5;` |
+| CORS error no navegador | `VITE_API_URL` incorreta no `.env` | Deve apontar para o domínio/IP público, não localhost |
+| Admin não salva produto | Backend retornando erro | `pm2 logs catalogo-api` para ver o erro |
+| Frontend desatualizado após mudança | Build antigo em cache | `npm run build` e force reload (Ctrl+Shift+R) |
+
+### Proteger o Admin com Autenticação Básica (Nginx)
+
+```bash
+# Instalar htpasswd
+apt install -y apache2-utils
+
+# Criar usuário admin
+htpasswd -c /etc/nginx/.htpasswd admin
+# Digitar a senha quando solicitado
+
+# Adicionar no bloco do Nginx (dentro de server {}):
+# location /admin {
+#     auth_basic "Área Administrativa";
+#     auth_basic_user_file /etc/nginx/.htpasswd;
+#     try_files $uri $uri/ /index.html;
+# }
+
+# Reiniciar Nginx
+systemctl restart nginx
+```
 
 ---
 
-## Resumo Rápido
+## 17. Backup Automático
+
+### Criar script de backup
 
 ```bash
-# 1. Clonar e instalar
-git clone <URL> && cd catalogo && npm install
+cat > /root/backup-catalogo.sh << 'SCRIPT'
+#!/bin/bash
+BACKUP_DIR="/root/backups"
+mkdir -p $BACKUP_DIR
+DATE=$(date +%Y%m%d_%H%M)
 
-# 2. Criar banco
-psql -U postgres -c "CREATE DATABASE catalogo;"
-psql -U postgres -d catalogo -f schema.sql  # ou cole o SQL da seção 4.7
+# Backup do banco
+pg_dump -U postgres catalogo > $BACKUP_DIR/db_$DATE.sql
 
-# 3. Configurar .env
-echo 'VITE_API_MODE=postgres' > .env
-echo 'VITE_API_URL=http://localhost:3001/api' >> .env
-echo 'DATABASE_URL=postgresql://postgres:senha@localhost:5432/catalogo' >> .env
+# Backup das imagens
+tar -czf $BACKUP_DIR/uploads_$DATE.tar.gz -C /var/www/catalogo/public uploads/
 
-# 4. Iniciar (2 terminais)
-npx tsx server/index.ts    # Terminal 1: Backend
-npm run dev                # Terminal 2: Frontend
+# Remover backups com mais de 30 dias
+find $BACKUP_DIR -type f -mtime +30 -delete
 
-# 5. Acessar
-# Catálogo: http://localhost:8080
-# Admin:    http://localhost:8080/admin
+echo "Backup concluído: $DATE"
+SCRIPT
+
+chmod +x /root/backup-catalogo.sh
+```
+
+### Agendar via cron (diário às 3h da manhã)
+
+```bash
+crontab -e
+# Adicionar a linha:
+0 3 * * * /root/backup-catalogo.sh >> /var/log/backup-catalogo.log 2>&1
+```
+
+---
+
+## Resumo Rápido — Copiar e Colar
+
+```bash
+# ═══════════════════════════════════════════════════
+# INSTALAÇÃO COMPLETA EM UMA VPS UBUNTU
+# ═══════════════════════════════════════════════════
+
+# 1. Preparar servidor
+apt update && apt upgrade -y
+apt install -y curl git build-essential ufw nginx postgresql postgresql-contrib
+
+# 2. Node.js + PM2
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs
+npm install -g pm2
+
+# 3. PostgreSQL
+systemctl start postgresql && systemctl enable postgresql
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'MINHA_SENHA';"
+sudo -u postgres psql -c "CREATE DATABASE catalogo;"
+
+# 4. Criar tabelas (copie o SQL da seção 5.2 e execute):
+psql -U postgres -h localhost -d catalogo
+# ... cole todo o SQL e execute ...
+
+# 5. Clonar projeto
+cd /var/www
+git clone <URL_DO_REPOSITORIO> catalogo
+cd catalogo
+npm install
+mkdir -p public/uploads
+
+# 6. Configurar .env
+cat > .env << EOF
+VITE_API_MODE=postgres
+VITE_API_URL=http://MEU_IP/api
+DATABASE_URL=postgresql://postgres:MINHA_SENHA@localhost:5432/catalogo
+PORT=3001
+EOF
+
+# 7. Build frontend
+npm run build
+
+# 8. Iniciar backend
+pm2 start "npx tsx server/index.ts" --name catalogo-api --cwd /var/www/catalogo
+pm2 startup && pm2 save
+
+# 9. Firewall
+ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw enable
+
+# 10. Nginx (crie o arquivo de config conforme seção 10)
+# ...
+
+# 11. Pronto! Acesse:
+#     http://MEU_IP        → Catálogo
+#     http://MEU_IP/admin  → Admin
 ```
