@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { Monitor, Copy, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { TvProductSelector } from "./TvProductSelector";
+import type { DbProduct, DbCategory } from "@/hooks/useDbProducts";
 
 interface TvModeSettingsProps {
   settings: Record<string, string>;
   onUpdate: (key: string, value: string) => Promise<{ error: any }>;
+  products: DbProduct[];
+  categories: DbCategory[];
 }
 
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
@@ -36,7 +40,7 @@ const SIZE_OPTIONS = [
   { value: "large", label: "Grande", desc: "Imagem maior, destaque visual" },
 ];
 
-export function TvModeSettings({ settings, onUpdate }: TvModeSettingsProps) {
+export function TvModeSettings({ settings, onUpdate, products, categories }: TvModeSettingsProps) {
   const [bgColor, setBgColor] = useState(settings.tv_bg_color ?? "#000000");
   const [textColor, setTextColor] = useState(settings.tv_text_color ?? "#ffffff");
   const [priceColor, setPriceColor] = useState(settings.tv_price_color ?? "#22c55e");
@@ -49,10 +53,12 @@ export function TvModeSettings({ settings, onUpdate }: TvModeSettingsProps) {
   const [showCounter, setShowCounter] = useState(settings.tv_show_counter !== "false");
   const [showDiscount, setShowDiscount] = useState(settings.tv_show_discount !== "false");
   const [showNavBar, setShowNavBar] = useState(settings.tv_show_navbar !== "false");
-  const [productSource, setProductSource] = useState(settings.tv_product_source ?? "featured");
+  const [productSource, setProductSource] = useState(settings.tv_product_source ?? "latest");
   const [productSize, setProductSize] = useState(settings.tv_product_size ?? "medium");
   const [fontFamily, setFontFamily] = useState(settings.tv_font_family ?? "system");
-  const [maxProducts, setMaxProducts] = useState(settings.tv_max_products ?? "");
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => {
+    try { return JSON.parse(settings.tv_product_ids || "[]"); } catch { return []; }
+  });
   const [interval, setInterval_] = useState(settings.tv_mode_interval ?? "5");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -71,10 +77,10 @@ export function TvModeSettings({ settings, onUpdate }: TvModeSettingsProps) {
     setShowCounter(settings.tv_show_counter !== "false");
     setShowDiscount(settings.tv_show_discount !== "false");
     setShowNavBar(settings.tv_show_navbar !== "false");
-    setProductSource(settings.tv_product_source ?? "featured");
+    setProductSource(settings.tv_product_source ?? "latest");
     setProductSize(settings.tv_product_size ?? "medium");
     setFontFamily(settings.tv_font_family ?? "system");
-    setMaxProducts(settings.tv_max_products ?? "");
+    try { setSelectedIds(JSON.parse(settings.tv_product_ids || "[]")); } catch { setSelectedIds([]); }
     setInterval_(settings.tv_mode_interval ?? "5");
   }, [settings]);
 
@@ -96,7 +102,7 @@ export function TvModeSettings({ settings, onUpdate }: TvModeSettingsProps) {
       onUpdate("tv_product_source", productSource),
       onUpdate("tv_product_size", productSize),
       onUpdate("tv_font_family", fontFamily),
-      onUpdate("tv_max_products", maxProducts),
+      onUpdate("tv_product_ids", JSON.stringify(selectedIds)),
       onUpdate("tv_mode_interval", interval),
     ]);
     setSaving(false);
@@ -135,35 +141,40 @@ export function TvModeSettings({ settings, onUpdate }: TvModeSettingsProps) {
       <div className="rounded-lg border bg-card p-4 space-y-3">
         <h3 className="font-semibold text-sm">Produtos exibidos</h3>
         <p className="text-xs text-muted-foreground">Escolha quais produtos serão exibidos no Modo TV.</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
+          <button
+            onClick={() => setProductSource("latest")}
+            className={`rounded-lg border-2 p-3 text-left transition ${productSource === "latest" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`}
+          >
+            <p className="text-sm font-semibold">🆕 Últimos</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Cadastrados recentemente</p>
+          </button>
           <button
             onClick={() => setProductSource("featured")}
             className={`rounded-lg border-2 p-3 text-left transition ${productSource === "featured" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`}
           >
             <p className="text-sm font-semibold">⭐ Destaques</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Produtos marcados como destaque</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Marcados como destaque</p>
           </button>
           <button
-            onClick={() => setProductSource("latest")}
-            className={`rounded-lg border-2 p-3 text-left transition ${productSource === "latest" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`}
+            onClick={() => setProductSource("manual")}
+            className={`rounded-lg border-2 p-3 text-left transition ${productSource === "manual" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`}
           >
-            <p className="text-sm font-semibold">🆕 Últimos cadastrados</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Produtos mais recentes do catálogo</p>
+            <p className="text-sm font-semibold">🎯 Manual</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Selecione individualmente</p>
           </button>
         </div>
-        <div className="space-y-1 pt-2 border-t">
-          <label className="text-xs font-medium text-muted-foreground">Quantidade máxima de produtos</label>
-          <input
-            type="number"
-            min="1"
-            max="200"
-            placeholder="Todos"
-            value={maxProducts}
-            onChange={(e) => setMaxProducts(e.target.value)}
-            className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-          />
-          <p className="text-[10px] text-muted-foreground">Deixe vazio para exibir todos os produtos disponíveis.</p>
-        </div>
+
+        {productSource === "manual" && (
+          <div className="pt-2 border-t">
+            <TvProductSelector
+              products={products}
+              categories={categories}
+              selectedIds={selectedIds}
+              onChangeIds={setSelectedIds}
+            />
+          </div>
+        )}
       </div>
 
       <div className="rounded-lg border bg-card p-4 space-y-3">
