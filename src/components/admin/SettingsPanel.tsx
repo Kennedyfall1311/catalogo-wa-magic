@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Settings, Upload, Image, Store, Palette, Building2, Truck, ShoppingCart, Share2 } from "lucide-react";
+import { Settings, Upload, Image, Store, Palette, Building2, Truck, ShoppingCart, Share2, ClipboardList } from "lucide-react";
 import { storageApi } from "@/lib/api-client";
 import { PaymentConditionsManager } from "./PaymentConditionsManager";
 import { BannerManager } from "./BannerManager";
@@ -254,6 +254,60 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
             onChange={setMinimumOrderValue}
           />
         )}
+      </div>
+
+      {/* ─── Configuração do Checkout ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <SectionHeader icon={ClipboardList} title="Campos do Checkout" />
+        <p className="text-xs text-muted-foreground">Escolha quais campos o cliente precisa preencher ao finalizar o pedido.</p>
+
+        {[
+          { key: "checkout_field_name", label: "Nome completo", desc: "Sempre obrigatório", locked: true },
+          { key: "checkout_field_phone", label: "WhatsApp", desc: "Sempre obrigatório", locked: true },
+          { key: "checkout_field_cpf", label: "CPF / CNPJ", desc: "Solicitar CPF ou CNPJ do cliente" },
+          { key: "checkout_field_email", label: "E-mail", desc: "Solicitar e-mail do cliente" },
+          { key: "checkout_field_address", label: "Endereço (CEP)", desc: "Solicitar endereço com busca automática por CEP" },
+          { key: "checkout_field_notes", label: "Observações", desc: "Campo livre para observações" },
+        ].map((field) => (
+          <div key={field.key} className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">{field.label}</p>
+              <p className="text-xs text-muted-foreground">{field.desc}</p>
+            </div>
+            {field.locked ? (
+              <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-1 rounded">Obrigatório</span>
+            ) : (
+              <Switch
+                checked={settings[field.key] !== "false"}
+                onCheckedChange={(val) => onUpdate(field.key, val ? "true" : "false")}
+              />
+            )}
+          </div>
+        ))}
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">CPF/CNPJ obrigatório</p>
+            <p className="text-xs text-muted-foreground">Exigir preenchimento do CPF/CNPJ</p>
+          </div>
+          <Switch
+            checked={settings.checkout_cpf_required === "true"}
+            onCheckedChange={(val) => onUpdate("checkout_cpf_required", val ? "true" : "false")}
+            disabled={settings.checkout_field_cpf === "false"}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Endereço obrigatório</p>
+            <p className="text-xs text-muted-foreground">Exigir preenchimento do endereço</p>
+          </div>
+          <Switch
+            checked={settings.checkout_address_required === "true"}
+            onCheckedChange={(val) => onUpdate("checkout_address_required", val ? "true" : "false")}
+            disabled={settings.checkout_field_address === "false"}
+          />
+        </div>
       </div>
 
       {/* ─── Condições de Pagamento ─── */}

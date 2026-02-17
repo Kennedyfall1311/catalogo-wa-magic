@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, MessageCircle, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, AlertCircle, CheckCircle2, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,8 +14,21 @@ interface CustomerData {
   name: string;
   phone: string;
   cpfCnpj: string;
+  email: string;
   notes: string;
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
 }
+
+const EMPTY_DATA: CustomerData = {
+  name: "", phone: "", cpfCnpj: "", email: "", notes: "",
+  cep: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "",
+};
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -36,12 +49,23 @@ export default function Checkout() {
   const finalTotal = totalPrice + shippingFee;
   const belowMinimum = minimumOrderEnabled && minimumOrderValue > 0 && totalPrice < minimumOrderValue;
 
+  // Field visibility & requirement settings
+  const showCpf = settings.checkout_field_cpf !== "false";
+  const showEmail = settings.checkout_field_email === "true";
+  const showAddress = settings.checkout_field_address !== "false";
+  const showNotes = settings.checkout_field_notes !== "false";
+  const cpfRequired = showCpf && settings.checkout_cpf_required === "true";
+  const addressRequired = showAddress && settings.checkout_address_required === "true";
+
   const [selectedPayment, setSelectedPayment] = useState("");
-  const [data, setData] = useState<CustomerData>({ name: "", phone: "", cpfCnpj: "", notes: "" });
+  const [data, setData] = useState<CustomerData>(EMPTY_DATA);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [whatsappLink, setWhatsappLink] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const [manualAddress, setManualAddress] = useState(false);
 
   if (submitted) {
     return (
@@ -127,16 +151,68 @@ export default function Checkout() {
     return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
   };
 
+  const formatCep = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 5) return digits;
+    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  };
+
   const update = (field: keyof CustomerData, value: string) =>
     setData((prev) => ({ ...prev, [field]: value }));
+
+  const lookupCep = async () => {
+    const digits = data.cep.replace(/\D/g, "");
+    if (digits.length !== 8) {
+      setCepError("CEP deve ter 8 dígitos");
+      return;
+    }
+    setCepLoading(true);
+    setCepError(null);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const json = await res.json();
+      if (json.erro) {
+        setCepError("CEP não encontrado");
+        setCepLoading(false);
+        return;
+      }
+      setData((prev) => ({
+        ...prev,
+        street: json.logradouro || "",
+        neighborhood: json.bairro || "",
+        city: json.localidade || "",
+        state: json.uf || "",
+      }));
+      setManualAddress(false);
+    } catch {
+      setCepError("Erro ao buscar CEP. Tente novamente.");
+    }
+    setCepLoading(false);
+  };
+
+  const addressFilled = !showAddress || !addressRequired || (
+    data.cep.replace(/\D/g, "").length === 8 &&
+    data.street.trim().length >= 2 &&
+    data.number.trim().length >= 1 &&
+    data.neighborhood.trim().length >= 2 &&
+    data.city.trim().length >= 2 &&
+    data.state.trim().length === 2
+  );
 
   const isValid =
     data.name.trim().length >= 2 &&
     data.phone.replace(/\D/g, "").length >= 10 &&
+    (!cpfRequired || data.cpfCnpj.replace(/\D/g, "").length >= 11) &&
     (!paymentEnabled || !activeConditions.length || selectedPayment !== "") &&
+    addressFilled &&
     !belowMinimum;
 
   const formatBRL = (v: number) => v.toFixed(2).replace(".", ",");
+
+  const buildAddressLine = () => {
+    const parts = [data.street, data.number, data.complement, data.neighborhood, `${data.city}/${data.state}`, data.cep].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : "";
+  };
 
   const handleSubmit = async () => {
     if (!isValid || submitting) return;
@@ -145,13 +221,14 @@ export default function Checkout() {
 
     const idempotencyKey = crypto.randomUUID();
 
-    // Save order to database
+    const addressLine = buildAddressLine();
+
     const order = {
       customer_name: data.name,
       customer_phone: data.phone,
       customer_cpf_cnpj: data.cpfCnpj || null,
       payment_method: selectedPayment || null,
-      notes: data.notes || null,
+      notes: [data.notes, addressLine ? `Endereço: ${addressLine}` : "", data.email ? `E-mail: ${data.email}` : ""].filter(Boolean).join(" | ") || null,
       subtotal: totalPrice,
       shipping_fee: shippingFee,
       total: finalTotal,
@@ -194,6 +271,8 @@ export default function Checkout() {
 
     const paymentLine = selectedPayment ? `\nPagamento: ${selectedPayment}` : "";
     const notesLine = data.notes ? `\nObs: ${data.notes}` : "";
+    const addressMsgLine = addressLine ? `\nEndereço: ${addressLine}` : "";
+    const emailLine = data.email ? `\nE-mail: ${data.email}` : "";
 
     const msg = [
       `*PEDIDO - ${storeName}*`,
@@ -202,6 +281,8 @@ export default function Checkout() {
       `Cliente: ${data.name}`,
       `Telefone: ${data.phone}`,
       data.cpfCnpj ? `CPF/CNPJ: ${data.cpfCnpj}` : "",
+      emailLine.trim(),
+      addressMsgLine.trim(),
       line,
       `*ITENS DO PEDIDO:*`,
       "",
@@ -293,10 +374,90 @@ export default function Checkout() {
               <Input id="phone" placeholder="(00) 00000-0000" value={data.phone} onChange={(e) => update("phone", formatPhone(e.target.value))} />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="cpfCnpj">CPF / CNPJ</Label>
-              <Input id="cpfCnpj" placeholder="000.000.000-00 ou 00.000.000/0000-00" value={data.cpfCnpj} onChange={(e) => update("cpfCnpj", formatCpfCnpj(e.target.value))} />
-            </div>
+            {showCpf && (
+              <div className="space-y-2">
+                <Label htmlFor="cpfCnpj">CPF / CNPJ {cpfRequired ? "*" : ""}</Label>
+                <Input id="cpfCnpj" placeholder="000.000.000-00 ou 00.000.000/0000-00" value={data.cpfCnpj} onChange={(e) => update("cpfCnpj", formatCpfCnpj(e.target.value))} />
+              </div>
+            )}
+
+            {showEmail && (
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input id="email" type="email" placeholder="seu@email.com" value={data.email} onChange={(e) => update("email", e.target.value)} maxLength={255} />
+              </div>
+            )}
+
+            {/* Endereço com CEP */}
+            {showAddress && (
+              <div className="space-y-3 rounded-lg border p-4">
+                <h3 className="text-sm font-semibold">Endereço {addressRequired ? "*" : ""}</h3>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cep">CEP</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="cep"
+                      placeholder="00000-000"
+                      value={data.cep}
+                      onChange={(e) => update("cep", formatCep(e.target.value))}
+                      className="flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={lookupCep}
+                      disabled={cepLoading || data.cep.replace(/\D/g, "").length !== 8}
+                      className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      {cepLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      Buscar
+                    </button>
+                  </div>
+                  {cepError && <p className="text-xs text-destructive">{cepError}</p>}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setManualAddress(!manualAddress)}
+                  className="text-xs font-medium text-primary underline"
+                >
+                  {manualAddress ? "Ocultar campos manuais" : "Preencher endereço manualmente"}
+                </button>
+
+                {(data.street || manualAddress) && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="street">Rua</Label>
+                      <Input id="street" placeholder="Rua, Avenida..." value={data.street} onChange={(e) => update("street", e.target.value)} maxLength={200} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="number">Número</Label>
+                        <Input id="number" placeholder="123" value={data.number} onChange={(e) => update("number", e.target.value)} maxLength={20} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="complement">Complemento</Label>
+                        <Input id="complement" placeholder="Apto, Bloco..." value={data.complement} onChange={(e) => update("complement", e.target.value)} maxLength={100} />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="neighborhood">Bairro</Label>
+                      <Input id="neighborhood" placeholder="Bairro" value={data.neighborhood} onChange={(e) => update("neighborhood", e.target.value)} maxLength={100} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-2 col-span-2">
+                        <Label htmlFor="city">Cidade</Label>
+                        <Input id="city" placeholder="Cidade" value={data.city} onChange={(e) => update("city", e.target.value)} maxLength={100} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="state">UF</Label>
+                        <Input id="state" placeholder="SP" value={data.state} onChange={(e) => update("state", e.target.value.toUpperCase())} maxLength={2} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {paymentEnabled && activeConditions.length > 0 && (
               <div className="space-y-2">
@@ -320,10 +481,12 @@ export default function Checkout() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Observações</Label>
-              <Textarea id="notes" placeholder="Alguma observação sobre o pedido?" value={data.notes} onChange={(e) => update("notes", e.target.value)} maxLength={500} rows={3} />
-            </div>
+            {showNotes && (
+              <div className="space-y-2">
+                <Label htmlFor="notes">Observações</Label>
+                <Textarea id="notes" placeholder="Alguma observação sobre o pedido?" value={data.notes} onChange={(e) => update("notes", e.target.value)} maxLength={500} rows={3} />
+              </div>
+            )}
           </div>
 
           {submitError && (
