@@ -1,5 +1,6 @@
 import { Router } from "express";
 import pool from "../db";
+import { requireAdmin } from "../middleware/auth";
 
 export const productsRouter = Router();
 
@@ -42,7 +43,7 @@ productsRouter.get("/code/:code", async (req, res) => {
 });
 
 // POST create product
-productsRouter.post("/", async (req, res) => {
+productsRouter.post("/", requireAdmin, async (req, res) => {
   try {
     const { name, code, slug, price, original_price, description, image_url, category_id, active, brand, reference, manufacturer_code, unit_of_measure, quantity } = req.body;
     const { rows } = await pool.query(
@@ -58,7 +59,7 @@ productsRouter.post("/", async (req, res) => {
 });
 
 // PUT update product
-productsRouter.put("/:id", async (req, res) => {
+productsRouter.put("/:id", requireAdmin, async (req, res) => {
   try {
     const fields: string[] = [];
     const values: any[] = [];
@@ -88,7 +89,7 @@ productsRouter.put("/:id", async (req, res) => {
 });
 
 // DELETE product
-productsRouter.delete("/:id", async (req, res) => {
+productsRouter.delete("/:id", requireAdmin, async (req, res) => {
   try {
     await pool.query("DELETE FROM products WHERE id = $1", [req.params.id]);
     res.json({ success: true });
@@ -98,7 +99,7 @@ productsRouter.delete("/:id", async (req, res) => {
 });
 
 // POST upsert products (batch)
-productsRouter.post("/upsert", async (req, res) => {
+productsRouter.post("/upsert", requireAdmin, async (req, res) => {
   const products = req.body.products as any[];
   if (!Array.isArray(products)) {
     res.status(400).json({ error: "products array required" });

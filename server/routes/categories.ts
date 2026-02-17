@@ -1,5 +1,6 @@
 import { Router } from "express";
 import pool from "../db";
+import { requireAdmin } from "../middleware/auth";
 
 export const categoriesRouter = Router();
 
@@ -12,7 +13,7 @@ categoriesRouter.get("/", async (_req, res) => {
   }
 });
 
-categoriesRouter.post("/", async (req, res) => {
+categoriesRouter.post("/", requireAdmin, async (req, res) => {
   try {
     const { name, slug } = req.body;
     const { rows } = await pool.query(
@@ -26,7 +27,7 @@ categoriesRouter.post("/", async (req, res) => {
 });
 
 // POST batch insert
-categoriesRouter.post("/batch", async (req, res) => {
+categoriesRouter.post("/batch", requireAdmin, async (req, res) => {
   try {
     const cats = req.body.categories as { name: string; slug: string }[];
     const inserted = [];
@@ -43,7 +44,7 @@ categoriesRouter.post("/batch", async (req, res) => {
   }
 });
 
-categoriesRouter.put("/:id", async (req, res) => {
+categoriesRouter.put("/:id", requireAdmin, async (req, res) => {
   try {
     const { name, slug } = req.body;
     const { rows } = await pool.query(
@@ -56,7 +57,7 @@ categoriesRouter.put("/:id", async (req, res) => {
   }
 });
 
-categoriesRouter.delete("/:id", async (req, res) => {
+categoriesRouter.delete("/:id", requireAdmin, async (req, res) => {
   try {
     await pool.query("DELETE FROM categories WHERE id = $1", [req.params.id]);
     res.json({ success: true });

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import pool from "../db";
+import { requireAdmin } from "../middleware/auth";
 
 export const bannersRouter = Router();
 
@@ -12,7 +13,7 @@ bannersRouter.get("/", async (_req, res) => {
   }
 });
 
-bannersRouter.post("/", async (req, res) => {
+bannersRouter.post("/", requireAdmin, async (req, res) => {
   try {
     const { image_url, link, sort_order } = req.body;
     const { rows } = await pool.query(
@@ -25,7 +26,7 @@ bannersRouter.post("/", async (req, res) => {
   }
 });
 
-bannersRouter.put("/:id", async (req, res) => {
+bannersRouter.put("/:id", requireAdmin, async (req, res) => {
   try {
     const fields: string[] = [];
     const values: any[] = [];
@@ -49,7 +50,7 @@ bannersRouter.put("/:id", async (req, res) => {
   }
 });
 
-bannersRouter.delete("/:id", async (req, res) => {
+bannersRouter.delete("/:id", requireAdmin, async (req, res) => {
   try {
     await pool.query("DELETE FROM banners WHERE id = $1", [req.params.id]);
     res.json({ success: true });

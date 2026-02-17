@@ -1,5 +1,6 @@
 import { Router } from "express";
 import pool from "../db";
+import { requireAdmin } from "../middleware/auth";
 
 export const settingsRouter = Router();
 
@@ -12,7 +13,7 @@ settingsRouter.get("/", async (_req, res) => {
   }
 });
 
-settingsRouter.put("/:key", async (req, res) => {
+settingsRouter.put("/:key", requireAdmin, async (req, res) => {
   try {
     const { value } = req.body;
     const { rowCount } = await pool.query(
