@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, LogOut, BarChart3, Package, FolderOpen,
-  FileDown, Palette, Settings, Plug, Users, Warehouse
+  FileDown, Palette, Settings, Plug, Users, Warehouse, Monitor
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDbProducts } from "@/hooks/useDbProducts";
@@ -19,6 +19,7 @@ import { CatalogCustomization } from "@/components/admin/CatalogCustomization";
 import { SalesDashboard } from "@/components/admin/SalesDashboard";
 import { SellerManager } from "@/components/admin/SellerManager";
 import { StockManager } from "@/components/admin/StockManager";
+import { TvModeSettings } from "@/components/admin/TvModeSettings";
 
 import type { DbProduct } from "@/hooks/useDbProducts";
 
@@ -28,6 +29,7 @@ const TABS = [
   { key: "categories", label: "Categorias", icon: FolderOpen },
   { key: "sellers", label: "Vendedores", icon: Users },
   { key: "stock", label: "Estoque", icon: Warehouse },
+  { key: "tv", label: "Modo TV", icon: Monitor },
   { key: "import", label: "Importar", icon: FileDown },
   { key: "catalog", label: "Catálogo", icon: Palette },
   { key: "settings", label: "Config", icon: Settings },
@@ -187,6 +189,10 @@ export default function Admin() {
               hideOutOfStock={settings.hide_out_of_stock === "true"}
               onToggleHideOutOfStock={(val) => updateSetting("hide_out_of_stock", val)}
             />
+          )}
+
+          {tab === "tv" && (
+            <TvModeSettings settings={settings} onUpdate={updateSetting} />
           )}
 
           {tab === "import" && (
