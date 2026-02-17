@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, LogOut, BarChart3, Package, FolderOpen,
-  FileDown, Palette, Settings, Plug
+  FileDown, Palette, Settings, Plug, Users
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDbProducts } from "@/hooks/useDbProducts";
@@ -17,6 +17,7 @@ import { CategoryManager } from "@/components/admin/CategoryManager";
 import { IntegrationPanel } from "@/components/admin/IntegrationPanel";
 import { CatalogCustomization } from "@/components/admin/CatalogCustomization";
 import { SalesDashboard } from "@/components/admin/SalesDashboard";
+import { SellerManager } from "@/components/admin/SellerManager";
 
 import type { DbProduct } from "@/hooks/useDbProducts";
 
@@ -24,6 +25,7 @@ const TABS = [
   { key: "sales", label: "Vendas", icon: BarChart3 },
   { key: "products", label: "Produtos", icon: Package },
   { key: "categories", label: "Categorias", icon: FolderOpen },
+  { key: "sellers", label: "Vendedores", icon: Users },
   { key: "import", label: "Importar", icon: FileDown },
   { key: "catalog", label: "Catálogo", icon: Palette },
   { key: "settings", label: "Config", icon: Settings },
@@ -172,6 +174,8 @@ export default function Admin() {
           {tab === "categories" && (
             <CategoryManager categories={categories} onRefresh={refetchCategories} />
           )}
+
+          {tab === "sellers" && <SellerManager />}
 
           {tab === "import" && (
             <div className="space-y-4">

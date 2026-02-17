@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
+import { SellerProvider } from "@/contexts/SellerContext";
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
@@ -14,6 +15,19 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function CatalogRoutes() {
+  return (
+    <SellerProvider>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/produto/:slug" element={<ProductDetail />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/sacola" element={<Cart />} />
+      </Routes>
+    </SellerProvider>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -22,13 +36,10 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/produto/:slug" element={<ProductDetail />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/sacola" element={<Cart />} />
+            <Route path="/v/:sellerSlug/*" element={<CatalogRoutes />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/tv" element={<TvMode />} />
-            <Route path="*" element={<NotFound />} />
+            <Route path="/*" element={<CatalogRoutes />} />
           </Routes>
         </BrowserRouter>
       </CartProvider>

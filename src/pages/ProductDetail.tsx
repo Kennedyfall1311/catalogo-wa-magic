@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, ShoppingBag, Share2, Check } from "lucide-react";
 import { useProductBySlug } from "@/hooks/useProductBySlug";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { useSellerPrefix } from "@/hooks/useSellerPrefix";
 import { WhatsAppFloating } from "@/components/WhatsAppFloating";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { AddToCartDialog } from "@/components/AddToCartDialog";
@@ -14,6 +15,7 @@ export default function ProductDetail() {
   const { product, loading } = useProductBySlug(slug);
   const { settings } = useStoreSettings();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { buildPath } = useSellerPrefix();
 
   const whatsappNumber = settings.whatsapp_number || "5511999999999";
 
@@ -29,7 +31,7 @@ export default function ProductDetail() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-lg text-muted-foreground">Produto não encontrado</p>
-        <Link to="/" className="text-sm font-medium underline">Voltar ao catálogo</Link>
+        <Link to={buildPath("/")} className="text-sm font-medium underline">Voltar ao catálogo</Link>
       </div>
     );
   }
@@ -40,7 +42,7 @@ export default function ProductDetail() {
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
         <div className="container flex h-14 items-center gap-3">
-          <Link to="/" className="rounded-full p-2 hover:bg-muted transition-colors">
+          <Link to={buildPath("/")} className="rounded-full p-2 hover:bg-muted transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <span className="text-sm font-medium truncate">{product.name}</span>

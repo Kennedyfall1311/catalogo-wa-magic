@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCart } from "@/contexts/CartContext";
+import { useSeller } from "@/contexts/SellerContext";
+import { useSellerPrefix } from "@/hooks/useSellerPrefix";
 import { ordersApi } from "@/lib/api-client";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -35,7 +37,10 @@ export default function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const { settings } = useStoreSettings();
   const { conditions } = usePaymentConditions();
-  const whatsappNumber = settings.whatsapp_number || "5511999999999";
+  const { seller } = useSeller();
+  const { buildPath } = useSellerPrefix();
+  const sellerWhatsapp = seller?.whatsapp?.replace(/\D/g, "");
+  const whatsappNumber = sellerWhatsapp || settings.whatsapp_number || "5511999999999";
 
   const paymentEnabled = settings.payment_conditions_enabled === "true";
   const activeConditions = conditions.filter((c) => c.active);
@@ -72,7 +77,7 @@ export default function Checkout() {
       <div className="min-h-screen flex flex-col">
         <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
           <div className="container flex h-14 items-center gap-3">
-            <Link to="/" className="rounded-full p-2 hover:bg-muted transition-colors">
+            <Link to={buildPath("/")} className="rounded-full p-2 hover:bg-muted transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <span className="text-sm font-medium">Pedido Enviado</span>
@@ -102,7 +107,7 @@ export default function Checkout() {
               </a>
             )}
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate(buildPath("/"))}
               className="w-full rounded-full border border-border px-6 py-3 text-sm font-semibold hover:bg-muted transition"
             >
               Voltar ao Catálogo
@@ -119,7 +124,7 @@ export default function Checkout() {
       <div className="min-h-screen flex flex-col">
         <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
           <div className="container flex h-14 items-center gap-3">
-            <Link to="/" className="rounded-full p-2 hover:bg-muted transition-colors">
+            <Link to={buildPath("/")} className="rounded-full p-2 hover:bg-muted transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <span className="text-sm font-medium">Suas Informações</span>
@@ -127,7 +132,7 @@ export default function Checkout() {
         </header>
         <main className="flex-1 container max-w-2xl py-20 text-center text-muted-foreground space-y-3">
           <p className="text-lg">Sua sacola está vazia</p>
-          <Link to="/" className="text-sm font-medium underline">Voltar ao catálogo</Link>
+          <Link to={buildPath("/")} className="text-sm font-medium underline">Voltar ao catálogo</Link>
         </main>
         <CatalogFooter storeName={settings.store_name} footerColor={settings.footer_color} />
       </div>
@@ -223,7 +228,7 @@ export default function Checkout() {
 
     const addressLine = buildAddressLine();
 
-    const order = {
+    const order: any = {
       customer_name: data.name,
       customer_phone: data.phone,
       customer_cpf_cnpj: data.cpfCnpj || null,
@@ -234,6 +239,10 @@ export default function Checkout() {
       total: finalTotal,
       status: "pending",
     };
+    if (seller) {
+      order.seller_id = seller.id;
+      order.seller_name = seller.name;
+    }
     const orderItems = items.map((i) => ({
       product_id: i.product.id,
       product_name: i.product.name,
@@ -274,9 +283,12 @@ export default function Checkout() {
     const addressMsgLine = addressLine ? `\nEndereço: ${addressLine}` : "";
     const emailLine = data.email ? `\nE-mail: ${data.email}` : "";
 
+    const sellerLine = seller ? `Vendedor: ${seller.name}` : "";
+
     const msg = [
       `*PEDIDO - ${storeName}*`,
       `Data: ${dateStr} as ${timeStr}`,
+      sellerLine,
       line,
       `Cliente: ${data.name}`,
       `Telefone: ${data.phone}`,
@@ -309,7 +321,7 @@ export default function Checkout() {
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
         <div className="container flex h-14 items-center gap-3">
-          <Link to="/sacola" className="rounded-full p-2 hover:bg-muted transition-colors">
+          <Link to={buildPath("/sacola")} className="rounded-full p-2 hover:bg-muted transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <span className="text-sm font-medium">Suas Informações</span>

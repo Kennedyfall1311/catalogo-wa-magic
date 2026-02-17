@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { useSellerPrefix } from "@/hooks/useSellerPrefix";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -9,12 +10,13 @@ import { ArrowRight } from "lucide-react";
 export default function Cart() {
   const { items, updateQuantity, removeItem, clearCart, totalPrice } = useCart();
   const { settings } = useStoreSettings();
+  const { buildPath } = useSellerPrefix();
 
   return (
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
         <div className="container flex h-14 items-center gap-3">
-          <Link to="/" className="rounded-full p-2 hover:bg-muted transition-colors">
+          <Link to={buildPath("/")} className="rounded-full p-2 hover:bg-muted transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <span className="text-sm font-medium">Minha Sacola</span>
@@ -85,7 +87,7 @@ export default function Cart() {
                 <span>R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
               </div>
 
-              <Link to="/checkout">
+              <Link to={buildPath("/checkout")}>
                 <Button className="w-full rounded-full" size="lg">
                   Prosseguir
                   <ArrowRight className="h-4 w-4 ml-1" />
