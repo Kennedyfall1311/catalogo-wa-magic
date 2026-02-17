@@ -3,6 +3,12 @@ import { useDbProducts } from "@/hooks/useDbProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { Monitor, ShoppingBag } from "lucide-react";
 
+const SIZE_MAP = {
+  small: { imgMax: "max-h-[45vh]", title: "text-2xl lg:text-3xl", price: "text-3xl lg:text-4xl", gap: "gap-6 lg:gap-10" },
+  medium: { imgMax: "max-h-[65vh]", title: "text-3xl lg:text-5xl", price: "text-4xl lg:text-6xl", gap: "gap-8 lg:gap-16" },
+  large: { imgMax: "max-h-[78vh]", title: "text-4xl lg:text-6xl", price: "text-5xl lg:text-7xl", gap: "gap-10 lg:gap-20" },
+};
+
 export default function TvMode() {
   const { products, loading } = useDbProducts();
   const { settings } = useStoreSettings();
@@ -14,6 +20,7 @@ export default function TvMode() {
   const textColor = settings.tv_text_color || "#ffffff";
   const priceColor = settings.tv_price_color || "#22c55e";
   const navBarColor = settings.tv_navbar_color || "#111111";
+  const navBarTextColor = settings.tv_navbar_text_color || "#ffffff";
   const showLogo = settings.tv_show_logo !== "false";
   const showCode = settings.tv_show_code !== "false";
   const showBrand = settings.tv_show_brand !== "false";
@@ -22,6 +29,10 @@ export default function TvMode() {
   const showDiscount = settings.tv_show_discount !== "false";
   const showNavBar = settings.tv_show_navbar !== "false";
   const productSource = settings.tv_product_source || "featured";
+  const productSize = (settings.tv_product_size || "medium") as keyof typeof SIZE_MAP;
+  const fontFamily = settings.tv_font_family && settings.tv_font_family !== "system" ? settings.tv_font_family : undefined;
+
+  const sizes = SIZE_MAP[productSize] || SIZE_MAP.medium;
 
   const tvProducts = useMemo(() => {
     const withImage = products
@@ -32,7 +43,6 @@ export default function TvMode() {
       return [...withImage].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
 
-    // featured (default)
     return withImage
       .filter((p) => p.featured)
       .sort((a, b) => (a.featured_order ?? 0) - (b.featured_order ?? 0));
@@ -58,7 +68,7 @@ export default function TvMode() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center" style={{ backgroundColor: bgColor, color: textColor }}>
+      <div className="h-screen w-screen flex items-center justify-center" style={{ backgroundColor: bgColor, color: textColor, fontFamily }}>
         <p className="text-xl animate-pulse">Carregando...</p>
       </div>
     );
@@ -66,7 +76,7 @@ export default function TvMode() {
 
   if (tvProducts.length === 0) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center gap-4" style={{ backgroundColor: bgColor, color: textColor }}>
+      <div className="h-screen w-screen flex flex-col items-center justify-center gap-4" style={{ backgroundColor: bgColor, color: textColor, fontFamily }}>
         <Monitor className="h-16 w-16" style={{ color: textColor, opacity: 0.4 }} />
         <p className="text-xl">Nenhum produto para exibir</p>
         <p className="text-sm" style={{ opacity: 0.6 }}>
@@ -82,20 +92,20 @@ export default function TvMode() {
   const hasDiscount = showDiscount && product.original_price && product.original_price > product.price;
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col relative select-none cursor-none" style={{ backgroundColor: bgColor, color: textColor }}>
+    <div className="h-screen w-screen overflow-hidden flex flex-col relative select-none cursor-none" style={{ backgroundColor: bgColor, color: textColor, fontFamily }}>
       {/* Nav bar */}
       {showNavBar && (
         <div className="flex items-center gap-3 px-6 py-3 shrink-0" style={{ backgroundColor: navBarColor }}>
           {settings.logo_url ? (
             <img src={settings.logo_url} alt="Logo" className="h-10 w-10 rounded-full object-cover" />
           ) : (
-            <ShoppingBag className="h-6 w-6" style={{ color: textColor, opacity: 0.7 }} />
+            <ShoppingBag className="h-6 w-6" style={{ color: navBarTextColor, opacity: 0.7 }} />
           )}
-          <span className="text-sm font-bold tracking-tight uppercase" style={{ color: textColor }}>
+          <span className="text-sm font-bold tracking-tight uppercase" style={{ color: navBarTextColor }}>
             {settings.store_name || "Catálogo"}
           </span>
           {settings.store_subtitle && (
-            <span className="text-[9px] tracking-[0.3em] uppercase" style={{ color: textColor, opacity: 0.5 }}>
+            <span className="text-[9px] tracking-[0.3em] uppercase" style={{ color: navBarTextColor, opacity: 0.5 }}>
               {settings.store_subtitle}
             </span>
           )}
@@ -107,19 +117,19 @@ export default function TvMode() {
         className="flex-1 flex items-center justify-center p-8 transition-opacity duration-400"
         style={{ opacity: fade ? 1 : 0 }}
       >
-        <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-16 max-w-6xl w-full">
+        <div className={`flex flex-col lg:flex-row items-center ${sizes.gap} max-w-7xl w-full`}>
           {/* Image */}
-          <div className="flex-1 flex items-center justify-center max-h-[70vh]">
+          <div className={`flex-1 flex items-center justify-center ${sizes.imgMax}`}>
             <img
               src={product.image_url || ""}
               alt={product.name}
-              className="max-h-[65vh] max-w-full object-contain rounded-lg shadow-2xl"
+              className={`${sizes.imgMax} max-w-full object-contain rounded-lg shadow-2xl`}
             />
           </div>
 
           {/* Info */}
           <div className="flex-1 flex flex-col items-center lg:items-start gap-4 text-center lg:text-left">
-            <h1 className="text-3xl lg:text-5xl font-bold uppercase leading-tight">
+            <h1 className={`${sizes.title} font-bold uppercase leading-tight`}>
               {product.name}
             </h1>
 
@@ -133,7 +143,7 @@ export default function TvMode() {
                   R$ {Number(product.original_price).toFixed(2).replace(".", ",")}
                 </p>
               )}
-              <p className="text-4xl lg:text-6xl font-extrabold" style={{ color: priceColor }}>
+              <p className={`${sizes.price} font-extrabold`} style={{ color: priceColor }}>
                 R$ {Number(product.price).toFixed(2).replace(".", ",")}
               </p>
             </div>
