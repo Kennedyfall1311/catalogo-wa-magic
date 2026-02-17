@@ -1,10 +1,15 @@
 import { useRef, useState } from "react";
-import { ImageIcon, Upload, Trash2, GripVertical } from "lucide-react";
+import { ImageIcon, Upload, Trash2, GripVertical, Timer } from "lucide-react";
 import { storageApi } from "@/lib/api-client";
 import { useBanners } from "@/hooks/useBanners";
 import { Switch } from "@/components/ui/switch";
 
-export function BannerManager() {
+interface BannerManagerProps {
+  bannerInterval?: string;
+  onUpdateInterval?: (seconds: string) => void;
+}
+
+export function BannerManager({ bannerInterval, onUpdateInterval }: BannerManagerProps) {
   const { banners, addBanner, updateBanner, removeBanner } = useBanners();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -74,6 +79,25 @@ export function BannerManager() {
         {uploading ? "Enviando..." : "Adicionar Banner"}
         <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />
       </label>
+
+      {/* Banner interval */}
+      {onUpdateInterval && (
+        <div className="space-y-1 pt-2 border-t">
+          <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+            <Timer className="h-3.5 w-3.5" />
+            Tempo de troca (segundos)
+          </label>
+          <input
+            type="number"
+            min={1}
+            max={60}
+            value={bannerInterval || "5"}
+            onChange={(e) => onUpdateInterval(e.target.value)}
+            className="w-24 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+          <p className="text-[10px] text-muted-foreground">Intervalo entre a troca automática dos banners</p>
+        </div>
+      )}
     </div>
   );
 }

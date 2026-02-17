@@ -198,7 +198,7 @@ const Index = () => {
         companyDescription={settings.company_description}
       />
 
-      {activeBanners.length > 0 && <BannerCarousel banners={activeBanners} />}
+      {activeBanners.length > 0 && <BannerCarousel banners={activeBanners} intervalMs={Number(settings.banner_interval || "5") * 1000} />}
 
       <main className="flex-1">
         <div className="container py-4 space-y-4">

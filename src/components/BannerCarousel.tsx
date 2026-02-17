@@ -5,6 +5,7 @@ import type { Banner } from "@/hooks/useBanners";
 
 interface BannerCarouselProps {
   banners: Banner[];
+  intervalMs?: number;
 }
 
 function BannerImage({ banner }: { banner: Banner }) {
@@ -32,7 +33,7 @@ function BannerImage({ banner }: { banner: Banner }) {
   return wrapper;
 }
 
-export function BannerCarousel({ banners }: BannerCarouselProps) {
+export function BannerCarousel({ banners, intervalMs = 5000 }: BannerCarouselProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
@@ -49,7 +50,7 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
     emblaApi.on("select", onSelect);
     emblaApi.on("reInit", onSelect);
 
-    const interval = setInterval(() => emblaApi.scrollNext(), 5000);
+    const interval = setInterval(() => emblaApi.scrollNext(), intervalMs);
     return () => clearInterval(interval);
   }, [emblaApi, onSelect]);
 
