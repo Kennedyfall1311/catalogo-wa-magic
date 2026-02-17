@@ -68,30 +68,22 @@ export default function TvMode() {
     const productSlides: SlideItem[] = tvProducts.map((p) => ({ type: "product", product: p }));
     if (!showBanners || activeBanners.length === 0) return productSlides;
 
-    // Insert a banner every N products (spread evenly)
+    // Insert a banner every 10 products, cycling through available banners
+    const BANNER_EVERY = 10;
     const result: SlideItem[] = [];
-    const bannerEvery = Math.max(2, Math.ceil(tvProducts.length / activeBanners.length));
     let bannerIdx = 0;
 
     for (let i = 0; i < productSlides.length; i++) {
       result.push(productSlides[i]);
-      if ((i + 1) % bannerEvery === 0 && bannerIdx < activeBanners.length) {
+      if ((i + 1) % BANNER_EVERY === 0) {
+        const banner = activeBanners[bannerIdx % activeBanners.length];
         result.push({
           type: "banner",
-          imageUrl: activeBanners[bannerIdx].image_url,
-          link: activeBanners[bannerIdx].link,
+          imageUrl: banner.image_url,
+          link: banner.link,
         });
         bannerIdx++;
       }
-    }
-    // Append remaining banners at the end
-    while (bannerIdx < activeBanners.length) {
-      result.push({
-        type: "banner",
-        imageUrl: activeBanners[bannerIdx].image_url,
-        link: activeBanners[bannerIdx].link,
-      });
-      bannerIdx++;
     }
 
     return result;
