@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useDbProducts } from "@/hooks/useDbProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { useBanners } from "@/hooks/useBanners";
 import { Monitor, ShoppingBag } from "lucide-react";
 
 const SIZE_MAP = {
@@ -9,13 +10,19 @@ const SIZE_MAP = {
   large: { imgMax: "max-h-[78vh]", title: "text-4xl lg:text-6xl", price: "text-5xl lg:text-7xl", gap: "gap-10 lg:gap-20" },
 };
 
+type SlideItem =
+  | { type: "product"; product: ReturnType<typeof useDbProducts>["products"][number] }
+  | { type: "banner"; imageUrl: string; link: string | null };
+
 export default function TvMode() {
   const { products, loading } = useDbProducts();
   const { settings } = useStoreSettings();
+  const { activeBanners } = useBanners();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fade, setFade] = useState(true);
 
   const intervalSec = Number(settings.tv_mode_interval || "5");
+  const bannerIntervalSec = Number(settings.tv_banner_interval || "5");
   const bgColor = settings.tv_bg_color || "#000000";
   const textColor = settings.tv_text_color || "#ffffff";
   const priceColor = settings.tv_price_color || "#22c55e";
@@ -28,9 +35,9 @@ export default function TvMode() {
   const showCounter = settings.tv_show_counter !== "false";
   const showDiscount = settings.tv_show_discount !== "false";
   const showNavBar = settings.tv_show_navbar !== "false";
+  const showBanners = settings.tv_show_banners !== "false";
   const productSource = settings.tv_product_source || "latest";
   const productSize = (settings.tv_product_size || "medium") as keyof typeof SIZE_MAP;
-  const fontFamily = settings.tv_font_family && settings.tv_font_family !== "system" ? settings.tv_font_family : undefined;
 
   const sizes = SIZE_MAP[productSize] || SIZE_MAP.medium;
 
@@ -56,35 +63,74 @@ export default function TvMode() {
       .sort((a, b) => (a.featured_order ?? 0) - (b.featured_order ?? 0));
   }, [products, productSource, settings.tv_product_ids]);
 
+  // Build slide list: products + banners interleaved
+  const slides: SlideItem[] = useMemo(() => {
+    const productSlides: SlideItem[] = tvProducts.map((p) => ({ type: "product", product: p }));
+    if (!showBanners || activeBanners.length === 0) return productSlides;
+
+    // Insert a banner every N products (spread evenly)
+    const result: SlideItem[] = [];
+    const bannerEvery = Math.max(2, Math.ceil(tvProducts.length / activeBanners.length));
+    let bannerIdx = 0;
+
+    for (let i = 0; i < productSlides.length; i++) {
+      result.push(productSlides[i]);
+      if ((i + 1) % bannerEvery === 0 && bannerIdx < activeBanners.length) {
+        result.push({
+          type: "banner",
+          imageUrl: activeBanners[bannerIdx].image_url,
+          link: activeBanners[bannerIdx].link,
+        });
+        bannerIdx++;
+      }
+    }
+    // Append remaining banners at the end
+    while (bannerIdx < activeBanners.length) {
+      result.push({
+        type: "banner",
+        imageUrl: activeBanners[bannerIdx].image_url,
+        link: activeBanners[bannerIdx].link,
+      });
+      bannerIdx++;
+    }
+
+    return result;
+  }, [tvProducts, showBanners, activeBanners]);
+
+  const currentSlide = slides[currentIndex];
+  const currentIntervalMs = currentSlide?.type === "banner"
+    ? bannerIntervalSec * 1000
+    : intervalSec * 1000;
+
   const advance = useCallback(() => {
     setFade(false);
     setTimeout(() => {
-      setCurrentIndex((i) => (i + 1) % tvProducts.length);
+      setCurrentIndex((i) => (i + 1) % slides.length);
       setFade(true);
     }, 400);
-  }, [tvProducts.length]);
+  }, [slides.length]);
 
   useEffect(() => {
-    if (tvProducts.length <= 1) return;
-    const timer = setInterval(advance, intervalSec * 1000);
-    return () => clearInterval(timer);
-  }, [advance, intervalSec, tvProducts.length]);
+    if (slides.length <= 1) return;
+    const timer = setTimeout(advance, currentIntervalMs);
+    return () => clearTimeout(timer);
+  }, [advance, currentIntervalMs, currentIndex, slides.length]);
 
   useEffect(() => {
     setCurrentIndex(0);
-  }, [tvProducts.length]);
+  }, [slides.length]);
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center" style={{ backgroundColor: bgColor, color: textColor, fontFamily }}>
+      <div className="h-screen w-screen flex items-center justify-center" style={{ backgroundColor: bgColor, color: textColor }}>
         <p className="text-xl animate-pulse">Carregando...</p>
       </div>
     );
   }
 
-  if (tvProducts.length === 0) {
+  if (slides.length === 0) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center gap-4" style={{ backgroundColor: bgColor, color: textColor, fontFamily }}>
+      <div className="h-screen w-screen flex flex-col items-center justify-center gap-4" style={{ backgroundColor: bgColor, color: textColor }}>
         <Monitor className="h-16 w-16" style={{ color: textColor, opacity: 0.4 }} />
         <p className="text-xl">Nenhum produto para exibir</p>
         <p className="text-sm" style={{ opacity: 0.6 }}>
@@ -96,11 +142,10 @@ export default function TvMode() {
     );
   }
 
-  const product = tvProducts[currentIndex];
-  const hasDiscount = showDiscount && product.original_price && product.original_price > product.price;
+  const slide = slides[currentIndex] ?? slides[0];
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col relative select-none cursor-none" style={{ backgroundColor: bgColor, color: textColor, fontFamily }}>
+    <div className="h-screen w-screen overflow-hidden flex flex-col relative select-none cursor-none" style={{ backgroundColor: bgColor, color: textColor }}>
       {/* Nav bar */}
       {showNavBar && (
         <div className="flex items-center gap-3 px-6 py-3 shrink-0" style={{ backgroundColor: navBarColor }}>
@@ -120,47 +165,57 @@ export default function TvMode() {
         </div>
       )}
 
-      {/* Main product display */}
+      {/* Main content */}
       <div
         className="flex-1 flex items-center justify-center p-8 transition-opacity duration-400"
         style={{ opacity: fade ? 1 : 0 }}
       >
-        <div className={`flex flex-col lg:flex-row items-center ${sizes.gap} max-w-7xl w-full`}>
-          {/* Image */}
-          <div className={`flex-1 flex items-center justify-center ${sizes.imgMax}`}>
+        {slide.type === "banner" ? (
+          <div className="flex items-center justify-center w-full h-full">
             <img
-              src={product.image_url || ""}
-              alt={product.name}
-              className={`${sizes.imgMax} max-w-full object-contain rounded-lg shadow-2xl`}
+              src={slide.imageUrl}
+              alt="Banner"
+              className="max-w-full max-h-full object-contain rounded-lg"
             />
           </div>
-
-          {/* Info */}
-          <div className="flex-1 flex flex-col items-center lg:items-start gap-4 text-center lg:text-left">
-            <h1 className={`${sizes.title} font-bold uppercase leading-tight`}>
-              {product.name}
-            </h1>
-
-            {showCode && product.code && (
-              <p className="text-lg" style={{ opacity: 0.5 }}>Cód: {product.code}</p>
-            )}
-
-            <div className="space-y-1">
-              {hasDiscount && (
-                <p className="text-xl line-through" style={{ opacity: 0.4 }}>
-                  R$ {Number(product.original_price).toFixed(2).replace(".", ",")}
-                </p>
-              )}
-              <p className={`${sizes.price} font-extrabold`} style={{ color: priceColor }}>
-                R$ {Number(product.price).toFixed(2).replace(".", ",")}
-              </p>
+        ) : (
+          <div className={`flex flex-col lg:flex-row items-center ${sizes.gap} max-w-7xl w-full`}>
+            {/* Image */}
+            <div className={`flex-1 flex items-center justify-center ${sizes.imgMax}`}>
+              <img
+                src={slide.product.image_url || ""}
+                alt={slide.product.name}
+                className={`${sizes.imgMax} max-w-full object-contain rounded-lg shadow-2xl`}
+              />
             </div>
 
-            {showBrand && product.brand && (
-              <p className="text-lg" style={{ opacity: 0.6 }}>{product.brand}</p>
-            )}
+            {/* Info */}
+            <div className="flex-1 flex flex-col items-center lg:items-start gap-4 text-center lg:text-left">
+              <h1 className={`${sizes.title} font-bold uppercase leading-tight`}>
+                {slide.product.name}
+              </h1>
+
+              {showCode && slide.product.code && (
+                <p className="text-lg" style={{ opacity: 0.5 }}>Cód: {slide.product.code}</p>
+              )}
+
+              <div className="space-y-1">
+                {showDiscount && slide.product.original_price && slide.product.original_price > slide.product.price && (
+                  <p className="text-xl line-through" style={{ opacity: 0.4 }}>
+                    R$ {Number(slide.product.original_price).toFixed(2).replace(".", ",")}
+                  </p>
+                )}
+                <p className={`${sizes.price} font-extrabold`} style={{ color: priceColor }}>
+                  R$ {Number(slide.product.price).toFixed(2).replace(".", ",")}
+                </p>
+              </div>
+
+              {showBrand && slide.product.brand && (
+                <p className="text-lg" style={{ opacity: 0.6 }}>{slide.product.brand}</p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Progress bar */}
@@ -169,7 +224,7 @@ export default function TvMode() {
           <div
             className="h-full transition-all ease-linear"
             style={{
-              width: `${((currentIndex + 1) / tvProducts.length) * 100}%`,
+              width: `${((currentIndex + 1) / slides.length) * 100}%`,
               backgroundColor: `${textColor}99`,
             }}
           />
@@ -179,7 +234,7 @@ export default function TvMode() {
       {/* Counter */}
       {showCounter && (
         <div className="absolute bottom-4 right-6 text-sm font-mono" style={{ color: textColor, opacity: 0.3 }}>
-          {currentIndex + 1} / {tvProducts.length}
+          {currentIndex + 1} / {slides.length}
         </div>
       )}
 

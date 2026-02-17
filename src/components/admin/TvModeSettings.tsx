@@ -3,12 +3,14 @@ import { Monitor, Copy, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { TvProductSelector } from "./TvProductSelector";
 import type { DbProduct, DbCategory } from "@/hooks/useDbProducts";
+import type { Banner } from "@/hooks/useBanners";
 
 interface TvModeSettingsProps {
   settings: Record<string, string>;
   onUpdate: (key: string, value: string) => Promise<{ error: any }>;
   products: DbProduct[];
   categories: DbCategory[];
+  banners: Banner[];
 }
 
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
@@ -23,24 +25,13 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
-const FONT_OPTIONS = [
-  { value: "system", label: "Padrão do sistema" },
-  { value: "'Inter', sans-serif", label: "Inter" },
-  { value: "'Georgia', serif", label: "Georgia (Serifada)" },
-  { value: "'Courier New', monospace", label: "Courier (Monoespaçada)" },
-  { value: "'Impact', sans-serif", label: "Impact (Bold)" },
-  { value: "'Trebuchet MS', sans-serif", label: "Trebuchet" },
-  { value: "'Verdana', sans-serif", label: "Verdana" },
-  { value: "'Arial Black', sans-serif", label: "Arial Black" },
-];
-
 const SIZE_OPTIONS = [
   { value: "small", label: "Pequeno", desc: "Imagem menor, mais texto" },
   { value: "medium", label: "Médio", desc: "Balanceado (padrão)" },
   { value: "large", label: "Grande", desc: "Imagem maior, destaque visual" },
 ];
 
-export function TvModeSettings({ settings, onUpdate, products, categories }: TvModeSettingsProps) {
+export function TvModeSettings({ settings, onUpdate, products, categories, banners }: TvModeSettingsProps) {
   const [bgColor, setBgColor] = useState(settings.tv_bg_color ?? "#000000");
   const [textColor, setTextColor] = useState(settings.tv_text_color ?? "#ffffff");
   const [priceColor, setPriceColor] = useState(settings.tv_price_color ?? "#22c55e");
@@ -53,13 +44,14 @@ export function TvModeSettings({ settings, onUpdate, products, categories }: TvM
   const [showCounter, setShowCounter] = useState(settings.tv_show_counter !== "false");
   const [showDiscount, setShowDiscount] = useState(settings.tv_show_discount !== "false");
   const [showNavBar, setShowNavBar] = useState(settings.tv_show_navbar !== "false");
+  const [showBanners, setShowBanners] = useState(settings.tv_show_banners !== "false");
   const [productSource, setProductSource] = useState(settings.tv_product_source ?? "latest");
   const [productSize, setProductSize] = useState(settings.tv_product_size ?? "medium");
-  const [fontFamily, setFontFamily] = useState(settings.tv_font_family ?? "system");
   const [selectedIds, setSelectedIds] = useState<string[]>(() => {
     try { return JSON.parse(settings.tv_product_ids || "[]"); } catch { return []; }
   });
   const [interval, setInterval_] = useState(settings.tv_mode_interval ?? "5");
+  const [bannerInterval, setBannerInterval] = useState(settings.tv_banner_interval ?? "5");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -77,11 +69,12 @@ export function TvModeSettings({ settings, onUpdate, products, categories }: TvM
     setShowCounter(settings.tv_show_counter !== "false");
     setShowDiscount(settings.tv_show_discount !== "false");
     setShowNavBar(settings.tv_show_navbar !== "false");
+    setShowBanners(settings.tv_show_banners !== "false");
     setProductSource(settings.tv_product_source ?? "latest");
     setProductSize(settings.tv_product_size ?? "medium");
-    setFontFamily(settings.tv_font_family ?? "system");
     try { setSelectedIds(JSON.parse(settings.tv_product_ids || "[]")); } catch { setSelectedIds([]); }
     setInterval_(settings.tv_mode_interval ?? "5");
+    setBannerInterval(settings.tv_banner_interval ?? "5");
   }, [settings]);
 
   const handleSave = async () => {
@@ -99,11 +92,12 @@ export function TvModeSettings({ settings, onUpdate, products, categories }: TvM
       onUpdate("tv_show_counter", showCounter ? "true" : "false"),
       onUpdate("tv_show_discount", showDiscount ? "true" : "false"),
       onUpdate("tv_show_navbar", showNavBar ? "true" : "false"),
+      onUpdate("tv_show_banners", showBanners ? "true" : "false"),
       onUpdate("tv_product_source", productSource),
       onUpdate("tv_product_size", productSize),
-      onUpdate("tv_font_family", fontFamily),
       onUpdate("tv_product_ids", JSON.stringify(selectedIds)),
       onUpdate("tv_mode_interval", interval),
+      onUpdate("tv_banner_interval", bannerInterval),
     ]);
     setSaving(false);
     setSaved(true);
@@ -117,7 +111,7 @@ export function TvModeSettings({ settings, onUpdate, products, categories }: TvM
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const previewFont = fontFamily === "system" ? undefined : fontFamily;
+  const activeBanners = banners.filter((b) => b.active);
 
   return (
     <div className="space-y-6">
@@ -135,6 +129,39 @@ export function TvModeSettings({ settings, onUpdate, products, categories }: TvM
           </button>
         </div>
         <p className="text-[11px] text-muted-foreground">Abra esse link em uma TV ou monitor para exibir os produtos.</p>
+      </div>
+
+      {/* Banners */}
+      <div className="rounded-lg border bg-card p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-sm">🖼️ Banners no Modo TV</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Exibe os banners ativos do catálogo entre os produtos na rotação.
+            </p>
+          </div>
+          <Switch checked={showBanners} onCheckedChange={setShowBanners} />
+        </div>
+        {showBanners && (
+          <div className="space-y-3 pt-2 border-t">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Segundos de exibição do banner</label>
+              <input
+                type="number"
+                min="2"
+                max="30"
+                value={bannerInterval}
+                onChange={(e) => setBannerInterval(e.target.value)}
+                className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {activeBanners.length === 0
+                ? "⚠️ Nenhum banner ativo. Adicione banners na aba Catálogo."
+                : `${activeBanners.length} banner(s) ativo(s) serão exibidos na rotação.`}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Fonte de produtos */}
@@ -192,21 +219,6 @@ export function TvModeSettings({ settings, onUpdate, products, categories }: TvM
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Fonte (tipografia) */}
-      <div className="rounded-lg border bg-card p-4 space-y-3">
-        <h3 className="font-semibold text-sm">Fonte (tipografia)</h3>
-        <select
-          value={fontFamily}
-          onChange={(e) => setFontFamily(e.target.value)}
-          className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-        >
-          {FONT_OPTIONS.map((f) => (
-            <option key={f.value} value={f.value}>{f.label}</option>
-          ))}
-        </select>
-        <p className="text-xs text-muted-foreground">Fonte aplicada em todos os textos do Modo TV.</p>
       </div>
 
       {/* Cores da Navbar */}
@@ -269,7 +281,7 @@ export function TvModeSettings({ settings, onUpdate, products, categories }: TvM
       {/* Preview */}
       <div className="rounded-lg border bg-card p-4 space-y-3">
         <h3 className="font-semibold text-sm">Preview</h3>
-        <div className="rounded-lg overflow-hidden" style={{ backgroundColor: bgColor, fontFamily: previewFont }}>
+        <div className="rounded-lg overflow-hidden" style={{ backgroundColor: bgColor }}>
           {showNavBar && (
             <div className="px-4 py-2 flex items-center gap-2" style={{ backgroundColor: navBarColor }}>
               <div className="w-6 h-6 rounded-full bg-white/20" />
