@@ -7,6 +7,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useDbProducts } from "@/hooks/useDbProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { useBanners } from "@/hooks/useBanners";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { ProductManager } from "@/components/admin/ProductManager";
@@ -42,6 +43,7 @@ export default function Admin() {
   const { user, isAdmin, loading: authLoading, signIn, signUp, signOut } = useAuth();
   const { products, categories, loading, addProduct, updateProduct, removeProduct, toggleActive, upsertProducts, uploadImage, refetchCategories } = useDbProducts();
   const { settings, updateSetting } = useStoreSettings();
+  const { banners } = useBanners();
 
   const [editing, setEditing] = useState<DbProduct | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -192,7 +194,7 @@ export default function Admin() {
           )}
 
           {tab === "tv" && (
-            <TvModeSettings settings={settings} onUpdate={updateSetting} products={products} categories={categories} />
+            <TvModeSettings settings={settings} onUpdate={updateSetting} products={products} categories={categories} banners={banners} />
           )}
 
           {tab === "import" && (
