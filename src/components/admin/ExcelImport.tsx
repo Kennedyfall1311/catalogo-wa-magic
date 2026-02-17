@@ -217,7 +217,7 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         Importar Produtos por Excel
       </h2>
       <p className="text-xs text-muted-foreground">
-        Colunas aceitas: <strong>nome</strong> | <strong>codigo</strong> | <strong>preco</strong> | <strong>preco_original</strong> | <strong>descricao</strong> | <strong>imagem_url</strong> | <strong>categoria</strong> | <strong>marca</strong> | <strong>referencia</strong> | <strong>codigo_fabricante</strong> | <strong>unidade_medida</strong> | <strong>quantidade</strong>
+        Colunas aceitas: <strong>nome</strong> | <strong>codigo</strong> | <strong>preco</strong> | <strong>preco_original</strong> | <strong>descricao</strong> | <strong>imagem_url</strong> | <strong>categoria</strong> | <strong>marca</strong> | <strong>referencia</strong> | <strong>codigo_fabricante</strong> | <strong>unidade_medida</strong> | <strong>quantidade/estoque</strong>
       </p>
 
       <div className="flex flex-wrap gap-2">
