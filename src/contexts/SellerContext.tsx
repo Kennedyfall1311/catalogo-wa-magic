@@ -26,11 +26,22 @@ export function SellerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!sellerSlug) { setSeller(null); setLoading(false); return; }
+
+    let cancelled = false;
     setLoading(true);
-    sellersApi.fetchBySlug(sellerSlug).then((data) => {
-      setSeller(data || null);
-      setLoading(false);
-    });
+
+    sellersApi.fetchBySlug(sellerSlug)
+      .then((data) => {
+        if (!cancelled) setSeller(data || null);
+      })
+      .catch(() => {
+        if (!cancelled) setSeller(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, [sellerSlug]);
 
   return (

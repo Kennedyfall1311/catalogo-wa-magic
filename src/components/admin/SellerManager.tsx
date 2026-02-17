@@ -25,21 +25,39 @@ export function SellerManager() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchSellers = useCallback(async () => {
-    const data = await sellersApi.fetchAll();
-    setSellers(data);
+    try {
+      const data = await sellersApi.fetchAll();
+      setSellers(data || []);
+    } catch {
+      toast.error("Erro ao carregar vendedores");
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchSellers(); }, [fetchSellers]);
 
-  const generateSlug = (name: string) =>
-    name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+  const generateSlug = (text: string) =>
+    text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  const isSlugTaken = (slug: string, excludeId?: string) =>
+    sellers.some((s) => s.slug === slug && s.id !== excludeId);
 
   const handleSave = async () => {
     if (!name.trim()) return;
-    const slug = generateSlug(name);
-    const payload: any = { name: name.trim(), slug, whatsapp: whatsapp.replace(/\D/g, "") || null };
+
+    // On edit: keep the original slug unless the name changed
+    const slug = editing && editing.name === name.trim()
+      ? editing.slug
+      : generateSlug(name);
+
+    if (isSlugTaken(slug, editing?.id)) {
+      toast.error("Já existe um vendedor com esse link. Escolha outro nome.");
+      return;
+    }
+
+    const cleanWhatsapp = whatsapp.replace(/\D/g, "") || null;
+    const payload: any = { name: name.trim(), slug, whatsapp: cleanWhatsapp };
 
     if (editing) {
       const { error } = await sellersApi.update(editing.id, payload);
@@ -63,7 +81,8 @@ export function SellerManager() {
   };
 
   const handleToggle = async (seller: Seller) => {
-    await sellersApi.update(seller.id, { active: !seller.active });
+    const { error } = await sellersApi.update(seller.id, { active: !seller.active });
+    if (error) { toast.error("Erro ao alterar status"); return; }
     fetchSellers();
   };
 
@@ -77,7 +96,7 @@ export function SellerManager() {
   const startEdit = (s: Seller) => {
     setEditing(s);
     setName(s.name);
-    setWhatsapp(s.whatsapp || "");
+    setWhatsapp(s.whatsapp ? formatPhone(s.whatsapp) : "");
     setShowForm(true);
   };
 
@@ -126,6 +145,11 @@ export function SellerManager() {
           <div className="space-y-2">
             <Label htmlFor="seller-name">Nome *</Label>
             <Input id="seller-name" placeholder="Nome do vendedor" value={name} onChange={(e) => setName(e.target.value)} />
+            {name.trim() && (
+              <p className="text-[10px] text-muted-foreground">
+                Link: {window.location.origin}/v/{generateSlug(name)}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="seller-whatsapp">WhatsApp (opcional)</Label>
@@ -161,7 +185,7 @@ export function SellerManager() {
                   {window.location.origin}/v/{s.slug}
                 </p>
                 {s.whatsapp && (
-                  <p className="text-[10px] text-muted-foreground">WhatsApp: {s.whatsapp}</p>
+                  <p className="text-[10px] text-muted-foreground">WhatsApp: {formatPhone(s.whatsapp)}</p>
                 )}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
