@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { CatalogHeader } from "@/components/CatalogHeader";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { ProductCard } from "@/components/ProductCard";
@@ -71,6 +71,16 @@ const Index = () => {
   const displayMode = settings.catalog_first_page_mode || "default";
 
   // Seeded random shuffle for consistent rendering
+  const [shuffleKey, setShuffleKey] = useState(0);
+
+  // Auto-reshuffle timer
+  useEffect(() => {
+    if (displayMode !== "random") return;
+    const interval = Number(settings.random_shuffle_interval || "30") * 1000;
+    const timer = setInterval(() => setShuffleKey((k) => k + 1), interval);
+    return () => clearInterval(timer);
+  }, [displayMode, settings.random_shuffle_interval]);
+
   const shuffled = useMemo(() => {
     if (displayMode !== "random") return null;
     const arr = [...products.filter((p) => p.active).filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""))];
@@ -79,9 +89,8 @@ const Index = () => {
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
-    // Only reshuffle on product data changes, not on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, hideNoPhoto, displayMode]);
+  }, [products, hideNoPhoto, displayMode, shuffleKey]);
 
   const filtered = useMemo(() => {
     const base = products

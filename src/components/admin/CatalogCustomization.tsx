@@ -356,6 +356,21 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
           ))}
         </div>
 
+        {displayMode === "random" && (
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Tempo de re-embaralhamento (segundos)</label>
+            <input
+              type="number"
+              min={5}
+              max={300}
+              value={settings.random_shuffle_interval || "30"}
+              onChange={(e) => onUpdate("random_shuffle_interval", e.target.value)}
+              className="w-24 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+            <p className="text-[10px] text-muted-foreground">A cada X segundos, os produtos são re-embaralhados automaticamente.</p>
+          </div>
+        )}
+
         {displayMode === "featured" && products && categories && onUpdateProduct && (
           <FeaturedProductsManager
             products={products}
