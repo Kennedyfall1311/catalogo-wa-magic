@@ -1,5 +1,6 @@
 import { Router } from "express";
 import pool from "../db";
+import { requireAdmin } from "../middleware/auth";
 
 export const paymentConditionsRouter = Router();
 
@@ -12,7 +13,7 @@ paymentConditionsRouter.get("/", async (_req, res) => {
   }
 });
 
-paymentConditionsRouter.post("/", async (req, res) => {
+paymentConditionsRouter.post("/", requireAdmin, async (req, res) => {
   try {
     const { name, sort_order } = req.body;
     const { rows } = await pool.query(
@@ -25,7 +26,7 @@ paymentConditionsRouter.post("/", async (req, res) => {
   }
 });
 
-paymentConditionsRouter.put("/:id", async (req, res) => {
+paymentConditionsRouter.put("/:id", requireAdmin, async (req, res) => {
   try {
     const fields: string[] = [];
     const values: any[] = [];
@@ -49,7 +50,7 @@ paymentConditionsRouter.put("/:id", async (req, res) => {
   }
 });
 
-paymentConditionsRouter.delete("/:id", async (req, res) => {
+paymentConditionsRouter.delete("/:id", requireAdmin, async (req, res) => {
   try {
     await pool.query("DELETE FROM payment_conditions WHERE id = $1", [req.params.id]);
     res.json({ success: true });

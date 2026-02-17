@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { requireAdmin } from "../middleware/auth";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public/uploads");
 
@@ -35,7 +36,7 @@ const upload = multer({
 export const uploadRouter = Router();
 
 // Upload single image
-uploadRouter.post("/image", upload.single("file"), (req, res) => {
+uploadRouter.post("/image", requireAdmin, upload.single("file"), (req, res) => {
   if (!req.file) {
     res.status(400).json({ error: "Nenhum arquivo enviado" });
     return;
@@ -49,7 +50,7 @@ uploadRouter.post("/image", upload.single("file"), (req, res) => {
 });
 
 // Upload base64 image
-uploadRouter.post("/base64", (req, res) => {
+uploadRouter.post("/base64", requireAdmin, (req, res) => {
   try {
     const { base64, filename } = req.body;
     if (!base64) {
