@@ -192,7 +192,7 @@ export default function Admin() {
           )}
 
           {tab === "tv" && (
-            <TvModeSettings settings={settings} onUpdate={updateSetting} />
+            <TvModeSettings settings={settings} onUpdate={updateSetting} products={products} categories={categories} />
           )}
 
           {tab === "import" && (
