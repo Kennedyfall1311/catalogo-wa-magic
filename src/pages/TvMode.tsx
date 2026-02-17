@@ -29,6 +29,7 @@ export default function TvMode() {
   const showDiscount = settings.tv_show_discount !== "false";
   const showNavBar = settings.tv_show_navbar !== "false";
   const productSource = settings.tv_product_source || "featured";
+  const maxProducts = Number(settings.tv_max_products) || 0;
   const productSize = (settings.tv_product_size || "medium") as keyof typeof SIZE_MAP;
   const fontFamily = settings.tv_font_family && settings.tv_font_family !== "system" ? settings.tv_font_family : undefined;
 
@@ -40,12 +41,14 @@ export default function TvMode() {
       .filter((p) => p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== "");
 
     if (productSource === "latest") {
-      return [...withImage].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const sorted = [...withImage].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return maxProducts > 0 ? sorted.slice(0, maxProducts) : sorted;
     }
 
-    return withImage
+    const featured = withImage
       .filter((p) => p.featured)
       .sort((a, b) => (a.featured_order ?? 0) - (b.featured_order ?? 0));
+    return maxProducts > 0 ? featured.slice(0, maxProducts) : featured;
   }, [products, productSource]);
 
   const advance = useCallback(() => {
