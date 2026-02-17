@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette, Star, Shuffle, List, Tag } from "lucide-react";
+import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette, Star, Shuffle, List, Tag, Monitor, Copy, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { FeaturedProductsManager } from "./FeaturedProductsManager";
 import { QuickFilterProductSelector } from "./QuickFilterProductSelector";
@@ -41,6 +41,7 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
   const [priceColor, setPriceColor] = useState(settings.price_color ?? "#1f1f1f");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [tvLinkCopied, setTvLinkCopied] = useState(false);
 
   const hideNoPhoto = settings.hide_products_without_photo === "true";
 
@@ -362,6 +363,52 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
             onUpdateProduct={onUpdateProduct}
           />
         )}
+      </div>
+
+      {/* ─── Modo TV ─── */}
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <h3 className="font-semibold text-sm flex items-center gap-2 pt-2">
+          <Monitor className="h-4 w-4" />
+          Modo TV
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Exibe os produtos em destaque em tela cheia, como um slideshow para TVs e totens. 
+          Os produtos exibidos são os mesmos marcados como <strong>Destaque</strong> acima.
+        </p>
+
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Tempo de troca (segundos)</label>
+            <input
+              type="number"
+              min={2}
+              max={120}
+              value={settings.tv_mode_interval || "5"}
+              onChange={(e) => onUpdate("tv_mode_interval", e.target.value)}
+              className="w-24 rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex-1 rounded-lg border bg-muted/50 px-3 py-2 text-sm text-muted-foreground truncate">
+              {window.location.origin}/tv
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/tv`);
+                setTvLinkCopied(true);
+                setTimeout(() => setTvLinkCopied(false), 2000);
+              }}
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition shrink-0"
+            >
+              {tvLinkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {tvLinkCopied ? "Copiado!" : "Copiar Link"}
+            </button>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            Abra este link em uma TV, monitor ou totem para exibir os produtos automaticamente.
+          </p>
+        </div>
       </div>
 
       {/* ─── Visibilidade Mobile ─── */}
