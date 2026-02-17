@@ -6,6 +6,7 @@ import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { WhatsAppFloating } from "@/components/WhatsAppFloating";
 import { CatalogFooter } from "@/components/CatalogFooter";
 import { AddToCartDialog } from "@/components/AddToCartDialog";
+import { CartFloating } from "@/components/CartFloating";
 import { toast } from "@/hooks/use-toast";
 
 export default function ProductDetail() {
@@ -132,6 +133,7 @@ export default function ProductDetail() {
       </main>
 
       <CatalogFooter storeName={settings.store_name} />
+      <CartFloating />
       <WhatsAppFloating whatsappNumber={whatsappNumber} />
       <AddToCartDialog product={product} open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
