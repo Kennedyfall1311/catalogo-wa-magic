@@ -67,6 +67,7 @@ const Index = () => {
   }, [products]);
 
   const hideNoPhoto = settings.hide_products_without_photo === "true";
+  const hideOutOfStock = settings.hide_out_of_stock === "true";
 
   const displayMode = settings.catalog_first_page_mode || "default";
 
@@ -83,19 +84,20 @@ const Index = () => {
 
   const shuffled = useMemo(() => {
     if (displayMode !== "random") return null;
-    const arr = [...products.filter((p) => p.active).filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""))];
+    const arr = [...products.filter((p) => p.active).filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== "")).filter((p) => !hideOutOfStock || (p.quantity != null && p.quantity > 0))];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, hideNoPhoto, displayMode, shuffleKey]);
+  }, [products, hideNoPhoto, hideOutOfStock, displayMode, shuffleKey]);
 
   const filtered = useMemo(() => {
     const base = products
       .filter((p) => p.active)
       .filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""))
+      .filter((p) => !hideOutOfStock || (p.quantity != null && p.quantity > 0))
       .filter((p) => !category || p.category_id === category)
       .filter((p) => !selectedBrand || p.brand === selectedBrand)
       .filter((p) => {
@@ -131,7 +133,7 @@ const Index = () => {
     else if (priceSort === "desc") base.sort((a, b) => b.price - a.price);
 
     return base;
-  }, [products, search, category, selectedBrand, hideNoPhoto, activeQuickFilter, settings, priceSort, nameSort]);
+  }, [products, search, category, selectedBrand, hideNoPhoto, hideOutOfStock, activeQuickFilter, settings, priceSort, nameSort]);
 
   // Build the display list: first page uses display mode, subsequent pages use normal order
   const visibleProducts = useMemo(() => {
@@ -145,6 +147,7 @@ const Index = () => {
       const featuredItems = products
         .filter((p) => p.active && p.featured)
         .filter((p) => !hideNoPhoto || (p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""))
+        .filter((p) => !hideOutOfStock || (p.quantity != null && p.quantity > 0))
         .sort((a, b) => (a.featured_order ?? 0) - (b.featured_order ?? 0));
       
       // Fill remaining slots with non-featured products

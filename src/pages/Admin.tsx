@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, LogOut, BarChart3, Package, FolderOpen,
-  FileDown, Palette, Settings, Plug, Users
+  FileDown, Palette, Settings, Plug, Users, Warehouse
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useDbProducts } from "@/hooks/useDbProducts";
@@ -18,6 +18,7 @@ import { IntegrationPanel } from "@/components/admin/IntegrationPanel";
 import { CatalogCustomization } from "@/components/admin/CatalogCustomization";
 import { SalesDashboard } from "@/components/admin/SalesDashboard";
 import { SellerManager } from "@/components/admin/SellerManager";
+import { StockManager } from "@/components/admin/StockManager";
 
 import type { DbProduct } from "@/hooks/useDbProducts";
 
@@ -26,6 +27,7 @@ const TABS = [
   { key: "products", label: "Produtos", icon: Package },
   { key: "categories", label: "Categorias", icon: FolderOpen },
   { key: "sellers", label: "Vendedores", icon: Users },
+  { key: "stock", label: "Estoque", icon: Warehouse },
   { key: "import", label: "Importar", icon: FileDown },
   { key: "catalog", label: "Catálogo", icon: Palette },
   { key: "settings", label: "Config", icon: Settings },
@@ -176,6 +178,16 @@ export default function Admin() {
           )}
 
           {tab === "sellers" && <SellerManager />}
+
+          {tab === "stock" && (
+            <StockManager
+              products={products}
+              categories={categories}
+              onUpdateProduct={updateProduct}
+              hideOutOfStock={settings.hide_out_of_stock === "true"}
+              onToggleHideOutOfStock={(val) => updateSetting("hide_out_of_stock", val)}
+            />
+          )}
 
           {tab === "import" && (
             <div className="space-y-4">
