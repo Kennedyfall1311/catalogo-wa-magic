@@ -595,6 +595,70 @@ export const ordersApi = {
   },
 };
 
+// ─── Sellers API ───
+
+export const sellersApi = {
+  async fetchAll() {
+    if (isPostgresMode()) {
+      return restGet<any[]>("/sellers");
+    }
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase.from("sellers").select("*").order("name");
+    return data || [];
+  },
+
+  async fetchBySlug(slug: string) {
+    if (isPostgresMode()) {
+      return restGet<any | null>(`/sellers/slug/${slug}`);
+    }
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase.from("sellers").select("*").eq("slug", slug).eq("active", true).maybeSingle();
+    return data;
+  },
+
+  async insert(seller: { name: string; slug: string; whatsapp?: string }) {
+    if (isPostgresMode()) {
+      try {
+        await restPost("/sellers", seller);
+        return { error: null };
+      } catch (err: any) {
+        return { error: { message: err.message } };
+      }
+    }
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.from("sellers").insert(seller);
+    return { error };
+  },
+
+  async update(id: string, data: any) {
+    if (isPostgresMode()) {
+      try {
+        await restPut(`/sellers/${id}`, data);
+        return { error: null };
+      } catch (err: any) {
+        return { error: { message: err.message } };
+      }
+    }
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.from("sellers").update(data).eq("id", id);
+    return { error };
+  },
+
+  async remove(id: string) {
+    if (isPostgresMode()) {
+      try {
+        await restDelete(`/sellers/${id}`);
+        return { error: null };
+      } catch (err: any) {
+        return { error: { message: err.message } };
+      }
+    }
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.from("sellers").delete().eq("id", id);
+    return { error };
+  },
+};
+
 // ─── Realtime (only works in Supabase mode) ───
 
 export const realtimeApi = {

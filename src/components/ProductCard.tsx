@@ -4,6 +4,7 @@ import type { DbProduct } from "@/hooks/useDbProducts";
 import { ShoppingBag, Share2 } from "lucide-react";
 import { AddToCartDialog } from "@/components/AddToCartDialog";
 import { toast } from "@/hooks/use-toast";
+import { useSellerPrefix } from "@/hooks/useSellerPrefix";
 
 interface ProductCardProps {
   product: DbProduct;
@@ -20,12 +21,13 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
   const priceSize = "text-sm";
   const detailSize = "text-[10px]";
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { buildPath } = useSellerPrefix();
   const hasDiscount = product.original_price && product.original_price > product.price;
 
   return (
     <>
       <div className="group flex flex-col border-r border-b">
-        <Link to={`/produto/${product.slug}`}>
+        <Link to={buildPath(`/produto/${product.slug}`)}>
           <div className="relative aspect-square overflow-hidden bg-card p-2">
             <img
               src={product.image_url || "/placeholder.svg"}
@@ -43,7 +45,7 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
         </Link>
 
         <div className="px-2 py-3 text-center border-t space-y-1">
-          <Link to={`/produto/${product.slug}`}>
+          <Link to={buildPath(`/produto/${product.slug}`)}>
             <h3 className={`${nameSize} font-semibold uppercase leading-tight line-clamp-2 hover:underline`} style={textColor ? { color: textColor } : undefined}>
               {product.name}
             </h3>
@@ -94,7 +96,7 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
             </button>
             <button
               onClick={() => {
-                const url = `${window.location.origin}/produto/${product.slug}`;
+                const url = `${window.location.origin}${buildPath(`/produto/${product.slug}`)}`;
                 navigator.clipboard.writeText(url).then(() => {
                   toast({ title: "Link copiado!", description: url });
                 });

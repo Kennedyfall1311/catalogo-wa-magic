@@ -155,6 +155,8 @@ export type Database = {
           id: string
           notes: string | null
           payment_method: string | null
+          seller_id: string | null
+          seller_name: string | null
           shipping_fee: number
           status: string
           subtotal: number
@@ -169,6 +171,8 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_method?: string | null
+          seller_id?: string | null
+          seller_name?: string | null
           shipping_fee?: number
           status?: string
           subtotal?: number
@@ -183,13 +187,23 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_method?: string | null
+          seller_id?: string | null
+          seller_name?: string | null
           shipping_fee?: number
           status?: string
           subtotal?: number
           total?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_conditions: {
         Row: {
@@ -294,6 +308,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sellers: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          whatsapp: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          whatsapp?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
       }
       store_settings: {
         Row: {
