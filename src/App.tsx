@@ -9,6 +9,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import Cart from "./pages/Cart";
 import Admin from "./pages/Admin";
+import TvMode from "./pages/TvMode";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/sacola" element={<Cart />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/tv" element={<TvMode />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
