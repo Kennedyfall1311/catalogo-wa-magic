@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useDbProducts } from "@/hooks/useDbProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
-import { Monitor } from "lucide-react";
+import { Monitor, ShoppingBag } from "lucide-react";
 
 export default function TvMode() {
   const { products, loading } = useDbProducts();
@@ -13,37 +13,48 @@ export default function TvMode() {
   const bgColor = settings.tv_bg_color || "#000000";
   const textColor = settings.tv_text_color || "#ffffff";
   const priceColor = settings.tv_price_color || "#22c55e";
+  const navBarColor = settings.tv_navbar_color || "#111111";
   const showLogo = settings.tv_show_logo !== "false";
   const showCode = settings.tv_show_code !== "false";
   const showBrand = settings.tv_show_brand !== "false";
   const showProgress = settings.tv_show_progress !== "false";
   const showCounter = settings.tv_show_counter !== "false";
   const showDiscount = settings.tv_show_discount !== "false";
+  const showNavBar = settings.tv_show_navbar !== "false";
+  const productSource = settings.tv_product_source || "featured";
 
-  const featuredProducts = useMemo(() => {
-    return products
-      .filter((p) => p.active && p.featured)
-      .filter((p) => p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== "")
+  const tvProducts = useMemo(() => {
+    const withImage = products
+      .filter((p) => p.active)
+      .filter((p) => p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== "");
+
+    if (productSource === "latest") {
+      return [...withImage].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+
+    // featured (default)
+    return withImage
+      .filter((p) => p.featured)
       .sort((a, b) => (a.featured_order ?? 0) - (b.featured_order ?? 0));
-  }, [products]);
+  }, [products, productSource]);
 
   const advance = useCallback(() => {
     setFade(false);
     setTimeout(() => {
-      setCurrentIndex((i) => (i + 1) % featuredProducts.length);
+      setCurrentIndex((i) => (i + 1) % tvProducts.length);
       setFade(true);
     }, 400);
-  }, [featuredProducts.length]);
+  }, [tvProducts.length]);
 
   useEffect(() => {
-    if (featuredProducts.length <= 1) return;
+    if (tvProducts.length <= 1) return;
     const timer = setInterval(advance, intervalSec * 1000);
     return () => clearInterval(timer);
-  }, [advance, intervalSec, featuredProducts.length]);
+  }, [advance, intervalSec, tvProducts.length]);
 
   useEffect(() => {
     setCurrentIndex(0);
-  }, [featuredProducts.length]);
+  }, [tvProducts.length]);
 
   if (loading) {
     return (
@@ -53,21 +64,44 @@ export default function TvMode() {
     );
   }
 
-  if (featuredProducts.length === 0) {
+  if (tvProducts.length === 0) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center gap-4" style={{ backgroundColor: bgColor, color: textColor }}>
         <Monitor className="h-16 w-16" style={{ color: textColor, opacity: 0.4 }} />
-        <p className="text-xl">Nenhum produto em destaque</p>
-        <p className="text-sm" style={{ opacity: 0.6 }}>Marque produtos como destaque no painel admin para usar o Modo TV.</p>
+        <p className="text-xl">Nenhum produto para exibir</p>
+        <p className="text-sm" style={{ opacity: 0.6 }}>
+          {productSource === "featured"
+            ? "Marque produtos como destaque no painel admin para usar o Modo TV."
+            : "Cadastre produtos ativos com imagem para usar o Modo TV."}
+        </p>
       </div>
     );
   }
 
-  const product = featuredProducts[currentIndex];
+  const product = tvProducts[currentIndex];
   const hasDiscount = showDiscount && product.original_price && product.original_price > product.price;
 
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col relative select-none cursor-none" style={{ backgroundColor: bgColor, color: textColor }}>
+      {/* Nav bar */}
+      {showNavBar && (
+        <div className="flex items-center gap-3 px-6 py-3 shrink-0" style={{ backgroundColor: navBarColor }}>
+          {settings.logo_url ? (
+            <img src={settings.logo_url} alt="Logo" className="h-10 w-10 rounded-full object-cover" />
+          ) : (
+            <ShoppingBag className="h-6 w-6" style={{ color: textColor, opacity: 0.7 }} />
+          )}
+          <span className="text-sm font-bold tracking-tight uppercase" style={{ color: textColor }}>
+            {settings.store_name || "Catálogo"}
+          </span>
+          {settings.store_subtitle && (
+            <span className="text-[9px] tracking-[0.3em] uppercase" style={{ color: textColor, opacity: 0.5 }}>
+              {settings.store_subtitle}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Main product display */}
       <div
         className="flex-1 flex items-center justify-center p-8 transition-opacity duration-400"
@@ -117,7 +151,7 @@ export default function TvMode() {
           <div
             className="h-full transition-all ease-linear"
             style={{
-              width: `${((currentIndex + 1) / featuredProducts.length) * 100}%`,
+              width: `${((currentIndex + 1) / tvProducts.length) * 100}%`,
               backgroundColor: `${textColor}99`,
             }}
           />
@@ -127,12 +161,12 @@ export default function TvMode() {
       {/* Counter */}
       {showCounter && (
         <div className="absolute bottom-4 right-6 text-sm font-mono" style={{ color: textColor, opacity: 0.3 }}>
-          {currentIndex + 1} / {featuredProducts.length}
+          {currentIndex + 1} / {tvProducts.length}
         </div>
       )}
 
-      {/* Store branding */}
-      {showLogo && settings.logo_url && (
+      {/* Standalone logo fallback (when navbar is off) */}
+      {!showNavBar && showLogo && settings.logo_url && (
         <div className="absolute top-6 left-6">
           <img src={settings.logo_url} alt="Logo" className="h-12 w-12 rounded-full object-cover" style={{ opacity: 0.6 }} />
         </div>
