@@ -182,7 +182,7 @@ export function SettingsPanel({ settings, onUpdate }: SettingsPanelProps) {
       </div>
 
       {/* ─── Banners ─── */}
-      <BannerManager />
+      <BannerManager bannerInterval={settings.banner_interval} onUpdateInterval={(v) => onUpdate("banner_interval", v)} />
 
       {/* ─── Informações da Empresa ─── */}
       <div className="rounded-lg border bg-card p-4 space-y-4">
