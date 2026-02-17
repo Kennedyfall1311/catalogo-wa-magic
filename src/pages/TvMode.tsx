@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useDbProducts } from "@/hooks/useDbProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useBanners } from "@/hooks/useBanners";
@@ -17,6 +17,17 @@ export default function TvMode() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fade, setFade] = useState(true);
   const [bannerIndex, setBannerIndex] = useState(0);
+  const mountedRef = useRef(true);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cleanup on unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    };
+  }, []);
 
   const intervalSec = Number(settings.tv_mode_interval || "5");
   const bannerIntervalSec = Number(settings.tv_banner_interval || "5");
@@ -39,9 +50,9 @@ export default function TvMode() {
   const sizes = SIZE_MAP[productSize] || SIZE_MAP.medium;
 
   const tvProducts = useMemo(() => {
-    const withImage = products
-      .filter((p) => p.active)
-      .filter((p) => p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== "");
+    const withImage = products.filter(
+      (p) => p.active && p.image_url && p.image_url !== "/placeholder.svg" && p.image_url.trim() !== ""
+    );
 
     if (productSource === "manual") {
       let manualIds: string[] = [];
@@ -61,34 +72,45 @@ export default function TvMode() {
   }, [products, productSource, settings.tv_product_ids]);
 
   const displayBanners = showBanners && activeBanners.length > 0;
+  const productCount = tvProducts.length;
 
-  // Product rotation
+  // Product rotation with safe fade
   const advance = useCallback(() => {
+    if (productCount <= 1) return;
     setFade(false);
-    setTimeout(() => {
-      setCurrentIndex((i) => (i + 1) % tvProducts.length);
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    fadeTimerRef.current = setTimeout(() => {
+      if (!mountedRef.current) return;
+      setCurrentIndex((i) => (i + 1) % productCount);
       setFade(true);
     }, 400);
-  }, [tvProducts.length]);
+  }, [productCount]);
 
   useEffect(() => {
-    if (tvProducts.length <= 1) return;
+    if (productCount <= 1) return;
     const timer = setTimeout(advance, intervalSec * 1000);
     return () => clearTimeout(timer);
-  }, [advance, intervalSec, currentIndex, tvProducts.length]);
+  }, [advance, intervalSec, currentIndex, productCount]);
 
+  // Reset index safely when product list changes
   useEffect(() => {
-    setCurrentIndex(0);
-  }, [tvProducts.length]);
+    setCurrentIndex((prev) => (prev >= productCount ? 0 : prev));
+  }, [productCount]);
 
   // Banner rotation (independent)
   useEffect(() => {
     if (!displayBanners || activeBanners.length <= 1) return;
     const timer = setInterval(() => {
+      if (!mountedRef.current) return;
       setBannerIndex((i) => (i + 1) % activeBanners.length);
     }, bannerIntervalSec * 1000);
     return () => clearInterval(timer);
   }, [displayBanners, activeBanners.length, bannerIntervalSec]);
+
+  // Reset banner index when banners change
+  useEffect(() => {
+    setBannerIndex((prev) => (activeBanners.length > 0 ? prev % activeBanners.length : 0));
+  }, [activeBanners.length]);
 
   if (loading) {
     return (
@@ -98,7 +120,7 @@ export default function TvMode() {
     );
   }
 
-  if (tvProducts.length === 0) {
+  if (productCount === 0) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center gap-4" style={{ backgroundColor: bgColor, color: textColor }}>
         <Monitor className="h-16 w-16" style={{ color: textColor, opacity: 0.4 }} />
@@ -112,7 +134,8 @@ export default function TvMode() {
     );
   }
 
-  const product = tvProducts[currentIndex];
+  const safeIndex = currentIndex < productCount ? currentIndex : 0;
+  const product = tvProducts[safeIndex];
   const hasDiscount = showDiscount && product.original_price && product.original_price > product.price;
   const currentBanner = displayBanners ? activeBanners[bannerIndex % activeBanners.length] : null;
 
@@ -197,7 +220,7 @@ export default function TvMode() {
           <div
             className="h-full transition-all ease-linear"
             style={{
-              width: `${((currentIndex + 1) / tvProducts.length) * 100}%`,
+              width: `${((safeIndex + 1) / productCount) * 100}%`,
               backgroundColor: `${textColor}99`,
             }}
           />
@@ -207,7 +230,7 @@ export default function TvMode() {
       {/* Counter */}
       {showCounter && (
         <div className="absolute bottom-4 right-6 text-sm font-mono" style={{ color: textColor, opacity: 0.3 }}>
-          {currentIndex + 1} / {tvProducts.length}
+          {safeIndex + 1} / {productCount}
         </div>
       )}
 
