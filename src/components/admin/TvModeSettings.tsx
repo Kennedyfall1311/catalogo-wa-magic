@@ -52,6 +52,7 @@ export function TvModeSettings({ settings, onUpdate }: TvModeSettingsProps) {
   const [productSource, setProductSource] = useState(settings.tv_product_source ?? "featured");
   const [productSize, setProductSize] = useState(settings.tv_product_size ?? "medium");
   const [fontFamily, setFontFamily] = useState(settings.tv_font_family ?? "system");
+  const [maxProducts, setMaxProducts] = useState(settings.tv_max_products ?? "");
   const [interval, setInterval_] = useState(settings.tv_mode_interval ?? "5");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -73,6 +74,7 @@ export function TvModeSettings({ settings, onUpdate }: TvModeSettingsProps) {
     setProductSource(settings.tv_product_source ?? "featured");
     setProductSize(settings.tv_product_size ?? "medium");
     setFontFamily(settings.tv_font_family ?? "system");
+    setMaxProducts(settings.tv_max_products ?? "");
     setInterval_(settings.tv_mode_interval ?? "5");
   }, [settings]);
 
@@ -94,6 +96,7 @@ export function TvModeSettings({ settings, onUpdate }: TvModeSettingsProps) {
       onUpdate("tv_product_source", productSource),
       onUpdate("tv_product_size", productSize),
       onUpdate("tv_font_family", fontFamily),
+      onUpdate("tv_max_products", maxProducts),
       onUpdate("tv_mode_interval", interval),
     ]);
     setSaving(false);
@@ -148,9 +151,21 @@ export function TvModeSettings({ settings, onUpdate }: TvModeSettingsProps) {
             <p className="text-[10px] text-muted-foreground mt-0.5">Produtos mais recentes do catálogo</p>
           </button>
         </div>
+        <div className="space-y-1 pt-2 border-t">
+          <label className="text-xs font-medium text-muted-foreground">Quantidade máxima de produtos</label>
+          <input
+            type="number"
+            min="1"
+            max="200"
+            placeholder="Todos"
+            value={maxProducts}
+            onChange={(e) => setMaxProducts(e.target.value)}
+            className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+          <p className="text-[10px] text-muted-foreground">Deixe vazio para exibir todos os produtos disponíveis.</p>
+        </div>
       </div>
 
-      {/* Tamanho da exibição */}
       <div className="rounded-lg border bg-card p-4 space-y-3">
         <h3 className="font-semibold text-sm">Tamanho da exibição</h3>
         <p className="text-xs text-muted-foreground">Controle o tamanho da imagem e informações do produto na tela.</p>
