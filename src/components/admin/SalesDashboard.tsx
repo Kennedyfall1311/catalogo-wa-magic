@@ -164,7 +164,8 @@ function OrderRow({
           <div class="info-row"><span class="info-label">Cliente:</span><span class="info-value">${order.customer_name}</span></div>
           <div class="info-row"><span class="info-label">WhatsApp:</span><span class="info-value">${order.customer_phone}</span></div>
           ${order.customer_cpf_cnpj ? `<div class="info-row"><span class="info-label">CPF/CNPJ:</span><span class="info-value">${order.customer_cpf_cnpj}</span></div>` : ""}
-          ${order.payment_method ? `<div class="info-row"><span class="info-label">Pagamento:</span><span class="info-value">${order.payment_method}</span></div>` : ""}
+           ${order.payment_method ? `<div class="info-row"><span class="info-label">Pagamento:</span><span class="info-value">${order.payment_method}</span></div>` : ""}
+           ${order.seller_name ? `<div class="info-row"><span class="info-label">Vendedor:</span><span class="info-value">${order.seller_name}</span></div>` : ""}
         </div>
         ${order.notes ? `<div style="margin-top:8px"><span class="info-label">Observações:</span> ${order.notes}</div>` : ""}
       </div>
@@ -202,11 +203,17 @@ function OrderRow({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">{order.customer_name}</p>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               {formatted}
             </span>
+            {order.seller_name && (
+              <span className="text-[11px] text-primary font-medium flex items-center gap-1">
+                <User className="h-3 w-3" />
+                {order.seller_name}
+              </span>
+            )}
           </div>
         </div>
         <div className="text-right shrink-0">
@@ -248,6 +255,12 @@ function OrderRow({
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <CreditCard className="h-3.5 w-3.5" />
                 <span>{order.payment_method}</span>
+              </div>
+            )}
+            {order.seller_name && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <User className="h-3.5 w-3.5" />
+                <span>Vendedor: <strong className="text-foreground">{order.seller_name}</strong></span>
               </div>
             )}
             {order.notes && (
