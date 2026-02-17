@@ -10,6 +10,15 @@ export default function TvMode() {
   const [fade, setFade] = useState(true);
 
   const intervalSec = Number(settings.tv_mode_interval || "5");
+  const bgColor = settings.tv_bg_color || "#000000";
+  const textColor = settings.tv_text_color || "#ffffff";
+  const priceColor = settings.tv_price_color || "#22c55e";
+  const showLogo = settings.tv_show_logo !== "false";
+  const showCode = settings.tv_show_code !== "false";
+  const showBrand = settings.tv_show_brand !== "false";
+  const showProgress = settings.tv_show_progress !== "false";
+  const showCounter = settings.tv_show_counter !== "false";
+  const showDiscount = settings.tv_show_discount !== "false";
 
   const featuredProducts = useMemo(() => {
     return products
@@ -32,14 +41,13 @@ export default function TvMode() {
     return () => clearInterval(timer);
   }, [advance, intervalSec, featuredProducts.length]);
 
-  // Reset index when products change
   useEffect(() => {
     setCurrentIndex(0);
   }, [featuredProducts.length]);
 
   if (loading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-black text-white">
+      <div className="h-screen w-screen flex items-center justify-center" style={{ backgroundColor: bgColor, color: textColor }}>
         <p className="text-xl animate-pulse">Carregando...</p>
       </div>
     );
@@ -47,19 +55,19 @@ export default function TvMode() {
 
   if (featuredProducts.length === 0) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-black text-white gap-4">
-        <Monitor className="h-16 w-16 text-white/40" />
+      <div className="h-screen w-screen flex flex-col items-center justify-center gap-4" style={{ backgroundColor: bgColor, color: textColor }}>
+        <Monitor className="h-16 w-16" style={{ color: textColor, opacity: 0.4 }} />
         <p className="text-xl">Nenhum produto em destaque</p>
-        <p className="text-sm text-white/60">Marque produtos como destaque no painel admin para usar o Modo TV.</p>
+        <p className="text-sm" style={{ opacity: 0.6 }}>Marque produtos como destaque no painel admin para usar o Modo TV.</p>
       </div>
     );
   }
 
   const product = featuredProducts[currentIndex];
-  const hasDiscount = product.original_price && product.original_price > product.price;
+  const hasDiscount = showDiscount && product.original_price && product.original_price > product.price;
 
   return (
-    <div className="h-screen w-screen bg-black text-white overflow-hidden flex flex-col relative select-none cursor-none">
+    <div className="h-screen w-screen overflow-hidden flex flex-col relative select-none cursor-none" style={{ backgroundColor: bgColor, color: textColor }}>
       {/* Main product display */}
       <div
         className="flex-1 flex items-center justify-center p-8 transition-opacity duration-400"
@@ -81,47 +89,52 @@ export default function TvMode() {
               {product.name}
             </h1>
 
-            {product.code && (
-              <p className="text-lg text-white/50">Cód: {product.code}</p>
+            {showCode && product.code && (
+              <p className="text-lg" style={{ opacity: 0.5 }}>Cód: {product.code}</p>
             )}
 
             <div className="space-y-1">
               {hasDiscount && (
-                <p className="text-xl text-white/40 line-through">
+                <p className="text-xl line-through" style={{ opacity: 0.4 }}>
                   R$ {Number(product.original_price).toFixed(2).replace(".", ",")}
                 </p>
               )}
-              <p className="text-4xl lg:text-6xl font-extrabold" style={{ color: settings.price_color || "#22c55e" }}>
+              <p className="text-4xl lg:text-6xl font-extrabold" style={{ color: priceColor }}>
                 R$ {Number(product.price).toFixed(2).replace(".", ",")}
               </p>
             </div>
 
-            {product.brand && (
-              <p className="text-lg text-white/60">{product.brand}</p>
+            {showBrand && product.brand && (
+              <p className="text-lg" style={{ opacity: 0.6 }}>{product.brand}</p>
             )}
           </div>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="h-1.5 bg-white/10 w-full">
-        <div
-          className="h-full bg-white/60 transition-all ease-linear"
-          style={{
-            width: `${((currentIndex + 1) / featuredProducts.length) * 100}%`,
-          }}
-        />
-      </div>
+      {showProgress && (
+        <div className="h-1.5 w-full" style={{ backgroundColor: `${textColor}15` }}>
+          <div
+            className="h-full transition-all ease-linear"
+            style={{
+              width: `${((currentIndex + 1) / featuredProducts.length) * 100}%`,
+              backgroundColor: `${textColor}99`,
+            }}
+          />
+        </div>
+      )}
 
       {/* Counter */}
-      <div className="absolute bottom-4 right-6 text-white/30 text-sm font-mono">
-        {currentIndex + 1} / {featuredProducts.length}
-      </div>
+      {showCounter && (
+        <div className="absolute bottom-4 right-6 text-sm font-mono" style={{ color: textColor, opacity: 0.3 }}>
+          {currentIndex + 1} / {featuredProducts.length}
+        </div>
+      )}
 
       {/* Store branding */}
-      {settings.logo_url && (
+      {showLogo && settings.logo_url && (
         <div className="absolute top-6 left-6">
-          <img src={settings.logo_url} alt="Logo" className="h-12 w-12 rounded-full object-cover opacity-60" />
+          <img src={settings.logo_url} alt="Logo" className="h-12 w-12 rounded-full object-cover" style={{ opacity: 0.6 }} />
         </div>
       )}
     </div>
