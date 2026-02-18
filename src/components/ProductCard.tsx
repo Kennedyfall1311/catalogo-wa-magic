@@ -26,7 +26,7 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
 
   return (
     <>
-      <div className="group flex flex-col border-r border-b">
+      <div className="group flex flex-col border-r border-b h-full">
         <Link to={buildPath(`/produto/${product.slug}`)}>
           <div className="relative aspect-square overflow-hidden bg-card p-2">
             <img
@@ -44,7 +44,7 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
           </div>
         </Link>
 
-        <div className="px-2 py-3 text-center border-t space-y-1">
+        <div className="flex flex-col flex-1 px-2 py-3 text-center border-t space-y-1">
           <Link to={buildPath(`/produto/${product.slug}`)}>
             <h3 className={`${nameSize} font-semibold uppercase leading-tight line-clamp-2 hover:underline`} style={textColor ? { color: textColor } : undefined}>
               {product.name}
@@ -85,7 +85,7 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
             <p className={`${detailSize} text-muted-foreground`}>Qtd: {product.quantity}</p>
           )}
 
-          <div className="mt-1 flex gap-1.5">
+          <div className="mt-auto pt-1 flex gap-1.5">
             <button
               onClick={() => setDialogOpen(true)}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${buttonColor ? 'text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
