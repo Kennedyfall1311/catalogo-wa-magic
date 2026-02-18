@@ -25,11 +25,13 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
-const SIZE_OPTIONS = [
-  { value: "small", label: "Pequeno", desc: "Imagem menor, mais texto" },
-  { value: "medium", label: "Médio", desc: "Balanceado (padrão)" },
-  { value: "large", label: "Grande", desc: "Imagem maior, destaque visual" },
-];
+const SIZE_LABELS: Record<number, string> = {
+  0: "Muito pequeno",
+  25: "Pequeno",
+  50: "Médio",
+  75: "Grande",
+  100: "Muito grande",
+};
 
 export function TvModeSettings({ settings, onUpdate, products, categories, banners }: TvModeSettingsProps) {
   const [bgColor, setBgColor] = useState(settings.tv_bg_color ?? "#000000");
@@ -46,7 +48,7 @@ export function TvModeSettings({ settings, onUpdate, products, categories, banne
   const [showNavBar, setShowNavBar] = useState(settings.tv_show_navbar !== "false");
   const [showBanners, setShowBanners] = useState(settings.tv_show_banners !== "false");
   const [productSource, setProductSource] = useState(settings.tv_product_source ?? "latest");
-  const [productSize, setProductSize] = useState(settings.tv_product_size ?? "medium");
+  const [productSize, setProductSize] = useState(settings.tv_product_size ?? "50");
   const [selectedIds, setSelectedIds] = useState<string[]>(() => {
     try { return JSON.parse(settings.tv_product_ids || "[]"); } catch { return []; }
   });
@@ -71,7 +73,7 @@ export function TvModeSettings({ settings, onUpdate, products, categories, banne
     setShowNavBar(settings.tv_show_navbar !== "false");
     setShowBanners(settings.tv_show_banners !== "false");
     setProductSource(settings.tv_product_source ?? "latest");
-    setProductSize(settings.tv_product_size ?? "medium");
+    setProductSize(settings.tv_product_size ?? "50");
     try { setSelectedIds(JSON.parse(settings.tv_product_ids || "[]")); } catch { setSelectedIds([]); }
     setInterval_(settings.tv_mode_interval ?? "5");
     setBannerInterval(settings.tv_banner_interval ?? "5");
@@ -205,19 +207,25 @@ export function TvModeSettings({ settings, onUpdate, products, categories, banne
       </div>
 
       <div className="rounded-lg border bg-card p-4 space-y-3">
-        <h3 className="font-semibold text-sm">Tamanho da exibição</h3>
-        <p className="text-xs text-muted-foreground">Controle o tamanho da imagem e informações do produto na tela.</p>
-        <div className="grid grid-cols-3 gap-3">
-          {SIZE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setProductSize(opt.value)}
-              className={`rounded-lg border-2 p-3 text-center transition ${productSize === opt.value ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`}
-            >
-              <p className="text-sm font-semibold">{opt.label}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{opt.desc}</p>
-            </button>
-          ))}
+        <h3 className="font-semibold text-sm">Tamanho do produto</h3>
+        <p className="text-xs text-muted-foreground">Ajuste o tamanho da imagem e textos na tela da TV.</p>
+        <div className="space-y-2">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            value={productSize}
+            onChange={(e) => setProductSize(e.target.value)}
+            className="w-full accent-primary"
+          />
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>Menor</span>
+            <span className="font-medium text-foreground text-xs">
+              {SIZE_LABELS[Number(productSize)] || `${productSize}%`}
+            </span>
+            <span>Maior</span>
+          </div>
         </div>
       </div>
 
