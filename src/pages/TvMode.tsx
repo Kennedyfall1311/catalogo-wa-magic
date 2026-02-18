@@ -4,11 +4,16 @@ import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useBanners } from "@/hooks/useBanners";
 import { Monitor, ShoppingBag } from "lucide-react";
 
-const SIZE_MAP = {
-  small: { imgMax: "max-h-[40vh]", title: "text-2xl lg:text-3xl", price: "text-3xl lg:text-4xl", gap: "gap-6 lg:gap-10" },
-  medium: { imgMax: "max-h-[55vh]", title: "text-3xl lg:text-5xl", price: "text-4xl lg:text-6xl", gap: "gap-8 lg:gap-16" },
-  large: { imgMax: "max-h-[65vh]", title: "text-4xl lg:text-6xl", price: "text-5xl lg:text-7xl", gap: "gap-10 lg:gap-20" },
-};
+function getCustomSizes(scale: number) {
+  const imgVh = Math.round(35 + scale * 0.4);
+  const titleRem = 1.2 + scale * 0.04;
+  const titleLgRem = titleRem * 1.5;
+  const priceRem = 1.6 + scale * 0.05;
+  const priceLgRem = priceRem * 1.5;
+  const gap = Math.round(4 + scale * 0.16);
+  const gapLg = Math.round(gap * 1.8);
+  return { imgVh, titleRem, titleLgRem, priceRem, priceLgRem, gap: gap * 4, gapLg: gapLg * 4 };
+}
 
 export default function TvMode() {
   const { products, loading } = useDbProducts();
@@ -45,9 +50,8 @@ export default function TvMode() {
   const showNavBar = settings.tv_show_navbar !== "false";
   const showBanners = settings.tv_show_banners !== "false";
   const productSource = settings.tv_product_source || "latest";
-  const productSize = (settings.tv_product_size || "medium") as keyof typeof SIZE_MAP;
-
-  const sizes = SIZE_MAP[productSize] || SIZE_MAP.medium;
+  const productScale = Number(settings.tv_product_size || "50");
+  const sizes = getCustomSizes(productScale);
 
   const tvProducts = useMemo(() => {
     const withImage = products.filter(
@@ -176,19 +180,20 @@ export default function TvMode() {
         className="flex-1 flex items-center justify-center p-8 transition-opacity duration-400"
         style={{ opacity: fade ? 1 : 0 }}
       >
-        <div className={`flex flex-col lg:flex-row items-center ${sizes.gap} max-w-7xl w-full`}>
+        <div className="flex flex-col lg:flex-row items-center max-w-7xl w-full" style={{ gap: `${sizes.gap}px` }}>
           {/* Image */}
-          <div className={`flex-1 flex items-center justify-center ${sizes.imgMax}`}>
+          <div className="flex-1 flex items-center justify-center" style={{ maxHeight: `${sizes.imgVh}vh` }}>
             <img
               src={product.image_url || ""}
               alt={product.name}
-              className={`${sizes.imgMax} max-w-full object-contain rounded-lg shadow-2xl`}
+              className="max-w-full object-contain rounded-lg shadow-2xl"
+              style={{ maxHeight: `${sizes.imgVh}vh` }}
             />
           </div>
 
           {/* Info */}
           <div className="flex-1 flex flex-col items-center lg:items-start gap-4 text-center lg:text-left">
-            <h1 className={`${sizes.title} font-bold uppercase leading-tight`}>
+            <h1 className="font-bold uppercase leading-tight" style={{ fontSize: `${sizes.titleRem}rem` }}>
               {product.name}
             </h1>
 
@@ -202,7 +207,7 @@ export default function TvMode() {
                   R$ {Number(product.original_price).toFixed(2).replace(".", ",")}
                 </p>
               )}
-              <p className={`${sizes.price} font-extrabold`} style={{ color: priceColor }}>
+              <p className="font-extrabold" style={{ color: priceColor, fontSize: `${sizes.priceRem}rem` }}>
                 R$ {Number(product.price).toFixed(2).replace(".", ",")}
               </p>
             </div>
