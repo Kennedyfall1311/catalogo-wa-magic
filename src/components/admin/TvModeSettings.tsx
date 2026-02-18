@@ -35,6 +35,7 @@ const SIZE_LABELS: Record<number, string> = {
 
 export function TvModeSettings({ settings, onUpdate, products, categories, banners }: TvModeSettingsProps) {
   const [bgColor, setBgColor] = useState(settings.tv_bg_color ?? "#000000");
+  const [bgImage, setBgImage] = useState(settings.tv_bg_image ?? "");
   const [textColor, setTextColor] = useState(settings.tv_text_color ?? "#ffffff");
   const [priceColor, setPriceColor] = useState(settings.tv_price_color ?? "#22c55e");
   const [navBarColor, setNavBarColor] = useState(settings.tv_navbar_color ?? "#111111");
@@ -60,6 +61,7 @@ export function TvModeSettings({ settings, onUpdate, products, categories, banne
 
   useEffect(() => {
     setBgColor(settings.tv_bg_color ?? "#000000");
+    setBgImage(settings.tv_bg_image ?? "");
     setTextColor(settings.tv_text_color ?? "#ffffff");
     setPriceColor(settings.tv_price_color ?? "#22c55e");
     setNavBarColor(settings.tv_navbar_color ?? "#111111");
@@ -83,6 +85,7 @@ export function TvModeSettings({ settings, onUpdate, products, categories, banne
     setSaving(true);
     await Promise.all([
       onUpdate("tv_bg_color", bgColor),
+      onUpdate("tv_bg_image", bgImage),
       onUpdate("tv_text_color", textColor),
       onUpdate("tv_price_color", priceColor),
       onUpdate("tv_navbar_color", navBarColor),
@@ -246,6 +249,21 @@ export function TvModeSettings({ settings, onUpdate, products, categories, banne
           <ColorField label="Cor do texto" value={textColor} onChange={setTextColor} />
         </div>
         <ColorField label="Cor do preço" value={priceColor} onChange={setPriceColor} />
+        <div className="space-y-1 pt-2 border-t">
+          <label className="text-xs font-medium text-muted-foreground">Imagem de fundo (URL)</label>
+          <input
+            value={bgImage}
+            onChange={(e) => setBgImage(e.target.value)}
+            placeholder="https://exemplo.com/fundo.jpg"
+            className="w-full rounded-lg border bg-muted/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+          {bgImage && (
+            <div className="mt-2 rounded overflow-hidden border">
+              <img src={bgImage} alt="Preview fundo" className="w-full h-20 object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground">Deixe vazio para usar apenas a cor de fundo.</p>
+        </div>
       </div>
 
       {/* Intervalo */}

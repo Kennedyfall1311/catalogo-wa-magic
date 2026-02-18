@@ -37,6 +37,7 @@ export default function TvMode() {
   const intervalSec = Number(settings.tv_mode_interval || "5");
   const bannerIntervalSec = Number(settings.tv_banner_interval || "5");
   const bgColor = settings.tv_bg_color || "#000000";
+  const bgImage = settings.tv_bg_image || "";
   const textColor = settings.tv_text_color || "#ffffff";
   const priceColor = settings.tv_price_color || "#22c55e";
   const navBarColor = settings.tv_navbar_color || "#111111";
@@ -144,7 +145,7 @@ export default function TvMode() {
   const currentBanner = displayBanners ? activeBanners[bannerIndex % activeBanners.length] : null;
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col relative select-none cursor-none" style={{ backgroundColor: bgColor, color: textColor }}>
+    <div className="h-screen w-screen overflow-hidden flex flex-col relative select-none cursor-none" style={{ backgroundColor: bgColor, color: textColor, ...(bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: "cover", backgroundPosition: "center" } : {}) }}>
       {/* Nav bar */}
       {showNavBar && (
         <div className="flex items-center gap-3 px-6 py-3 shrink-0" style={{ backgroundColor: navBarColor }}>
