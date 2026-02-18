@@ -4,15 +4,11 @@ import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useBanners } from "@/hooks/useBanners";
 import { Monitor, ShoppingBag } from "lucide-react";
 
-function getCustomSizes(scale: number) {
-  const imgVh = Math.round(35 + scale * 0.4);
-  const titleRem = 1.2 + scale * 0.04;
-  const titleLgRem = titleRem * 1.5;
-  const priceRem = 1.6 + scale * 0.05;
-  const priceLgRem = priceRem * 1.5;
-  const gap = Math.round(4 + scale * 0.16);
-  const gapLg = Math.round(gap * 1.8);
-  return { imgVh, titleRem, titleLgRem, priceRem, priceLgRem, gap: gap * 4, gapLg: gapLg * 4 };
+function getSizes(textScale: number, priceScale: number, imageScale: number) {
+  const imgVh = Math.round(35 + imageScale * 0.4);
+  const titleRem = 1.2 + textScale * 0.04;
+  const priceRem = 1.6 + priceScale * 0.05;
+  return { imgVh, titleRem, priceRem };
 }
 
 export default function TvMode() {
@@ -51,8 +47,11 @@ export default function TvMode() {
   const showNavBar = settings.tv_show_navbar !== "false";
   const showBanners = settings.tv_show_banners !== "false";
   const productSource = settings.tv_product_source || "latest";
-  const productScale = Number(settings.tv_product_size || "50");
-  const sizes = getCustomSizes(productScale);
+  const sizes = getSizes(
+    Number(settings.tv_text_size || "50"),
+    Number(settings.tv_price_size || "50"),
+    Number(settings.tv_image_size || "50")
+  );
 
   const tvProducts = useMemo(() => {
     const withImage = products.filter(
@@ -181,7 +180,7 @@ export default function TvMode() {
         className="flex-1 flex items-center justify-center p-8 transition-opacity duration-400"
         style={{ opacity: fade ? 1 : 0 }}
       >
-        <div className="flex flex-col lg:flex-row items-center max-w-7xl w-full" style={{ gap: `${sizes.gap}px` }}>
+        <div className="flex flex-col lg:flex-row items-center max-w-7xl w-full gap-8 lg:gap-16">
           {/* Image */}
           <div className="flex-1 flex items-center justify-center" style={{ maxHeight: `${sizes.imgVh}vh` }}>
             <img

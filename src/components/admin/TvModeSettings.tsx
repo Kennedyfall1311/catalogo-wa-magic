@@ -25,13 +25,28 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
-const SIZE_LABELS: Record<number, string> = {
-  0: "Muito pequeno",
-  25: "Pequeno",
-  50: "Médio",
-  75: "Grande",
-  100: "Muito grande",
-};
+function sizeLabel(v: number) {
+  if (v <= 10) return "Muito pequeno";
+  if (v <= 30) return "Pequeno";
+  if (v <= 60) return "Médio";
+  if (v <= 80) return "Grande";
+  return "Muito grande";
+}
+
+function SizeSlider({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const num = Number(value);
+  return (
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <input type="range" min="0" max="100" step="1" value={value} onChange={(e) => onChange(e.target.value)} className="w-full accent-primary" />
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        <span>Menor</span>
+        <span className="font-medium text-foreground text-xs">{sizeLabel(num)} ({num}%)</span>
+        <span>Maior</span>
+      </div>
+    </div>
+  );
+}
 
 export function TvModeSettings({ settings, onUpdate, products, categories, banners }: TvModeSettingsProps) {
   const [bgColor, setBgColor] = useState(settings.tv_bg_color ?? "#000000");
@@ -49,7 +64,9 @@ export function TvModeSettings({ settings, onUpdate, products, categories, banne
   const [showNavBar, setShowNavBar] = useState(settings.tv_show_navbar !== "false");
   const [showBanners, setShowBanners] = useState(settings.tv_show_banners !== "false");
   const [productSource, setProductSource] = useState(settings.tv_product_source ?? "latest");
-  const [productSize, setProductSize] = useState(settings.tv_product_size ?? "50");
+  const [textSize, setTextSize] = useState(settings.tv_text_size ?? "50");
+  const [priceSize, setPriceSize] = useState(settings.tv_price_size ?? "50");
+  const [imageSize, setImageSize] = useState(settings.tv_image_size ?? "50");
   const [selectedIds, setSelectedIds] = useState<string[]>(() => {
     try { return JSON.parse(settings.tv_product_ids || "[]"); } catch { return []; }
   });
@@ -75,7 +92,9 @@ export function TvModeSettings({ settings, onUpdate, products, categories, banne
     setShowNavBar(settings.tv_show_navbar !== "false");
     setShowBanners(settings.tv_show_banners !== "false");
     setProductSource(settings.tv_product_source ?? "latest");
-    setProductSize(settings.tv_product_size ?? "50");
+    setTextSize(settings.tv_text_size ?? "50");
+    setPriceSize(settings.tv_price_size ?? "50");
+    setImageSize(settings.tv_image_size ?? "50");
     try { setSelectedIds(JSON.parse(settings.tv_product_ids || "[]")); } catch { setSelectedIds([]); }
     setInterval_(settings.tv_mode_interval ?? "5");
     setBannerInterval(settings.tv_banner_interval ?? "5");
@@ -99,7 +118,9 @@ export function TvModeSettings({ settings, onUpdate, products, categories, banne
       onUpdate("tv_show_navbar", showNavBar ? "true" : "false"),
       onUpdate("tv_show_banners", showBanners ? "true" : "false"),
       onUpdate("tv_product_source", productSource),
-      onUpdate("tv_product_size", productSize),
+      onUpdate("tv_text_size", textSize),
+      onUpdate("tv_price_size", priceSize),
+      onUpdate("tv_image_size", imageSize),
       onUpdate("tv_product_ids", JSON.stringify(selectedIds)),
       onUpdate("tv_mode_interval", interval),
       onUpdate("tv_banner_interval", bannerInterval),
@@ -209,27 +230,12 @@ export function TvModeSettings({ settings, onUpdate, products, categories, banne
         )}
       </div>
 
-      <div className="rounded-lg border bg-card p-4 space-y-3">
-        <h3 className="font-semibold text-sm">Tamanho do produto</h3>
-        <p className="text-xs text-muted-foreground">Ajuste o tamanho da imagem e textos na tela da TV.</p>
-        <div className="space-y-2">
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={productSize}
-            onChange={(e) => setProductSize(e.target.value)}
-            className="w-full accent-primary"
-          />
-          <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>Menor</span>
-            <span className="font-medium text-foreground text-xs">
-              {SIZE_LABELS[Number(productSize)] || `${productSize}%`}
-            </span>
-            <span>Maior</span>
-          </div>
-        </div>
+      <div className="rounded-lg border bg-card p-4 space-y-4">
+        <h3 className="font-semibold text-sm">Tamanhos</h3>
+        <p className="text-xs text-muted-foreground">Ajuste individualmente o tamanho da imagem, texto e preço na TV.</p>
+        <SizeSlider label="Tamanho da imagem" value={imageSize} onChange={setImageSize} />
+        <SizeSlider label="Tamanho do texto" value={textSize} onChange={setTextSize} />
+        <SizeSlider label="Tamanho do preço" value={priceSize} onChange={setPriceSize} />
       </div>
 
       {/* Cores da Navbar */}
