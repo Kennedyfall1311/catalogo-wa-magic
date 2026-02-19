@@ -135,7 +135,8 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         const referencia = getField(row, ["referencia", "reference", "ref"]) || null;
         const codigoFab = getField(row, ["codigo_fabricante", "manufacturer_code", "cod_fabricante"]) || null;
         const unidade = getField(row, ["unidade", "unidade_medida", "unit_of_measure", "un"]) || null;
-        const quantidade = getField(row, ["quantidade", "quantity", "qtd", "estoque"]);
+        const estoque = getField(row, ["estoque", "stock", "qtd_estoque"]);
+        const qtdEmbalagem = getField(row, ["quantidade_embalagem", "qtd_embalagem", "package_quantity", "quantidade", "quantity", "qtd"]);
 
         const parsed = ProductRowSchema.safeParse({
           name: nome,
@@ -164,8 +165,8 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
           brand: marca,
           reference: referencia,
           manufacturer_code: codigoFab,
-          unit_of_measure: unidade,
-          quantity: quantidade ? parseFloat(quantidade) : null,
+          quantity: estoque ? parseFloat(estoque) : null,
+          package_quantity: qtdEmbalagem ? parseFloat(qtdEmbalagem) : null,
         });
       });
 
@@ -203,7 +204,7 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
 
   const downloadTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
-      { nome: "Produto Exemplo", codigo: "PROD001", preco: 99.90, preco_original: 129.90, descricao: "Descrição do produto", imagem_url: "", categoria: "roupas", marca: "MinhaMarca", referencia: "REF-001", codigo_fabricante: "FAB-001", unidade_medida: "UN", quantidade: 100 },
+      { nome: "Produto Exemplo", codigo: "PROD001", preco: 99.90, preco_original: 129.90, descricao: "Descrição do produto", imagem_url: "", categoria: "roupas", marca: "MinhaMarca", referencia: "REF-001", codigo_fabricante: "FAB-001", unidade_medida: "UN", estoque: 100, quantidade_embalagem: 6 },
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Produtos");
@@ -217,7 +218,7 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         Importar Produtos por Excel
       </h2>
       <p className="text-xs text-muted-foreground">
-        Colunas aceitas: <strong>nome</strong> | <strong>codigo</strong> | <strong>preco</strong> | <strong>preco_original</strong> | <strong>descricao</strong> | <strong>imagem_url</strong> | <strong>categoria</strong> | <strong>marca</strong> | <strong>referencia</strong> | <strong>codigo_fabricante</strong> | <strong>unidade_medida</strong> | <strong>quantidade/estoque</strong>
+        Colunas aceitas: <strong>nome</strong> | <strong>codigo</strong> | <strong>preco</strong> | <strong>preco_original</strong> | <strong>descricao</strong> | <strong>imagem_url</strong> | <strong>categoria</strong> | <strong>marca</strong> | <strong>referencia</strong> | <strong>codigo_fabricante</strong> | <strong>unidade_medida</strong> | <strong>estoque</strong> | <strong>quantidade_embalagem</strong>
       </p>
 
       <div className="flex flex-wrap gap-2">
