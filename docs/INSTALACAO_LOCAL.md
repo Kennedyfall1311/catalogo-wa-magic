@@ -538,12 +538,36 @@ PORT=3001
 # BASE URL PARA UPLOADS (usado pelo backend para gerar URLs de imagens)
 # ═══════════════════════════════════════════════════
 API_BASE_URL=https://SEU_DOMINIO
+
+# ═══════════════════════════════════════════════════
+# CHAVE DE ADMIN — OBRIGATÓRIA em produção
+# Protege todas as operações de escrita (produtos, categorias, config, etc.)
+# Gere uma chave segura, ex: openssl rand -hex 32
+# ═══════════════════════════════════════════════════
+ADMIN_API_KEY=SUA_CHAVE_SECRETA_AQUI
+
+# ═══════════════════════════════════════════════════
+# CHAVE DE ADMIN PARA O FRONTEND
+# Deve ser IGUAL à ADMIN_API_KEY acima
+# O frontend envia esta chave no header Authorization
+# para que as operações de admin (salvar config, etc.) funcionem
+# ═══════════════════════════════════════════════════
+VITE_ADMIN_API_KEY=SUA_CHAVE_SECRETA_AQUI
 EOF
 ```
 
 > ⚠️ **SUBSTITUA:**
 > - `SUA_SENHA` → senha que você definiu no passo 4.2
 > - `SEU_DOMINIO` → seu domínio (ex: `catalogo.meusite.com`) ou IP público
+> - `SUA_CHAVE_SECRETA_AQUI` → uma chave secreta forte (use `openssl rand -hex 32` para gerar)
+
+> 🔑 **IMPORTANTE — Configuração de Admin:**
+> - `ADMIN_API_KEY` e `VITE_ADMIN_API_KEY` devem ter **o mesmo valor**
+> - `ADMIN_API_KEY` é usada pelo **backend** (servidor Express) para validar requisições
+> - `VITE_ADMIN_API_KEY` é usada pelo **frontend** para enviar a chave nas requisições de escrita
+> - **Sem essas chaves**, as configurações (nome da loja, frete, modo TV, etc.) **não serão salvas** — o servidor rejeita as requisições com erro 401
+> - Em **desenvolvimento local sem a chave**, o acesso é liberado automaticamente para facilitar testes
+> - Em **produção**, a chave é **obrigatória** — todas as operações de escrita (PUT, POST, DELETE) serão bloqueadas sem ela
 
 ---
 
