@@ -51,6 +51,17 @@ async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES): Promis
   throw new Error("Unreachable");
 }
 
+// ─── Admin API Key (local mode) ───
+
+const ADMIN_API_KEY = import.meta.env.VITE_ADMIN_API_KEY || "";
+
+function authHeaders(): Record<string, string> {
+  if (ADMIN_API_KEY) {
+    return { Authorization: `Bearer ${ADMIN_API_KEY}` };
+  }
+  return {};
+}
+
 // ─── Generic REST helpers ───
 
 async function restGet<T>(path: string): Promise<T> {
@@ -65,7 +76,7 @@ async function restPost<T>(path: string, body: any, headers?: Record<string, str
   return withRetry(async () => {
     const res = await fetchWithTimeout(`${API_URL}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...headers },
+      headers: { "Content-Type": "application/json", ...authHeaders(), ...headers },
       body: JSON.stringify(body),
     });
     if (!res.ok) {
@@ -80,7 +91,7 @@ async function restPut<T>(path: string, body: any): Promise<T> {
   return withRetry(async () => {
     const res = await fetchWithTimeout(`${API_URL}${path}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(await res.text());
@@ -90,7 +101,7 @@ async function restPut<T>(path: string, body: any): Promise<T> {
 
 async function restDelete(path: string): Promise<void> {
   return withRetry(async () => {
-    const res = await fetchWithTimeout(`${API_URL}${path}`, { method: "DELETE" });
+    const res = await fetchWithTimeout(`${API_URL}${path}`, { method: "DELETE", headers: { ...authHeaders() } });
     if (!res.ok) throw new Error(await res.text());
   });
 }
