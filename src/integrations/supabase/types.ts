@@ -244,6 +244,7 @@ export type Database = {
           manufacturer_code: string | null
           name: string
           original_price: number | null
+          package_quantity: number | null
           price: number
           quantity: number | null
           quick_filter_1: boolean
@@ -267,6 +268,7 @@ export type Database = {
           manufacturer_code?: string | null
           name: string
           original_price?: number | null
+          package_quantity?: number | null
           price: number
           quantity?: number | null
           quick_filter_1?: boolean
@@ -290,6 +292,7 @@ export type Database = {
           manufacturer_code?: string | null
           name?: string
           original_price?: number | null
+          package_quantity?: number | null
           price?: number
           quantity?: number | null
           quick_filter_1?: boolean
