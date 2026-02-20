@@ -78,6 +78,17 @@ export default function TvMode() {
   const displayBanners = showBanners && activeBanners.length > 0;
   const productCount = tvProducts.length;
 
+  // Preload next image to avoid flash on transition
+  useEffect(() => {
+    if (productCount <= 1) return;
+    const nextIndex = (currentIndex + 1) % productCount;
+    const nextProduct = tvProducts[nextIndex];
+    if (nextProduct?.image_url) {
+      const img = new Image();
+      img.src = nextProduct.image_url;
+    }
+  }, [currentIndex, tvProducts, productCount]);
+
   // Product rotation with safe fade
   const advance = useCallback(() => {
     if (productCount <= 1) return;
@@ -87,7 +98,7 @@ export default function TvMode() {
       if (!mountedRef.current) return;
       setCurrentIndex((i) => (i + 1) % productCount);
       setFade(true);
-    }, 400);
+    }, 300);
   }, [productCount]);
 
   useEffect(() => {
@@ -177,7 +188,7 @@ export default function TvMode() {
 
       {/* Main product display */}
       <div
-        className="flex-1 flex items-center justify-center p-8 transition-opacity duration-400"
+        className="flex-1 flex items-center justify-center p-8 transition-opacity duration-300"
         style={{ opacity: fade ? 1 : 0 }}
       >
         <div className="flex flex-col lg:flex-row items-center max-w-7xl w-full gap-8 lg:gap-16">

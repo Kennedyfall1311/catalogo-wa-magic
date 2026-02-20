@@ -9,6 +9,8 @@
  * importing supabase directly.
  */
 
+import { supabase } from "@/integrations/supabase/client";
+
 const API_MODE = import.meta.env.VITE_API_MODE || "supabase";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
@@ -113,7 +115,6 @@ export const productsApi = {
     if (isPostgresMode()) {
       return restGet<any[]>("/products");
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.from("products").select("*").order("created_at", { ascending: false });
     return data || [];
   },
@@ -122,7 +123,6 @@ export const productsApi = {
     if (isPostgresMode()) {
       return restGet<any | null>(`/products/slug/${slug}`);
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.from("products").select("*").eq("slug", slug).eq("active", true).maybeSingle();
     return data;
   },
@@ -131,7 +131,6 @@ export const productsApi = {
     if (isPostgresMode()) {
       return restGet<any[]>(`/products/code/${encodeURIComponent(code)}`);
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.from("products").select("id").eq("code", code).limit(1);
     return data || [];
   },
@@ -145,7 +144,6 @@ export const productsApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("products").insert(product);
     return { error };
   },
@@ -159,7 +157,6 @@ export const productsApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("products").update(data).eq("id", id);
     return { error };
   },
@@ -173,7 +170,6 @@ export const productsApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("products").delete().eq("id", id);
     return { error };
   },
@@ -187,7 +183,6 @@ export const productsApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("products").upsert(rows, { onConflict: "code" });
     return { error };
   },
@@ -200,7 +195,6 @@ export const categoriesApi = {
     if (isPostgresMode()) {
       return restGet<any[]>("/categories");
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.from("categories").select("*").order("name");
     return data || [];
   },
@@ -214,7 +208,6 @@ export const categoriesApi = {
         return { data: null, error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("categories").insert(cat);
     return { data: null, error };
   },
@@ -228,7 +221,6 @@ export const categoriesApi = {
         return { data: null, error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data, error } = await supabase.from("categories").insert(cats).select();
     return { data, error };
   },
@@ -242,7 +234,6 @@ export const categoriesApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("categories").update(data).eq("id", id);
     return { error };
   },
@@ -256,7 +247,6 @@ export const categoriesApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("categories").delete().eq("id", id);
     return { error };
   },
@@ -269,7 +259,6 @@ export const settingsApi = {
     if (isPostgresMode()) {
       return restGet<{ key: string; value: string }[]>("/settings");
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.from("store_settings").select("*");
     return data || [];
   },
@@ -283,7 +272,6 @@ export const settingsApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("store_settings").upsert({ key, value }, { onConflict: "key" });
     return { error };
   },
@@ -296,7 +284,6 @@ export const bannersApi = {
     if (isPostgresMode()) {
       return restGet<any[]>("/banners");
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.from("banners").select("*").order("sort_order", { ascending: true });
     return data || [];
   },
@@ -310,7 +297,6 @@ export const bannersApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("banners").insert(banner);
     return { error };
   },
@@ -324,7 +310,6 @@ export const bannersApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("banners").update(data).eq("id", id);
     return { error };
   },
@@ -338,7 +323,6 @@ export const bannersApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("banners").delete().eq("id", id);
     return { error };
   },
@@ -351,7 +335,6 @@ export const paymentConditionsApi = {
     if (isPostgresMode()) {
       return restGet<any[]>("/payment-conditions");
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.from("payment_conditions").select("*").order("sort_order", { ascending: true });
     return data || [];
   },
@@ -365,7 +348,6 @@ export const paymentConditionsApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("payment_conditions").insert({ name, sort_order });
     return { error };
   },
@@ -379,7 +361,6 @@ export const paymentConditionsApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("payment_conditions").update(updates).eq("id", id);
     return { error };
   },
@@ -393,7 +374,6 @@ export const paymentConditionsApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("payment_conditions").delete().eq("id", id);
     return { error };
   },
@@ -418,7 +398,6 @@ export const storageApi = {
         return { url: null, error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const ext = file.name.split(".").pop();
     const path = `${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("product-images").upload(path, file);
@@ -442,8 +421,6 @@ export const storageApi = {
         return { url: null, error: { message: err.message } };
       }
     }
-    // Supabase mode
-    const { supabase } = await import("@/integrations/supabase/client");
     const clean = base64.replace(/^data:image\/\w+;base64,/, "").replace(/\s/g, "");
     let ext = "jpg";
     if (clean.startsWith("iVBOR")) ext = "png";
@@ -474,14 +451,12 @@ export const authApi = {
         session: {} as any,
       };
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data: { session } } = await supabase.auth.getSession();
     return { user: session?.user ?? null, session, isAdmin: false };
   },
 
   async checkAdmin(userId: string): Promise<boolean> {
     if (isPostgresMode()) return true;
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase
       .from("user_roles")
       .select("role")
@@ -495,7 +470,6 @@ export const authApi = {
     if (isPostgresMode()) {
       return { error: null };
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
   },
@@ -504,7 +478,6 @@ export const authApi = {
     if (isPostgresMode()) {
       return { error: null };
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -515,37 +488,29 @@ export const authApi = {
 
   async signOut() {
     if (isPostgresMode()) return;
-    const { supabase } = await import("@/integrations/supabase/client");
     await supabase.auth.signOut();
   },
 
   onAuthStateChange(callback: (user: any, session: any) => void): () => void {
     if (isPostgresMode()) {
-      // Immediately call with mock admin
       setTimeout(() => callback(
         { id: "local-admin", email: "admin@local" },
         {}
       ), 0);
       return () => {};
     }
-    // Lazy import for supabase
-    let unsubscribe = () => {};
-    import("@/integrations/supabase/client").then(({ supabase }) => {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          callback(session?.user ?? null, session);
-        }
-      );
-      unsubscribe = () => subscription.unsubscribe();
-    });
-    return () => unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        callback(session?.user ?? null, session);
+      }
+    );
+    return () => subscription.unsubscribe();
   },
 
   async setupAdmin() {
     if (isPostgresMode()) {
       return { error: null, data: { message: "Admin mode is always on in PostgreSQL mode" } };
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const res = await supabase.functions.invoke("setup-admin");
     return res;
   },
@@ -558,7 +523,6 @@ export const ordersApi = {
     if (isPostgresMode()) {
       return restGet<any[]>("/orders");
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
     return data || [];
   },
@@ -567,7 +531,6 @@ export const ordersApi = {
     if (isPostgresMode()) {
       return restGet<any[]>(`/orders/${orderId}/items`);
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.from("order_items").select("*").eq("order_id", orderId);
     return data || [];
   },
@@ -583,7 +546,6 @@ export const ordersApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data, error } = await supabase.from("orders").insert(order).select("id").single();
     if (error) return { error };
     const orderItems = items.map((i) => ({ ...i, order_id: data.id }));
@@ -600,7 +562,6 @@ export const ordersApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("orders").update({ status }).eq("id", id);
     return { error };
   },
@@ -613,7 +574,6 @@ export const sellersApi = {
     if (isPostgresMode()) {
       return restGet<any[]>("/sellers");
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.from("sellers").select("*").order("name");
     return data || [];
   },
@@ -622,7 +582,6 @@ export const sellersApi = {
     if (isPostgresMode()) {
       return restGet<any | null>(`/sellers/slug/${slug}`);
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase.from("sellers").select("*").eq("slug", slug).eq("active", true).maybeSingle();
     return data;
   },
@@ -636,7 +595,6 @@ export const sellersApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("sellers").insert(seller);
     return { error };
   },
@@ -650,7 +608,6 @@ export const sellersApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("sellers").update(data).eq("id", id);
     return { error };
   },
@@ -664,7 +621,6 @@ export const sellersApi = {
         return { error: { message: err.message } };
       }
     }
-    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase.from("sellers").delete().eq("id", id);
     return { error };
   },
@@ -679,14 +635,10 @@ export const realtimeApi = {
       return () => clearInterval(interval);
     }
 
-    let cleanup = () => {};
-    import("@/integrations/supabase/client").then(({ supabase }) => {
-      const channel = supabase
-        .channel(`${table}-changes`)
-        .on("postgres_changes", { event: "*", schema: "public", table }, () => callback())
-        .subscribe();
-      cleanup = () => supabase.removeChannel(channel);
-    });
-    return () => cleanup();
+    const channel = supabase
+      .channel(`${table}-changes`)
+      .on("postgres_changes", { event: "*", schema: "public", table }, () => callback())
+      .subscribe();
+    return () => supabase.removeChannel(channel);
   },
 };
