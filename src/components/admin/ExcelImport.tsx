@@ -204,7 +204,21 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
 
   const downloadTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
-      { nome: "Produto Exemplo", codigo: "PROD001", preco: 99.90, preco_original: 129.90, descricao: "Descrição do produto", imagem_url: "", categoria: "roupas", marca: "MinhaMarca", referencia: "REF-001", codigo_fabricante: "FAB-001", unidade_medida: "UN", estoque: 100, quantidade_embalagem: 6 },
+      {
+        nome: "Produto Exemplo",
+        codigo: "PROD001",
+        preco: 99.90,
+        preco_original: 129.90,
+        descricao: "Descrição do produto",
+        imagem_url: "",
+        categoria: "roupas",
+        marca: "MinhaMarca",
+        referencia: "REF-001",
+        codigo_fabricante: "FAB-001",
+        unidade_medida: "UN",
+        estoque: 100,              // saldo de estoque disponível
+        quantidade_embalagem: 6,   // itens por embalagem/caixa
+      },
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Produtos");
@@ -217,9 +231,14 @@ export function ExcelImport({ categories, onImport, onRefreshCategories }: Excel
         <FileSpreadsheet className="h-5 w-5" />
         Importar Produtos por Excel
       </h2>
-      <p className="text-xs text-muted-foreground">
-        Colunas aceitas: <strong>nome</strong> | <strong>codigo</strong> | <strong>preco</strong> | <strong>preco_original</strong> | <strong>descricao</strong> | <strong>imagem_url</strong> | <strong>categoria</strong> | <strong>marca</strong> | <strong>referencia</strong> | <strong>codigo_fabricante</strong> | <strong>unidade_medida</strong> | <strong>estoque</strong> | <strong>quantidade_embalagem</strong>
-      </p>
+      <div className="text-xs text-muted-foreground space-y-1">
+        <p>Colunas aceitas: <strong>nome</strong> | <strong>codigo</strong> | <strong>preco</strong> | <strong>preco_original</strong> | <strong>descricao</strong> | <strong>imagem_url</strong> | <strong>categoria</strong> | <strong>marca</strong> | <strong>referencia</strong> | <strong>codigo_fabricante</strong> | <strong>unidade_medida</strong></p>
+        <p>
+          <strong>estoque</strong> → saldo de estoque do produto (ex: 100 unidades em estoque)
+          {" · "}
+          <strong>quantidade_embalagem</strong> → itens por embalagem/caixa (ex: 6 unidades por caixa)
+        </p>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition">
