@@ -46,7 +46,7 @@ export function CatalogFooter({
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />
-            <span className="font-bold tracking-tight">{storeName || "Catálogo"}</span>
+            <span className="font-bold tracking-tight uppercase">{storeName || "Catálogo"}</span>
           </div>
 
           <div className="flex gap-3 flex-wrap justify-center">
