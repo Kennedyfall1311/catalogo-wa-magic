@@ -9,8 +9,16 @@ import { ArrowRight } from "lucide-react";
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, clearCart, totalPrice } = useCart();
-  const { settings } = useStoreSettings();
+  const { settings, loading: settingsLoading } = useStoreSettings();
   const { buildPath } = useSellerPrefix();
+
+  if (settingsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
