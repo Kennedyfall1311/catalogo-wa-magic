@@ -68,6 +68,7 @@ Confirme que você tem tudo pronto:
 | — | [Referência: Configurações da Loja](#referência-configurações-da-loja-store_settings) | — |
 | — | [Referência: API REST Completa](#referência-api-rest-completa) | — |
 | — | [Comandos Úteis do Dia a Dia](#comandos-úteis-do-dia-a-dia) | — |
+| — | [**Configuração Completa de Pedidos (Orders)**](#configuração-completa-de-pedidos-orders) | — |
 | — | [Solução de Problemas](#solução-de-problemas) | — |
 | — | [Backup Automático](#backup-automático) | — |
 | — | [Resumo Rápido — Copiar e Colar](#resumo-rápido--copiar-e-colar) | — |
@@ -1635,6 +1636,300 @@ du -sh /var/www/catalogo/public/uploads/
 
 ---
 
+## Configuração Completa de Pedidos (Orders)
+
+> ⚠️ **Esta é a seção mais importante se os pedidos não estão funcionando.**
+> Os pedidos envolvem 3 partes: tabelas no banco, rotas no backend e configuração no frontend. Se qualquer uma falhar, o pedido não é registrado.
+
+### Passo 1 — Verificar se as tabelas existem
+
+Conecte ao banco:
+
+```bash
+psql -U postgres -h localhost -d catalogo
+```
+
+Execute:
+
+```sql
+-- Verificar se as tabelas orders e order_items existem
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' AND table_name IN ('orders', 'order_items');
+```
+
+**✅ Resultado esperado:** Duas linhas: `orders` e `order_items`.
+
+**❌ Se faltou alguma tabela**, crie-as:
+
+```sql
+-- Criar tabela de pedidos
+CREATE TABLE IF NOT EXISTS public.orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_name TEXT NOT NULL,
+  customer_phone TEXT NOT NULL,
+  customer_cpf_cnpj TEXT,
+  payment_method TEXT,
+  notes TEXT,
+  subtotal NUMERIC NOT NULL DEFAULT 0,
+  shipping_fee NUMERIC NOT NULL DEFAULT 0,
+  total NUMERIC NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending',
+  seller_id UUID REFERENCES public.sellers(id) ON DELETE SET NULL,
+  seller_name TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Criar tabela de itens do pedido
+CREATE TABLE IF NOT EXISTS public.order_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+  product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
+  product_name TEXT NOT NULL,
+  product_code TEXT,
+  unit_price NUMERIC NOT NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  total_price NUMERIC NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Índices para performance
+CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_seller ON public.orders(seller_id);
+CREATE INDEX IF NOT EXISTS idx_orders_created ON public.orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON public.order_items(order_id);
+
+-- Trigger para atualizar updated_at automaticamente
+DROP TRIGGER IF EXISTS update_orders_updated_at ON public.orders;
+CREATE TRIGGER update_orders_updated_at
+  BEFORE UPDATE ON public.orders
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+```
+
+Saia do psql: `\q`
+
+---
+
+### Passo 2 — Verificar se o arquivo de rotas existe
+
+```bash
+ls -la /var/www/catalogo/server/routes/orders.ts
+```
+
+**✅ Resultado esperado:** Deve mostrar o arquivo com permissões e tamanho.
+
+**❌ Se o arquivo NÃO existe**, crie-o. Veja a [Etapa 6.2](#62--criar-o-arquivo-de-pedidos) mais acima neste documento.
+
+---
+
+### Passo 3 — Verificar se a rota está registrada no servidor
+
+```bash
+grep -n "orders" /var/www/catalogo/server/index.ts
+```
+
+**✅ Resultado esperado:** Duas linhas parecidas com:
+
+```
+import { ordersRouter } from "./routes/orders";
+app.use("/api/orders", ordersRouter);
+```
+
+**❌ Se NÃO aparecer**, edite o arquivo:
+
+```bash
+nano /var/www/catalogo/server/index.ts
+```
+
+Adicione estas duas linhas (veja a posição exata na [Etapa 6.3](#63--registrar-as-novas-rotas-no-servidor)):
+
+```typescript
+import { ordersRouter } from "./routes/orders";          // ← No topo, junto com os outros imports
+
+app.use("/api/orders", ordersRouter);                    // ← Junto com as outras rotas app.use
+```
+
+Salve (`Ctrl+O`, Enter, `Ctrl+X`).
+
+---
+
+### Passo 4 — Reiniciar o backend e testar
+
+```bash
+cd /var/www/catalogo
+pm2 restart catalogo-api
+```
+
+Aguarde 3 segundos e teste:
+
+```bash
+# Teste 1: Verificar se o backend está online
+curl http://localhost:3001/api/health
+# ✅ Esperado: {"status":"ok","mode":"postgres"}
+
+# Teste 2: Verificar se a rota de pedidos responde
+curl http://localhost:3001/api/orders
+# ✅ Esperado: [] (array vazio se não houver pedidos)
+# ❌ Se retornar "Cannot GET" → a rota não foi registrada (volte ao Passo 3)
+# ❌ Se retornar "relation \"orders\" does not exist" → a tabela não existe (volte ao Passo 1)
+```
+
+---
+
+### Passo 5 — Testar criação de pedido manualmente
+
+Execute este comando para simular um pedido de teste:
+
+```bash
+curl -X POST http://localhost:3001/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "order": {
+      "customer_name": "Teste Manual",
+      "customer_phone": "(11) 99999-0000",
+      "customer_cpf_cnpj": null,
+      "payment_method": null,
+      "notes": "Pedido de teste - pode excluir",
+      "subtotal": 99.90,
+      "shipping_fee": 0,
+      "total": 99.90,
+      "status": "pending"
+    },
+    "items": [
+      {
+        "product_id": null,
+        "product_name": "Produto de Teste",
+        "product_code": "TESTE-001",
+        "quantity": 1,
+        "unit_price": 99.90,
+        "total_price": 99.90
+      }
+    ]
+  }'
+```
+
+**✅ Resultado esperado:** JSON com os dados do pedido criado, incluindo um `id` UUID.
+
+**❌ Se der erro**, verifique os logs:
+
+```bash
+pm2 logs catalogo-api --lines 20
+```
+
+| Erro no log | Causa | Solução |
+|-------------|-------|---------|
+| `relation "orders" does not exist` | Tabela não criada | Execute o SQL do Passo 1 |
+| `column "seller_id" does not exist` | Tabela desatualizada | Recrie com o SQL do Passo 1 |
+| `Cannot read properties of undefined` | Corpo da requisição vazio | Verifique o `Content-Type: application/json` |
+| `ECONNREFUSED` | PostgreSQL offline | `systemctl start postgresql` |
+| `SyntaxError in orders.ts` | Erro de sintaxe no arquivo | Recrie o arquivo pela [Etapa 6.2](#62--criar-o-arquivo-de-pedidos) |
+
+---
+
+### Passo 6 — Verificar se o pedido foi salvo no banco
+
+```bash
+psql -U postgres -h localhost -d catalogo -c "SELECT id, customer_name, total, status, created_at FROM orders ORDER BY created_at DESC LIMIT 5;"
+```
+
+**✅ Resultado esperado:** O pedido de teste deve aparecer na lista.
+
+Para ver os itens do pedido:
+
+```bash
+psql -U postgres -h localhost -d catalogo -c "SELECT oi.product_name, oi.quantity, oi.unit_price, oi.total_price FROM order_items oi JOIN orders o ON oi.order_id = o.id WHERE o.customer_name = 'Teste Manual';"
+```
+
+---
+
+### Passo 7 — Limpar o pedido de teste
+
+```bash
+psql -U postgres -h localhost -d catalogo -c "DELETE FROM orders WHERE customer_name = 'Teste Manual';"
+```
+
+> Os itens (`order_items`) são deletados automaticamente por causa do `ON DELETE CASCADE`.
+
+---
+
+### Passo 8 — Verificar o frontend (VITE_API_URL)
+
+O frontend precisa saber para onde enviar os pedidos. Verifique:
+
+```bash
+grep "VITE_API_URL" /var/www/catalogo/.env
+```
+
+**✅ Resultado esperado:** 
+
+```
+VITE_API_URL=https://SEU_DOMINIO/api
+```
+
+**❌ Erros comuns:**
+
+| Valor errado | Problema | Valor correto |
+|---|---|---|
+| `http://localhost:3001/api` | Funciona só na VPS, não no navegador do cliente | `https://seudominio.com.br/api` |
+| `https://seudominio.com.br` (sem /api) | Rotas não encontradas (404) | `https://seudominio.com.br/api` |
+| Não configurado | Frontend usa modo Supabase | Adicionar `VITE_API_MODE=postgres` e `VITE_API_URL` |
+
+> ⚠️ **Depois de alterar o `.env`, SEMPRE recompile o frontend:**
+> ```bash
+> cd /var/www/catalogo && npm run build
+> ```
+> As variáveis `VITE_*` são embutidas no build. Mudar o `.env` sem refazer o build não tem efeito.
+
+---
+
+### Passo 9 — Verificar o Nginx (proxy da API)
+
+```bash
+grep -A5 "location /api/" /etc/nginx/sites-available/catalogo
+```
+
+**✅ Resultado esperado:**
+
+```nginx
+location /api/ {
+    proxy_pass http://127.0.0.1:3001;
+    ...
+}
+```
+
+**❌ Se não existir**, adicione o bloco no arquivo do Nginx (veja [Etapa 9](#etapa-9--configurar-o-nginx)) e reinicie:
+
+```bash
+nginx -t && systemctl restart nginx
+```
+
+---
+
+### Resumo visual do fluxo de pedidos na VPS
+
+```
+┌─────────────────────┐      ┌───────────────────┐      ┌──────────────────┐
+│   NAVEGADOR DO      │ POST │      NGINX        │ proxy│    EXPRESS.js    │
+│   CLIENTE           │─────▶│   (porta 443)     │─────▶│   (porta 3001)   │
+│                     │      │                   │      │                  │
+│ /checkout → clique  │      │ /api/orders →     │      │ ordersRouter     │
+│ "Enviar Pedido"     │      │ proxy_pass :3001  │      │ INSERT INTO      │
+│                     │      │                   │      │ orders + items   │
+└─────────────────────┘      └───────────────────┘      └────────┬─────────┘
+                                                                  │
+                                                          ┌───────▼────────┐
+                                                          │  PostgreSQL    │
+                                                          │  (porta 5432)  │
+                                                          │                │
+                                                          │  orders ✓      │
+                                                          │  order_items ✓ │
+                                                          └────────────────┘
+```
+
+> **Se todos os 9 passos passaram sem erro**, os pedidos estão configurados corretamente. Faça um pedido real pelo catálogo para confirmar.
+
+---
+
 ## Solução de Problemas
 
 ### Erros mais comuns e como resolver
@@ -1642,6 +1937,9 @@ du -sh /var/www/catalogo/public/uploads/
 | Problema | Causa | Solução |
 |----------|-------|---------|
 | `relation "products" does not exist` | Tabelas não foram criadas | Execute o SQL da Etapa 4.2 |
+| `relation "orders" does not exist` | Tabela orders não criada | Veja [Configuração de Pedidos — Passo 1](#passo-1--verificar-se-as-tabelas-existem) |
+| `Cannot GET /api/orders` | Rota não registrada | Veja [Configuração de Pedidos — Passo 3](#passo-3--verificar-se-a-rota-está-registrada-no-servidor) |
+| Pedido não salva (sem erro visível) | `VITE_API_URL` errada ou build antigo | Veja [Configuração de Pedidos — Passo 8](#passo-8--verificar-o-frontend-vite_api_url) |
 | `connection refused` (porta 5432) | PostgreSQL parado | `systemctl start postgresql` |
 | `connection refused` (porta 3001) | Backend parado | `pm2 restart catalogo-api` |
 | `502 Bad Gateway` | Backend offline | `pm2 status` → reinicie se offline |
