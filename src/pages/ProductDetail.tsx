@@ -13,15 +13,15 @@ import { toast } from "@/hooks/use-toast";
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { product, loading } = useProductBySlug(slug);
-  const { settings } = useStoreSettings();
+  const { settings, loading: settingsLoading } = useStoreSettings();
   const [dialogOpen, setDialogOpen] = useState(false);
   const { buildPath } = useSellerPrefix();
 
   const whatsappNumber = settings.whatsapp_number || "5511999999999";
 
-  if (loading) {
+  if (loading || settingsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <p className="text-muted-foreground">Carregando produto...</p>
       </div>
     );

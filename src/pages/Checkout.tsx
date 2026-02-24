@@ -35,7 +35,7 @@ const EMPTY_DATA: CustomerData = {
 export default function Checkout() {
   const navigate = useNavigate();
   const { items, totalPrice, clearCart } = useCart();
-  const { settings } = useStoreSettings();
+  const { settings, loading: settingsLoading } = useStoreSettings();
   const { conditions } = usePaymentConditions();
   const { seller } = useSeller();
   const { buildPath } = useSellerPrefix();
@@ -71,6 +71,14 @@ export default function Checkout() {
   const [cepLoading, setCepLoading] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
   const [manualAddress, setManualAddress] = useState(false);
+
+  if (settingsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
