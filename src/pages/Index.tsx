@@ -115,12 +115,22 @@ const Index = () => {
           const filterType = settings.quick_filter_custom1_type || "manual";
           if (filterType === "promotion") return p.original_price && p.original_price > p.price;
           if (filterType === "category") return p.category_id === settings.quick_filter_custom1_type_category;
+          if (filterType === "recent") {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            return new Date(p.created_at) >= thirtyDaysAgo || (p as any).quick_filter_1 === true;
+          }
           return (p as any).quick_filter_1 === true;
         }
         if (activeQuickFilter === "custom2") {
           const filterType = settings.quick_filter_custom2_type || "manual";
           if (filterType === "promotion") return p.original_price && p.original_price > p.price;
           if (filterType === "category") return p.category_id === settings.quick_filter_custom2_type_category;
+          if (filterType === "recent") {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            return new Date(p.created_at) >= thirtyDaysAgo || (p as any).quick_filter_2 === true;
+          }
           return (p as any).quick_filter_2 === true;
         }
         return true;

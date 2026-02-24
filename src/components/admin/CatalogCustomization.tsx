@@ -104,6 +104,7 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
                   <span className="text-xs text-muted-foreground">
                     {filterType === "promotion" && "(Filtra promoções)"}
                     {filterType === "category" && "(Filtra por categoria)"}
+                    {filterType === "recent" && "(Últimos 30 dias)"}
                     {filterType === "manual" && "(Seleção manual)"}
                   </span>
                 </div>
@@ -167,7 +168,7 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
                   {/* Filter type selector (not for promo which is always "promotion") */}
                   {btn.key !== "promo" && (
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Tipo de Filtro</label>
+                    <label className="text-xs font-medium text-muted-foreground">Tipo de Filtro</label>
                       <select
                         value={filterType}
                         onChange={(e) => onUpdate(btn.filterTypeKey, e.target.value)}
@@ -176,6 +177,7 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
                         <option value="manual">Seleção manual de produtos</option>
                         <option value="category">Filtrar por categoria</option>
                         <option value="promotion">Promoções (com desconto)</option>
+                        <option value="recent">Últimos cadastrados (30 dias)</option>
                       </select>
                     </div>
                   )}
@@ -198,13 +200,20 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
                   )}
 
                   {/* Manual product selector */}
-                  {btn.key !== "promo" && filterType === "manual" && products && categories && onUpdateProduct && btn.productField && (
-                    <QuickFilterProductSelector
-                      products={products}
-                      categories={categories}
-                      fieldName={btn.productField}
-                      onUpdateProduct={onUpdateProduct}
-                    />
+                  {btn.key !== "promo" && (filterType === "manual" || filterType === "recent") && products && categories && onUpdateProduct && btn.productField && (
+                    <div>
+                      {filterType === "recent" && (
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Produtos dos últimos 30 dias aparecem automaticamente. Você também pode adicionar produtos manualmente abaixo:
+                        </p>
+                      )}
+                      <QuickFilterProductSelector
+                        products={products}
+                        categories={categories}
+                        fieldName={btn.productField}
+                        onUpdateProduct={onUpdateProduct}
+                      />
+                    </div>
                   )}
                 </div>
               )}
