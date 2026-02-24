@@ -498,6 +498,19 @@ export default function Checkout() {
                     </button>
                   ))}
                 </div>
+                {selectedPayment && selectedPayment.toLowerCase().includes("cartão") && (() => {
+                  const installments = Number(settings.catalog_installments_count) || 3;
+                  return installments > 1 ? (
+                    <div className="rounded-lg border bg-muted/50 p-3 text-sm text-center space-y-1">
+                      <p className="font-semibold">
+                        {installments}x de R$ {(finalTotal / installments).toFixed(2).replace(".", ",")}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Total: R$ {formatBRL(finalTotal)}
+                      </p>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             )}
 
