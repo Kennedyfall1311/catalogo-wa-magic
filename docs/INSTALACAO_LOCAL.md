@@ -606,7 +606,44 @@ mkdir -p public/uploads
 chmod 755 public/uploads
 ```
 
-### 5.4 — Criar o arquivo de configuração (.env)
+### 5.4 — ⚠️ PASSO CRÍTICO: Desativar o Modo Supabase
+
+> 🚨 **ATENÇÃO — LEIA ANTES DE CONTINUAR!**
+>
+> O repositório vem com um arquivo `.env` pré-configurado para o modo **Supabase** (nuvem).
+> Se você **não substituir** esse arquivo, o sistema **NÃO vai funcionar** na VPS — ele vai tentar se conectar ao Supabase e exibir tela em branco ou erros de conexão.
+
+**O que acontece se você pular este passo:**
+- O sistema ignora seu PostgreSQL local
+- Tenta conectar no Supabase e falha
+- Tela branca ou erros `Failed to fetch` no console
+- O painel admin não abre
+
+**Solução:** Você precisa **deletar o `.env` antigo** e criar um novo com `VITE_API_MODE=postgres`.
+
+#### Passo a passo:
+
+```bash
+# 1. DELETAR o .env que veio do repositório (modo Supabase)
+rm -f .env
+
+# 2. Verificar que foi deletado
+ls -la .env
+# ✅ Deve mostrar: "No such file or directory"
+```
+
+> 💡 **Por que deletar?** O `.env` original contém variáveis como `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` que fazem o sistema entrar no modo Supabase automaticamente. Ao deletar e criar um novo, garantimos que **apenas** as variáveis do modo PostgreSQL estarão presentes.
+
+#### Variável que controla o modo de operação:
+
+| Variável | Valor | O que faz |
+|---|---|---|
+| `VITE_API_MODE` | `postgres` | ✅ Usa banco PostgreSQL local + Express.js |
+| `VITE_API_MODE` | `supabase` (ou ausente) | ❌ Usa Supabase na nuvem (padrão) |
+
+> ⚠️ **Se a variável `VITE_API_MODE` não existir ou estiver vazia, o sistema entra no modo Supabase por padrão!** É por isso que é obrigatório definir `VITE_API_MODE=postgres` no `.env`.
+
+### 5.5 — Criar o arquivo de configuração (.env)
 
 Este é o arquivo mais importante. Ele diz ao sistema como se conectar ao banco e como funcionar.
 
@@ -661,7 +698,7 @@ VITE_ADMIN_API_KEY=SUA_CHAVE_SECRETA
 EOF
 ```
 
-### 5.5 — Editar o .env com seus dados reais
+### 5.6 — Editar o .env com seus dados reais
 
 Abra o arquivo para editar:
 
