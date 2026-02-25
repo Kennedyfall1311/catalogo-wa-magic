@@ -389,6 +389,7 @@ export const storageApi = {
         formData.append("file", file);
         const res = await fetch(`${API_URL}/upload/image`, {
           method: "POST",
+          headers: { ...authHeaders() },
           body: formData,
         });
         if (!res.ok) throw new Error(await res.text());
@@ -411,7 +412,7 @@ export const storageApi = {
       try {
         const res = await fetch(`${API_URL}/upload/base64`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify({ base64 }),
         });
         if (!res.ok) throw new Error(await res.text());

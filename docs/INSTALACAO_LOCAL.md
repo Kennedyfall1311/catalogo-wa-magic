@@ -69,6 +69,7 @@ Confirme que você tem tudo pronto:
 | — | [Referência: API REST Completa](#referência-api-rest-completa) | — |
 | — | [Comandos Úteis do Dia a Dia](#comandos-úteis-do-dia-a-dia) | — |
 | — | [**Configuração Completa de Pedidos (Orders)**](#configuração-completa-de-pedidos-orders) | — |
+| — | [**Configuração Completa de Imagens (Uploads)**](#configuração-completa-de-imagens-uploads) | — |
 | — | [Solução de Problemas](#solução-de-problemas) | — |
 | — | [Backup Automático](#backup-automático) | — |
 | — | [Resumo Rápido — Copiar e Colar](#resumo-rápido--copiar-e-colar) | — |
@@ -1927,6 +1928,265 @@ nginx -t && systemctl restart nginx
 ```
 
 > **Se todos os 9 passos passaram sem erro**, os pedidos estão configurados corretamente. Faça um pedido real pelo catálogo para confirmar.
+
+---
+
+## Configuração Completa de Imagens (Uploads)
+
+> 📸 **Esta seção explica como o sistema de imagens funciona na VPS** e resolve os erros mais comuns ao subir fotos de produtos, banners, logo da empresa, etc.
+
+### Como funciona o upload de imagens na VPS
+
+No modo VPS/PostgreSQL, as imagens **NÃO** usam nenhum serviço externo (cloud, S3, etc.). Tudo é salvo **localmente no disco do servidor**:
+
+```
+┌─────────────────────┐       ┌───────────────────┐       ┌──────────────────────┐
+│   PAINEL ADMIN      │ POST  │    EXPRESS.js      │ salva │   DISCO DA VPS       │
+│   (navegador)       │──────▶│  /api/upload/image │──────▶│  /var/www/catalogo/  │
+│                     │       │  /api/upload/base64│       │  public/uploads/     │
+│  Arrasta foto ou    │       │                    │       │                      │
+│  clica em upload    │       │  Recebe o arquivo, │       │  abc123.jpg          │
+│                     │       │  gera nome UUID,   │       │  def456.png          │
+│                     │       │  salva no disco    │       │  ghi789.webp         │
+└─────────────────────┘       └────────┬───────────┘       └──────────────────────┘
+                                       │                              │
+                                       │ retorna URL                  │
+                                       ▼                              │
+                              https://seudominio.com                  │
+                              /uploads/abc123.jpg  ◄──────────────────┘
+                                       │                    Nginx serve
+                                       │                    os arquivos
+                                       ▼
+                              Imagem exibida no site
+```
+
+### Onde cada tipo de imagem é usado
+
+| Tipo de Imagem | Onde aparece | Como subir | Endpoint usado |
+|---|---|---|---|
+| **Foto de produto** | Card do produto, página de detalhe | Admin → Produtos → Editar → Upload foto | `/api/upload/image` |
+| **Foto via planilha** | Importação em lote (Excel/CSV com Base64) | Admin → Importação → Importar Imagens | `/api/upload/base64` |
+| **Banner do carrossel** | Página inicial, topo do catálogo | Admin → Banners → Upload | `/api/upload/image` |
+| **Logo da empresa** | Cabeçalho do catálogo | Admin → Configurações → Logo | `/api/upload/image` |
+
+### Passo 1 — Verificar a pasta de uploads
+
+```bash
+# A pasta deve existir e ter permissão de escrita
+ls -la /var/www/catalogo/public/uploads/
+```
+
+**✅ Resultado esperado:** A pasta existe e mostra os arquivos (ou está vazia se ainda não houve uploads).
+
+**❌ Se a pasta NÃO existe:**
+
+```bash
+mkdir -p /var/www/catalogo/public/uploads
+chmod 755 /var/www/catalogo/public/uploads
+```
+
+> ⚠️ O backend cria a pasta automaticamente ao iniciar, mas se o processo não tiver permissão, ela não será criada.
+
+---
+
+### Passo 2 — Verificar a variável API_BASE_URL no .env
+
+Esta é a **causa mais comum** de imagens "quebrarem" na VPS. A URL da imagem é montada usando esta variável.
+
+```bash
+grep "API_BASE_URL" /var/www/catalogo/.env
+```
+
+**✅ Resultado correto:**
+
+```
+API_BASE_URL=https://seudominio.com.br
+```
+
+**❌ Erros comuns:**
+
+| Valor errado | Problema | O que acontece |
+|---|---|---|
+| `API_BASE_URL=http://localhost:3001` | URL aponta para localhost | Imagem funciona só dentro da VPS, não no navegador dos clientes |
+| `API_BASE_URL=https://seudominio.com.br/api` | Tem `/api` sobrando | URL fica `/api/uploads/foto.jpg` → 404 |
+| Variável não existe no .env | Backend usa `http://localhost:3001` como padrão | Mesmo problema do localhost |
+
+**A URL final da imagem fica assim:**
+```
+{API_BASE_URL}/uploads/{nome-do-arquivo}
+```
+
+**Exemplo correto:** `https://meucatalogo.com.br/uploads/a1b2c3d4.jpg`
+
+---
+
+### Passo 3 — Verificar as chaves de autenticação
+
+O upload de imagens é uma operação de **escrita** e exige autenticação. As duas variáveis abaixo **devem existir e ser idênticas**:
+
+```bash
+grep "API_KEY" /var/www/catalogo/.env
+```
+
+**✅ Resultado esperado:**
+
+```
+ADMIN_API_KEY=minha_chave_secreta_aqui
+VITE_ADMIN_API_KEY=minha_chave_secreta_aqui
+```
+
+**❌ Se falta alguma ou são diferentes:**
+- `ADMIN_API_KEY` → usada pelo **backend** para validar a requisição
+- `VITE_ADMIN_API_KEY` → usada pelo **frontend** para enviar junto com o upload
+
+Se as chaves estiverem diferentes, o backend rejeita o upload com **erro 401 (Unauthorized)** ou **403 (Forbidden)**.
+
+> ⚠️ Depois de alterar qualquer variável `VITE_*`, **sempre recompile:**
+> ```bash
+> cd /var/www/catalogo && npm run build && pm2 restart catalogo-api
+> ```
+
+---
+
+### Passo 4 — Verificar o Nginx (servir imagens)
+
+O Nginx precisa de um bloco `location /uploads/` para servir as imagens salvas no disco:
+
+```bash
+grep -A4 "location /uploads/" /etc/nginx/sites-available/catalogo
+```
+
+**✅ Resultado esperado:**
+
+```nginx
+location /uploads/ {
+    alias /var/www/catalogo/public/uploads/;
+    expires 30d;
+    add_header Cache-Control "public, immutable";
+    try_files $uri =404;
+}
+```
+
+**❌ Se NÃO existe esse bloco:**
+
+Edite o arquivo do Nginx e adicione dentro do bloco `server { }`:
+
+```bash
+nano /etc/nginx/sites-available/catalogo
+```
+
+Cole o bloco acima. Depois:
+
+```bash
+nginx -t && systemctl restart nginx
+```
+
+---
+
+### Passo 5 — Verificar o tamanho máximo de upload no Nginx
+
+```bash
+grep "client_max_body_size" /etc/nginx/sites-available/catalogo
+```
+
+**✅ Resultado esperado:**
+
+```
+client_max_body_size 50M;
+```
+
+**❌ Se não existe ou está com valor pequeno (ex: `1M`):**
+
+Adicione ou edite dentro do bloco `server { }`:
+
+```nginx
+client_max_body_size 50M;
+```
+
+Reinicie:
+
+```bash
+nginx -t && systemctl restart nginx
+```
+
+> Sem essa configuração, o Nginx bloqueia uploads maiores que 1MB com o erro **413 Request Entity Too Large**.
+
+---
+
+### Passo 6 — Testar o upload manualmente
+
+Execute o comando abaixo para testar se o upload está funcionando (substitua a chave):
+
+```bash
+# Criar uma imagem de teste simples (1x1 pixel PNG)
+echo "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" | base64 -d > /tmp/test.png
+
+# Enviar para o servidor
+curl -X POST http://localhost:3001/api/upload/image \
+  -H "Authorization: Bearer SUA_ADMIN_API_KEY" \
+  -F "file=@/tmp/test.png"
+```
+
+**✅ Resultado esperado:**
+
+```json
+{"url":"https://seudominio.com.br/uploads/abc123-uuid.png"}
+```
+
+**❌ Erros comuns:**
+
+| Erro | Causa | Solução |
+|---|---|---|
+| `401 Unauthorized` | Chave admin não enviada ou errada | Verifique `ADMIN_API_KEY` no `.env` e passe no header |
+| `403 Forbidden` | Chave inválida | As chaves `ADMIN_API_KEY` e `VITE_ADMIN_API_KEY` devem ser iguais |
+| `413 Entity Too Large` | Nginx bloqueando | Adicione `client_max_body_size 50M;` no Nginx |
+| `ENOENT: no such file or directory` | Pasta `/public/uploads/` não existe | `mkdir -p /var/www/catalogo/public/uploads` |
+| URL retorna `http://localhost:3001/...` | `API_BASE_URL` errada | Corrija no `.env` e reinicie: `pm2 restart catalogo-api` |
+
+---
+
+### Passo 7 — Verificar se a imagem está acessível
+
+Depois do upload, teste se a imagem carrega no navegador:
+
+```bash
+# Substitua pela URL retornada no passo anterior
+curl -I https://seudominio.com.br/uploads/abc123-uuid.png
+```
+
+**✅ Resultado esperado:** `HTTP/1.1 200 OK` com `Content-Type: image/png`
+
+**❌ Se retorna 404:**
+- Verifique se o arquivo existe: `ls /var/www/catalogo/public/uploads/`
+- Verifique o bloco `location /uploads/` no Nginx (Passo 4)
+- O `alias` no Nginx deve apontar para o caminho correto
+
+---
+
+### Resumo visual do fluxo de imagens
+
+```
+┌─────────────────────┐      ┌───────────────────┐      ┌──────────────────┐
+│   ADMIN NO          │      │      NGINX         │      │    EXPRESS.js    │
+│   NAVEGADOR         │      │   (porta 443)      │      │   (porta 3001)  │
+│                     │      │                    │      │                  │
+│  1. Clica "Upload"  │ POST │  /api/upload/image │ proxy│  Recebe arquivo  │
+│  2. Seleciona foto  │─────▶│  → proxy :3001     │─────▶│  Salva em disco  │
+│                     │      │                    │      │  Retorna URL     │
+│  3. Imagem aparece  │◀─────│  /uploads/foto.jpg │◀─────│                  │
+│     no catálogo     │  GET │  → serve do disco  │      │                  │
+└─────────────────────┘      └───────────────────┘      └──────────────────┘
+```
+
+### Checklist rápido — Upload de Imagens na VPS
+
+- [ ] Pasta existe: `/var/www/catalogo/public/uploads/` com permissão `755`
+- [ ] `.env` tem `API_BASE_URL=https://seudominio.com.br` (sem `/api`, sem barra final)
+- [ ] `.env` tem `ADMIN_API_KEY` e `VITE_ADMIN_API_KEY` com **mesmo valor**
+- [ ] Nginx tem bloco `location /uploads/` com `alias` correto
+- [ ] Nginx tem `client_max_body_size 50M;`
+- [ ] Backend rodando: `pm2 status` → `online`
+- [ ] Após mudar `.env`: `npm run build && pm2 restart catalogo-api`
 
 ---
 
