@@ -44,7 +44,7 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
           </div>
         </Link>
 
-        <div className="flex flex-col flex-1 px-2 py-3 text-center border-t space-y-1">
+        <div className="flex flex-col flex-1 px-2 py-3 text-center border-t gap-1">
           <Link to={buildPath(`/produto/${product.slug}`)}>
             <h3 className={`${nameSize} font-semibold uppercase leading-tight line-clamp-2 hover:underline`} style={textColor ? { color: textColor } : undefined}>
               {product.name}
