@@ -6,9 +6,81 @@
 
 ---
 
-## 🗺️ Visão Geral do que Vamos Fazer
+## 🧠 ENTENDA ANTES DE COMEÇAR: Frontend vs Backend
 
-Antes de começar, entenda o que será feito em cada etapa:
+> 🚨 **Leia esta seção inteira.** A maioria dos erros de instalação vem de não entender essa separação.
+
+O catálogo é composto por **DUAS partes independentes** que precisam estar funcionando juntas na sua VPS:
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                          SUA VPS                                     │
+│                                                                      │
+│  ┌──────────────────────────────┐  ┌──────────────────────────────┐  │
+│  │      🖥️ FRONTEND             │  │      ⚙️ BACKEND              │  │
+│  │      (o que o cliente vê)    │  │      (o que processa dados)  │  │
+│  │                              │  │                              │  │
+│  │  • Arquivos HTML/CSS/JS      │  │  • Servidor Express.js       │  │
+│  │  • Compilados com npm build  │  │  • Roda na porta 3001        │  │
+│  │  • Servidos pelo Nginx       │  │  • Conecta no PostgreSQL     │  │
+│  │  • Ficam em /dist/           │  │  • Ficam em /server/         │  │
+│  │                              │  │  • Gerenciado pelo PM2       │  │
+│  │  📁 /var/www/catalogo/dist/  │  │                              │  │
+│  └──────────────────────────────┘  │  📁 /var/www/catalogo/server/│
+│                                     └──────────────────────────────┘  │
+│                                                                      │
+│  ┌──────────────────────────────┐  ┌──────────────────────────────┐  │
+│  │      🌐 NGINX                │  │      🗄️ POSTGRESQL           │  │
+│  │      (porta 80/443)          │  │      (porta 5432)            │  │
+│  │                              │  │                              │  │
+│  │  • Serve o frontend          │  │  • Armazena produtos,        │  │
+│  │  • Proxy /api/ → Express     │  │    pedidos, configurações    │  │
+│  │  • Serve /uploads/ do disco  │  │  • 10 tabelas                │  │
+│  │  • SSL/HTTPS                 │  │                              │  │
+│  └──────────────────────────────┘  └──────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### ⚠️ REGRA DE OURO — Variáveis VITE_* são de COMPILAÇÃO
+
+Este é o conceito mais importante para entender:
+
+| Tipo de variável | Usado por | Quando entra em vigor | Exemplo |
+|---|---|---|---|
+| `VITE_*` (começa com VITE_) | **Frontend** (navegador do cliente) | Só no `npm run build` | `VITE_API_MODE`, `VITE_API_URL`, `VITE_ADMIN_API_KEY` |
+| Sem prefixo VITE_ | **Backend** (servidor Express.js) | Ao reiniciar com `pm2 restart` | `DATABASE_URL`, `PORT`, `ADMIN_API_KEY`, `API_BASE_URL` |
+
+> 🔴 **Se você mudar qualquer variável `VITE_*` no `.env` e NÃO rodar `npm run build`, a mudança NÃO terá efeito!**
+> As variáveis `VITE_*` são "embutidas" dentro dos arquivos JS durante a compilação. O frontend compilado não lê o `.env` — ele já tem os valores gravados.
+
+### Quando recompilar o frontend vs reiniciar o backend:
+
+```
+Mudou VITE_API_MODE, VITE_API_URL ou VITE_ADMIN_API_KEY?
+  → npm run build                    (recompila frontend)
+
+Mudou DATABASE_URL, PORT, ADMIN_API_KEY ou API_BASE_URL?
+  → pm2 restart catalogo-api          (reinicia backend)
+
+Mudou os dois tipos?
+  → npm run build && pm2 restart catalogo-api   (os dois)
+```
+
+### O que cada variável do `.env` faz:
+
+| Variável | Tipo | Quem usa | Para quê |
+|---|---|---|---|
+| `VITE_API_MODE=postgres` | Frontend | `api-client.ts` | **Muda o modo de Supabase para PostgreSQL**. Sem isso = tela branca |
+| `VITE_API_URL=https://dominio/api` | Frontend | `api-client.ts` | URL para onde o frontend envia as requisições de dados |
+| `VITE_ADMIN_API_KEY=chave` | Frontend | `api-client.ts` | Chave enviada no header Authorization das requisições de escrita |
+| `DATABASE_URL=postgresql://...` | Backend | `server/db.ts` | String de conexão com o banco PostgreSQL |
+| `PORT=3001` | Backend | `server/index.ts` | Porta onde o Express.js escuta |
+| `API_BASE_URL=https://dominio` | Backend | `server/routes/upload.ts` | Monta a URL pública das imagens após upload |
+| `ADMIN_API_KEY=chave` | Backend | `server/middleware/auth.ts` | Valida a chave recebida do frontend. **Deve ser IGUAL a `VITE_ADMIN_API_KEY`** |
+
+---
+
+## 🗺️ Fluxo de Requisições na VPS
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -2455,35 +2527,65 @@ mkdir -p public/uploads
 
 # 6. Criar rotas (seção 6: sellers.ts, orders.ts, atualizar index.ts)
 
-# 7. Configurar .env
+# ═══════════════════════════════════════════════════
+# 7. ⚠️ PASSO MAIS IMPORTANTE: CONFIGURAR O .env
+#
+#    DELETAR o .env que veio do repositório (modo Supabase)
+#    e criar um novo com modo PostgreSQL
+# ═══════════════════════════════════════════════════
+rm -f .env
+
+# Gerar chave de segurança
+ADMIN_KEY=$(openssl rand -hex 32)
+echo "Sua chave admin: $ADMIN_KEY"
+
 cat > .env << EOF
+# ═════════════════════════════════════════
+# FRONTEND (variáveis VITE_* = compilação)
+# Efeito: só após npm run build
+# ═════════════════════════════════════════
 VITE_API_MODE=postgres
 VITE_API_URL=https://MEU_DOMINIO/api
+VITE_ADMIN_API_KEY=$ADMIN_KEY
+
+# ═════════════════════════════════════════
+# BACKEND (sem VITE_ = runtime)
+# Efeito: após pm2 restart
+# ═════════════════════════════════════════
 DATABASE_URL=postgresql://postgres:MINHA_SENHA@localhost:5432/catalogo
 PORT=3001
 API_BASE_URL=https://MEU_DOMINIO
-ADMIN_API_KEY=MINHA_CHAVE
-VITE_ADMIN_API_KEY=MINHA_CHAVE
+ADMIN_API_KEY=$ADMIN_KEY
 EOF
 
-# 8. Build + Backend
-npm run build
-pm2 start "npx tsx server/index.ts" --name catalogo-api --cwd /var/www/catalogo
+# ═════════════════════════════════════════
+# 8. Compilar FRONTEND e iniciar BACKEND
+# ═════════════════════════════════════════
+npm run build                # ← Compila frontend (embute VITE_* no JS)
+pm2 start "npx tsx server/index.ts" --name catalogo-api --cwd /var/www/catalogo  # ← Inicia backend
 pm2 startup && pm2 save
 
-# 9. Firewall
+# 9. Verificar se o backend está funcionando
+curl http://localhost:3001/api/health
+# ✅ Deve retornar: {"status":"ok","mode":"postgres"}
+
+# 10. Firewall
 ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw enable
 
-# 10. Nginx (crie /etc/nginx/sites-available/catalogo conforme Etapa 9)
+# 11. Nginx (crie /etc/nginx/sites-available/catalogo conforme Etapa 9)
 ln -sf /etc/nginx/sites-available/catalogo /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl restart nginx
 
-# 11. SSL
+# 12. SSL
 apt install -y certbot python3-certbot-nginx
 certbot --nginx -d MEU_DOMINIO -d www.MEU_DOMINIO
 
-# 12. Pronto!
+# 13. Após SSL, recompilar frontend com URLs HTTPS
+sed -i 's|http://|https://|g' /var/www/catalogo/.env
+cd /var/www/catalogo && npm run build && pm2 restart catalogo-api
+
+# 14. Pronto!
 #     https://MEU_DOMINIO          → Catálogo
 #     https://MEU_DOMINIO/admin    → Admin
 #     https://MEU_DOMINIO/v/slug   → Vendedor
@@ -2496,15 +2598,18 @@ certbot --nginx -d MEU_DOMINIO -d www.MEU_DOMINIO
 
 ```
 /var/www/catalogo/
-├── .env                           ← Suas configurações (senhas, domínio, chave admin)
-├── dist/                          ← Frontend compilado (Nginx serve daqui)
-│   ├── index.html
-│   └── assets/
-├── server/                        ← Backend Express.js
+├── .env                           ← ⚠️ ÚNICO ARQUIVO QUE VOCÊ EDITA (senhas, domínio, chave admin)
+│                                     NÃO pode ser o .env original do repositório!
+│
+├── dist/                          ← 🖥️ FRONTEND compilado (Nginx serve daqui)
+│   ├── index.html                    Gerado por: npm run build
+│   └── assets/                       Contém as variáveis VITE_* embutidas
+│
+├── server/                        ← ⚙️ BACKEND Express.js (NÃO editar)
 │   ├── index.ts                   ← Servidor principal (porta 3001)
-│   ├── db.ts                      ← Conexão com PostgreSQL
+│   ├── db.ts                      ← Conexão com PostgreSQL (lê DATABASE_URL)
 │   ├── middleware/
-│   │   └── auth.ts                ← Validação da chave admin
+│   │   └── auth.ts                ← Validação da chave admin (lê ADMIN_API_KEY)
 │   └── routes/
 │       ├── products.ts            ← CRUD de produtos
 │       ├── categories.ts          ← CRUD de categorias
@@ -2513,13 +2618,62 @@ certbot --nginx -d MEU_DOMINIO -d www.MEU_DOMINIO
 │       ├── settings.ts            ← Configurações da loja
 │       ├── banners.ts             ← Banners do carrossel
 │       ├── payment-conditions.ts  ← Formas de pagamento
-│       ├── upload.ts              ← Upload de imagens
+│       ├── upload.ts              ← Upload de imagens (lê API_BASE_URL)
 │       └── auth.ts                ← Autenticação (admin aberto na VPS)
+│
+├── src/                           ← 📦 CÓDIGO-FONTE do frontend (NÃO editar)
+│   └── lib/
+│       └── api-client.ts          ← Lê VITE_API_MODE e decide: PostgreSQL ou Supabase
+│
 ├── public/
-│   └── uploads/                   ← Imagens de produtos, banners, logo
+│   └── uploads/                   ← 📸 Imagens de produtos, banners, logo
+│
 └── package.json
+```
+
+### Mapa: Arquivo → Variável → Efeito
+
+```
+.env
+ │
+ ├── VITE_API_MODE=postgres ──────→ src/lib/api-client.ts ──→ Usa REST em vez de Supabase
+ ├── VITE_API_URL=https://x/api ──→ src/lib/api-client.ts ──→ URL das chamadas de API
+ ├── VITE_ADMIN_API_KEY=abc ──────→ src/lib/api-client.ts ──→ Header Authorization
+ │       ↑                                                      ↓
+ │   npm run build embute                               Enviado ao backend
+ │   esses valores no JS                                        ↓
+ │                                                     server/middleware/auth.ts
+ │                                                     compara com ADMIN_API_KEY
+ │                                                              ↓
+ ├── ADMIN_API_KEY=abc ───────────→ server/middleware/auth.ts → Valida escrita
+ ├── DATABASE_URL=postgresql://... → server/db.ts ────────────→ Conecta no banco
+ ├── PORT=3001 ───────────────────→ server/index.ts ──────────→ Porta do Express
+ └── API_BASE_URL=https://x ──────→ server/routes/upload.ts ──→ URL das imagens
 ```
 
 ---
 
-*Documentação atualizada em 23/02/2026.*
+## Diagnóstico Rápido — O Sistema Está no Modo Correto?
+
+Execute estes 3 comandos na VPS para verificar:
+
+```bash
+# 1. O .env tem modo postgres?
+grep "VITE_API_MODE" /var/www/catalogo/.env
+# ✅ VITE_API_MODE=postgres
+# ❌ Se não aparecer nada → modo Supabase (vai dar tela branca)
+
+# 2. O frontend foi compilado COM as variáveis VITE_* corretas?
+grep -o "VITE_API_MODE.*postgres" /var/www/catalogo/dist/assets/*.js | head -1
+# ✅ Se aparecer algo → frontend compilado com modo postgres
+# ❌ Se não aparecer → precisa rodar: npm run build
+
+# 3. O backend responde?
+curl -s http://localhost:3001/api/health
+# ✅ {"status":"ok","mode":"postgres"}
+# ❌ Se não responder → pm2 restart catalogo-api
+```
+
+---
+
+*Documentação atualizada em 26/02/2026.*
