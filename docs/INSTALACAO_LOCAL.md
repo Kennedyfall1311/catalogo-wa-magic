@@ -34,6 +34,102 @@ Antes de começar, entenda o que será feito em cada etapa:
 
 ---
 
+## 📋 REFERÊNCIA RÁPIDA — Arquivos que Precisam ser Alterados para Modo PostgreSQL
+
+> **Se você está migrando do modo Supabase (padrão) para PostgreSQL local/VPS, estes são TODOS os arquivos envolvidos.**
+> Você **não precisa editar código-fonte** — apenas o arquivo `.env`. Mas é importante entender o que cada arquivo faz.
+
+### 🔴 Arquivo que VOCÊ PRECISA CRIAR/EDITAR:
+
+| # | Arquivo | O que fazer | Por quê |
+|---|---------|-------------|---------|
+| 1 | **`.env`** (raiz do projeto) | **DELETAR o original** e **criar um novo** | O `.env` do repositório tem variáveis do Supabase. Precisa ser substituído com as variáveis do modo PostgreSQL |
+
+### Conteúdo OBRIGATÓRIO do `.env` para modo PostgreSQL:
+
+```env
+# ⚠️ OBRIGATÓRIO — sem isso o sistema usa Supabase
+VITE_API_MODE=postgres
+
+# URL da sua API (seu domínio ou IP)
+VITE_API_URL=https://SEU_DOMINIO/api
+
+# Conexão com o banco PostgreSQL
+DATABASE_URL=postgresql://postgres:SUA_SENHA@localhost:5432/catalogo
+
+# Porta do backend Express.js
+PORT=3001
+
+# URL base para servir imagens
+API_BASE_URL=https://SEU_DOMINIO
+
+# Chaves de segurança (devem ser IGUAIS)
+# Gere com: openssl rand -hex 32
+ADMIN_API_KEY=SUA_CHAVE_AQUI
+VITE_ADMIN_API_KEY=SUA_CHAVE_AQUI
+```
+
+### 🟢 Arquivos que JÁ FUNCIONAM automaticamente (NÃO editar):
+
+| # | Arquivo | Função | Como funciona |
+|---|---------|--------|---------------|
+| 1 | `src/lib/api-client.ts` | Camada de abstração da API | Lê `VITE_API_MODE` do `.env`. Se for `"postgres"`, redireciona todas as chamadas para o Express.js. **Não precisa editar.** |
+| 2 | `server/index.ts` | Servidor Express.js (backend) | Já configurado com todas as rotas REST. Lê `PORT` do `.env`. **Não precisa editar.** |
+| 3 | `server/db.ts` | Conexão com PostgreSQL | Lê `DATABASE_URL` do `.env`. **Não precisa editar.** |
+| 4 | `server/middleware/auth.ts` | Autenticação do admin | Lê `ADMIN_API_KEY` do `.env`. **Não precisa editar.** |
+| 5 | `server/routes/*.ts` | Rotas da API REST | Produtos, categorias, banners, uploads, etc. **Não precisa editar.** |
+
+### 🧩 Como a troca de modo funciona internamente:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  .env contém VITE_API_MODE=postgres                         │
+│         ↓                                                   │
+│  src/lib/api-client.ts lê essa variável                     │
+│         ↓                                                   │
+│  isPostgresMode() retorna TRUE                              │
+│         ↓                                                   │
+│  Todas as funções (productsApi, categoriesApi, etc.)         │
+│  fazem chamadas REST → http://SEU_DOMINIO/api/...           │
+│         ↓                                                   │
+│  server/index.ts (Express) recebe e processa                │
+│         ↓                                                   │
+│  server/db.ts conecta no PostgreSQL via DATABASE_URL        │
+└─────────────────────────────────────────────────────────────┘
+
+Se VITE_API_MODE NÃO existir ou for "supabase":
+┌─────────────────────────────────────────────────────────────┐
+│  api-client.ts usa o cliente Supabase diretamente           │
+│  (ignora completamente o servidor Express.js)               │
+│  → Precisa de VITE_SUPABASE_URL e VITE_SUPABASE_KEY        │
+│  → NÃO funciona em VPS sem Supabase configurado            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### ❌ Variáveis que NÃO devem existir no `.env` do modo PostgreSQL:
+
+| Variável | Por quê remover |
+|----------|-----------------|
+| `VITE_SUPABASE_URL` | Faz o sistema tentar conectar ao Supabase |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Idem |
+| `VITE_SUPABASE_PROJECT_ID` | Idem |
+
+> 🚨 **Se qualquer uma dessas variáveis existir no `.env`, o Supabase client será inicializado e pode causar erros mesmo com `VITE_API_MODE=postgres`.**
+
+### 🔧 Comando rápido para verificar se está no modo correto:
+
+```bash
+# Na raiz do projeto, execute:
+grep "VITE_API_MODE" .env
+
+# ✅ Resultado esperado:
+# VITE_API_MODE=postgres
+
+# ❌ Se não aparecer nada, o modo PostgreSQL NÃO está ativo!
+```
+
+---
+
 ## ✅ Checklist — O que Você Precisa Antes de Começar
 
 Confirme que você tem tudo pronto:
