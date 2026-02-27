@@ -202,6 +202,170 @@ grep "VITE_API_MODE" .env
 
 ---
 
+## 🔌 PORTAS — Quais Abrir e Quais Manter Fechadas
+
+> Esta seção lista **todas** as portas envolvidas no funcionamento do catálogo na VPS.
+
+### Portas que devem estar ABERTAS no firewall (UFW):
+
+| Porta | Protocolo | Serviço | Por quê abrir |
+|-------|-----------|---------|---------------|
+| **22** | TCP | SSH | Acesso remoto à VPS (terminal) |
+| **80** | TCP | HTTP / Nginx | Acesso ao site (redireciona para HTTPS) |
+| **443** | TCP | HTTPS / Nginx | Acesso seguro ao site (SSL) |
+
+### Portas que devem estar FECHADAS no firewall (acesso apenas interno):
+
+| Porta | Protocolo | Serviço | Por quê FECHAR |
+|-------|-----------|---------|----------------|
+| **3001** | TCP | Express.js (Backend API) | O Nginx faz proxy internamente. Expor ao público é risco de segurança |
+| **5432** | TCP | PostgreSQL (Banco de dados) | Acesso deve ser apenas local (127.0.0.1). Expor = invasão |
+
+### Comandos para configurar o firewall:
+
+```bash
+# ⚠️ IMPORTANTE: Libere SSH PRIMEIRO para não perder acesso!
+ufw allow 22/tcp     # SSH
+ufw allow 80/tcp     # HTTP
+ufw allow 443/tcp    # HTTPS
+ufw deny 3001/tcp    # Express.js — bloquear acesso externo
+ufw deny 5432/tcp    # PostgreSQL — bloquear acesso externo
+ufw enable           # Ativar firewall
+```
+
+### Verificar portas abertas:
+
+```bash
+ufw status verbose
+# Deve mostrar:
+# 22/tcp    ALLOW IN    Anywhere
+# 80/tcp    ALLOW IN    Anywhere
+# 443/tcp   ALLOW IN    Anywhere
+# 3001/tcp  DENY IN     Anywhere
+# 5432/tcp  DENY IN     Anywhere
+```
+
+### Como as portas se comunicam internamente:
+
+```
+Internet (porta 443) → Nginx → /api/* → proxy_pass → localhost:3001 (Express.js)
+                                                              ↓
+                                                      localhost:5432 (PostgreSQL)
+                       Nginx → /* → arquivos estáticos (dist/)
+                       Nginx → /uploads/* → imagens do disco
+```
+
+> 🔒 **Regra de ouro:** Apenas o Nginx (porta 80/443) fica exposto à internet. Express.js e PostgreSQL só aceitam conexões de localhost.
+
+---
+
+## 👤 CONFIGURAÇÃO DO ADMIN — Como Acessar e Proteger o Painel
+
+> O painel administrativo é acessado em `https://SEU_DOMINIO/admin`.
+
+### Como funciona o admin no modo PostgreSQL/VPS:
+
+No modo VPS (PostgreSQL direto), **não existe sistema de login com email/senha**. O admin é protegido por uma **chave de API** (`ADMIN_API_KEY`) que autoriza operações de escrita.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  MODO SUPABASE (nuvem)           vs    MODO POSTGRESQL (VPS)        │
+│                                                                     │
+│  • Login com email/senha                • Admin sempre aberto       │
+│  • Tabela user_roles                    • Protegido pela API KEY    │
+│  • Autenticação via JWT                 • Pode adicionar htpasswd   │
+│  • Precisa cadastrar admin              • Sem cadastro necessário   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### O que a API KEY protege:
+
+| Operação | Protegida? | Onde a chave é validada |
+|----------|------------|------------------------|
+| **Ler** produtos, categorias, banners | ❌ Não (público) | — |
+| **Criar/editar/excluir** produtos | ✅ Sim | `server/middleware/auth.ts` |
+| **Criar/editar/excluir** categorias | ✅ Sim | `server/middleware/auth.ts` |
+| **Upload** de imagens | ✅ Sim | `server/middleware/auth.ts` |
+| **Alterar** configurações da loja | ✅ Sim | `server/middleware/auth.ts` |
+| **Criar/editar** banners | ✅ Sim | `server/middleware/auth.ts` |
+| **Criar/editar** vendedores | ✅ Sim (se `requireAdmin` estiver nas rotas) | `server/middleware/auth.ts` |
+
+### Como a autenticação funciona passo a passo:
+
+```
+1. Admin clica em "Salvar produto" no painel
+   ↓
+2. Frontend (api-client.ts) lê VITE_ADMIN_API_KEY do build
+   ↓
+3. Envia requisição POST /api/products com header:
+   Authorization: Bearer <VITE_ADMIN_API_KEY>
+   ↓
+4. Nginx recebe e faz proxy para Express.js (porta 3001)
+   ↓
+5. server/middleware/auth.ts (requireAdmin) extrai o token do header
+   ↓
+6. Compara com a variável ADMIN_API_KEY do .env do servidor
+   ↓
+7. Se forem IGUAIS → permite a operação
+   Se forem DIFERENTES → retorna 403 Forbidden
+```
+
+### ⚠️ Regra mais importante:
+
+```
+ADMIN_API_KEY     (no .env do servidor)  = abc123xyz
+VITE_ADMIN_API_KEY (no .env do frontend) = abc123xyz
+                                           ^^^^^^^^
+                                     DEVEM SER IGUAIS!
+```
+
+Se forem diferentes:
+- O admin abre normalmente (é só uma página web)
+- Mas **nada salva** — todas as operações de escrita retornam erro 401/403
+- No console do navegador aparece: `Unauthorized` ou `Forbidden`
+
+### Como gerar a chave:
+
+```bash
+# Gerar chave segura de 64 caracteres hexadecimais
+openssl rand -hex 32
+
+# Exemplo de saída:
+# a7f3b9c2d1e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0
+```
+
+### (Opcional) Proteção extra com senha no Nginx:
+
+Para adicionar uma camada de autenticação HTTP Basic no `/admin`:
+
+```bash
+# 1. Instalar ferramenta
+apt install -y apache2-utils
+
+# 2. Criar usuário e senha (vai pedir para digitar a senha)
+htpasswd -c /etc/nginx/.htpasswd admin
+
+# 3. Adicionar no Nginx (/etc/nginx/sites-available/catalogo):
+#    Dentro do bloco server { }, adicione:
+```
+
+```nginx
+location /admin {
+    auth_basic "Área Administrativa";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+    try_files $uri $uri/ /index.html;
+}
+```
+
+```bash
+# 4. Reiniciar Nginx
+nginx -t && systemctl restart nginx
+```
+
+> Com isso, ao acessar `/admin` o navegador pede usuário e senha **antes** de carregar a página.
+
+---
+
 ## ✅ Checklist — O que Você Precisa Antes de Começar
 
 Confirme que você tem tudo pronto:
@@ -2676,4 +2840,89 @@ curl -s http://localhost:3001/api/health
 
 ---
 
-*Documentação atualizada em 26/02/2026.*
+---
+
+## 📋 CHECKLIST FINAL COMPLETO — Antes de Declarar "Pronto"
+
+Use este checklist para garantir que **tudo** está configurado:
+
+### Infraestrutura:
+- [ ] Ubuntu 22.04+ ou Debian 12+ instalado
+- [ ] Node.js 20+ instalado (`node -v`)
+- [ ] PM2 instalado globalmente (`pm2 -v`)
+- [ ] PostgreSQL 15+ rodando (`systemctl status postgresql`)
+- [ ] Nginx rodando (`systemctl status nginx`)
+
+### Banco de dados:
+- [ ] Database `catalogo` criada
+- [ ] 10 tabelas criadas (verificar com `\dt` no psql)
+- [ ] Dados iniciais em `store_settings` inseridos
+- [ ] Senha do postgres configurada
+
+### Arquivos do projeto:
+- [ ] Projeto clonado em `/var/www/catalogo/`
+- [ ] `npm install` executado sem erros
+- [ ] Pasta `public/uploads/` criada com permissão 755
+- [ ] Arquivo `server/routes/sellers.ts` existe
+- [ ] Arquivo `server/routes/orders.ts` existe
+- [ ] `server/index.ts` importa e registra sellers e orders
+
+### Configuração (.env) — **ÚNICO ARQUIVO EDITADO MANUALMENTE**:
+- [ ] `.env` original do repositório foi **DELETADO** (`rm -f .env`)
+- [ ] Novo `.env` criado com **todas** as 7 variáveis:
+  - [ ] `VITE_API_MODE=postgres` ← **obrigatório, sem isso = tela branca**
+  - [ ] `VITE_API_URL=https://SEU_DOMINIO/api`
+  - [ ] `VITE_ADMIN_API_KEY=<chave gerada>`
+  - [ ] `DATABASE_URL=postgresql://postgres:SENHA@localhost:5432/catalogo`
+  - [ ] `PORT=3001`
+  - [ ] `API_BASE_URL=https://SEU_DOMINIO` (sem /api, sem barra final)
+  - [ ] `ADMIN_API_KEY=<mesma chave do VITE_ADMIN_API_KEY>`
+- [ ] **Nenhuma** variável `VITE_SUPABASE_*` presente no `.env`
+
+### Frontend:
+- [ ] `npm run build` executado **DEPOIS** de configurar o `.env`
+- [ ] Pasta `dist/` existe com `index.html` e `assets/`
+- [ ] Variáveis VITE_* embutidas no build (verificar com grep)
+
+### Backend:
+- [ ] PM2 rodando: `pm2 status` → `catalogo-api` online
+- [ ] Health check: `curl localhost:3001/api/health` → `{"status":"ok","mode":"postgres"}`
+- [ ] PM2 configurado para iniciar no boot: `pm2 startup && pm2 save`
+
+### Nginx:
+- [ ] Arquivo `/etc/nginx/sites-available/catalogo` criado com:
+  - [ ] `server_name` com seu domínio
+  - [ ] `root /var/www/catalogo/dist;`
+  - [ ] `location / { try_files $uri $uri/ /index.html; }`
+  - [ ] `location /api/ { proxy_pass http://127.0.0.1:3001; }`
+  - [ ] `location /uploads/ { alias /var/www/catalogo/public/uploads/; }`
+  - [ ] `client_max_body_size 50M;`
+- [ ] Link simbólico criado em `sites-enabled`
+- [ ] Default removido de `sites-enabled`
+- [ ] `nginx -t` sem erros
+
+### Firewall (UFW):
+- [ ] Porta 22 (SSH) — ABERTA
+- [ ] Porta 80 (HTTP) — ABERTA
+- [ ] Porta 443 (HTTPS) — ABERTA
+- [ ] Porta 3001 (Express) — **FECHADA** para acesso externo
+- [ ] Porta 5432 (PostgreSQL) — **FECHADA** para acesso externo
+
+### SSL/HTTPS (se tiver domínio):
+- [ ] Certbot instalado
+- [ ] Certificado gerado com `certbot --nginx`
+- [ ] URLs no `.env` atualizadas para `https://`
+- [ ] Frontend recompilado após mudança de URL
+- [ ] Renovação automática funciona: `certbot renew --dry-run`
+
+### Testes finais:
+- [ ] `https://SEU_DOMINIO` → Catálogo carrega
+- [ ] `https://SEU_DOMINIO/admin` → Painel admin carrega
+- [ ] Criar produto pelo admin → salva sem erro
+- [ ] Upload de imagem → aparece no catálogo
+- [ ] `https://SEU_DOMINIO/api/products` → retorna JSON
+- [ ] `https://SEU_DOMINIO/tv` → Modo TV carrega
+
+---
+
+*Documentação atualizada em 27/02/2026.*
