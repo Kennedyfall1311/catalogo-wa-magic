@@ -106,98 +106,184 @@ Mudou os dois tipos?
 
 ---
 
-## 📋 REFERÊNCIA RÁPIDA — Arquivos que Precisam ser Alterados para Modo PostgreSQL
+## 📋 TODOS OS ARQUIVOS ENVOLVIDOS NO MODO POSTGRESQL
 
-> **Se você está migrando do modo Supabase (padrão) para PostgreSQL local/VPS, estes são TODOS os arquivos envolvidos.**
-> Você **não precisa editar código-fonte** — apenas o arquivo `.env`. Mas é importante entender o que cada arquivo faz.
+> Esta é a referência completa de **cada arquivo** que participa do funcionamento do modo PostgreSQL.
+> Separados em: o que **VOCÊ edita**, o que **já vem pronto** e o que **precisa existir na VPS**.
 
-### 🔴 Arquivo que VOCÊ PRECISA CRIAR/EDITAR:
+---
 
-| # | Arquivo | O que fazer | Por quê |
-|---|---------|-------------|---------|
-| 1 | **`.env`** (raiz do projeto) | **DELETAR o original** e **criar um novo** | O `.env` do repositório tem variáveis do Supabase. Precisa ser substituído com as variáveis do modo PostgreSQL |
+### 🔴 ARQUIVO QUE VOCÊ PRECISA CRIAR/EDITAR (apenas 1):
 
-### Conteúdo OBRIGATÓRIO do `.env` para modo PostgreSQL:
+| # | Arquivo | Ação necessária | Por quê |
+|---|---------|-----------------|---------|
+| 1 | **`.env`** (raiz do projeto) | **DELETAR o original** e **criar um novo** | O `.env` do repositório tem variáveis do Supabase que impedem o modo PostgreSQL de funcionar |
+
+#### Conteúdo COMPLETO do `.env` para modo PostgreSQL (7 variáveis obrigatórias):
 
 ```env
-# ⚠️ OBRIGATÓRIO — sem isso o sistema usa Supabase
+# ═══════════════════════════════════════════════════
+# VARIÁVEIS DO FRONTEND (prefixo VITE_)
+# ⚠️ Só entram em vigor após: npm run build
+# ═══════════════════════════════════════════════════
+
+# 1. OBRIGATÓRIO — troca de Supabase para PostgreSQL
 VITE_API_MODE=postgres
 
-# URL da sua API (seu domínio ou IP)
+# 2. URL completa da API (seu domínio + /api)
 VITE_API_URL=https://SEU_DOMINIO/api
 
-# Conexão com o banco PostgreSQL
+# 3. Chave de segurança do admin (frontend envia no header)
+VITE_ADMIN_API_KEY=SUA_CHAVE_AQUI
+
+# ═══════════════════════════════════════════════════
+# VARIÁVEIS DO BACKEND (sem prefixo VITE_)
+# ⚠️ Só entram em vigor após: pm2 restart catalogo-api
+# ═══════════════════════════════════════════════════
+
+# 4. Conexão com o banco PostgreSQL
 DATABASE_URL=postgresql://postgres:SUA_SENHA@localhost:5432/catalogo
 
-# Porta do backend Express.js
+# 5. Porta do Express.js
 PORT=3001
 
-# URL base para servir imagens
+# 6. URL base para montar URLs de imagens
 API_BASE_URL=https://SEU_DOMINIO
 
-# Chaves de segurança (devem ser IGUAIS)
-# Gere com: openssl rand -hex 32
+# 7. Chave de segurança do admin (backend valida)
+#    ⚠️ DEVE SER IGUAL À VITE_ADMIN_API_KEY
 ADMIN_API_KEY=SUA_CHAVE_AQUI
-VITE_ADMIN_API_KEY=SUA_CHAVE_AQUI
 ```
 
-### 🟢 Arquivos que JÁ FUNCIONAM automaticamente (NÃO editar):
+#### ❌ Variáveis que NÃO devem existir no `.env`:
 
-| # | Arquivo | Função | Como funciona |
-|---|---------|--------|---------------|
-| 1 | `src/lib/api-client.ts` | Camada de abstração da API | Lê `VITE_API_MODE` do `.env`. Se for `"postgres"`, redireciona todas as chamadas para o Express.js. **Não precisa editar.** |
-| 2 | `server/index.ts` | Servidor Express.js (backend) | Já configurado com todas as rotas REST. Lê `PORT` do `.env`. **Não precisa editar.** |
-| 3 | `server/db.ts` | Conexão com PostgreSQL | Lê `DATABASE_URL` do `.env`. **Não precisa editar.** |
-| 4 | `server/middleware/auth.ts` | Autenticação do admin | Lê `ADMIN_API_KEY` do `.env`. **Não precisa editar.** |
-| 5 | `server/routes/*.ts` | Rotas da API REST | Produtos, categorias, banners, uploads, etc. **Não precisa editar.** |
+| Variável proibida | Por quê remover |
+|-------------------|-----------------|
+| `VITE_SUPABASE_URL` | Faz o sistema inicializar o Supabase client |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Idem |
+| `VITE_SUPABASE_PROJECT_ID` | Idem |
+
+> 🚨 Se qualquer `VITE_SUPABASE_*` existir, o sistema pode falhar mesmo com `VITE_API_MODE=postgres`.
+
+---
+
+### 🟢 ARQUIVOS DO BACKEND (já vêm prontos no repositório — NÃO editar):
+
+| # | Arquivo | Função | Variável que lê do `.env` |
+|---|---------|--------|---------------------------|
+| 1 | **`server/index.ts`** | Servidor Express.js principal — registra todas as rotas | `PORT` |
+| 2 | **`server/db.ts`** | Pool de conexão com PostgreSQL | `DATABASE_URL` |
+| 3 | **`server/middleware/auth.ts`** | Middleware que valida `Authorization: Bearer <key>` | `ADMIN_API_KEY` |
+| 4 | **`server/routes/products.ts`** | CRUD de produtos (GET, POST, PUT, DELETE, upsert) | — |
+| 5 | **`server/routes/categories.ts`** | CRUD de categorias + batch insert | — |
+| 6 | **`server/routes/sellers.ts`** | CRUD de vendedores + busca por slug | — |
+| 7 | **`server/routes/orders.ts`** | CRUD de pedidos com transação (order + items) | — |
+| 8 | **`server/routes/banners.ts`** | CRUD de banners do carrossel | — |
+| 9 | **`server/routes/payment-conditions.ts`** | CRUD de condições de pagamento | — |
+| 10 | **`server/routes/settings.ts`** | Leitura/escrita de configurações (key/value) | — |
+| 11 | **`server/routes/upload.ts`** | Upload de imagens (file e base64) | `API_BASE_URL` |
+| 12 | **`server/routes/auth.ts`** | Sessão mock (admin sempre ativo no modo VPS) | — |
+
+---
+
+### 🟡 ARQUIVO DO FRONTEND QUE FAZ A TROCA DE MODO (NÃO editar):
+
+| # | Arquivo | Função | Variáveis que lê |
+|---|---------|--------|-------------------|
+| 1 | **`src/lib/api-client.ts`** | Camada de abstração — decide entre Supabase e REST | `VITE_API_MODE`, `VITE_API_URL`, `VITE_ADMIN_API_KEY` |
+
+Este arquivo contém a lógica que lê `VITE_API_MODE`:
+- Se `postgres` → todas as chamadas vão para o Express.js via REST
+- Se ausente/`supabase` → usa o cliente Supabase diretamente
+
+---
+
+### 🔵 ARQUIVOS DE CONFIGURAÇÃO DA VPS (criados manualmente na VPS):
+
+| # | Arquivo | O que faz | Quando criar |
+|---|---------|-----------|--------------|
+| 1 | **`/etc/nginx/sites-available/catalogo`** | Config do Nginx — serve frontend, proxy API, serve uploads | Etapa 9 |
+| 2 | **Banco de dados `catalogo`** | 10 tabelas + índices + triggers + dados iniciais | Etapa 4 |
+
+---
+
+### 📊 MAPA COMPLETO: Arquivo ↔ Variável ↔ Efeito
+
+```
+.env (ÚNICO ARQUIVO QUE VOCÊ EDITA)
+ │
+ │  ┌──── FRONTEND (compilação — npm run build) ────────────────────────┐
+ │  │                                                                    │
+ ├── VITE_API_MODE=postgres ──→ src/lib/api-client.ts                   │
+ │                                isPostgresMode() = true               │
+ │                                Todas as APIs usam REST               │
+ │                                                                      │
+ ├── VITE_API_URL=https://x/api → src/lib/api-client.ts                │
+ │                                URL base das requisições              │
+ │                                                                      │
+ ├── VITE_ADMIN_API_KEY=abc ───→ src/lib/api-client.ts                  │
+ │                                Header: Authorization: Bearer abc     │
+ │  └───────────────────────────────────────────────────────────────────┘
+ │
+ │  ┌──── BACKEND (runtime — pm2 restart) ──────────────────────────────┐
+ │  │                                                                    │
+ ├── DATABASE_URL=postgresql://… → server/db.ts                         │
+ │                                  Pool de conexão                     │
+ │                                                                      │
+ ├── PORT=3001 ────────────────→ server/index.ts                        │
+ │                                Porta do Express                      │
+ │                                                                      │
+ ├── API_BASE_URL=https://x ───→ server/routes/upload.ts               │
+ │                                URL pública das imagens               │
+ │                                                                      │
+ └── ADMIN_API_KEY=abc ────────→ server/middleware/auth.ts              │
+                                  Valida o token do frontend            │
+     └──────────────────────────────────────────────────────────────────┘
+```
 
 ### 🧩 Como a troca de modo funciona internamente:
 
 ```
+MODO POSTGRESQL (VITE_API_MODE=postgres):
 ┌─────────────────────────────────────────────────────────────┐
-│  .env contém VITE_API_MODE=postgres                         │
-│         ↓                                                   │
-│  src/lib/api-client.ts lê essa variável                     │
-│         ↓                                                   │
-│  isPostgresMode() retorna TRUE                              │
-│         ↓                                                   │
-│  Todas as funções (productsApi, categoriesApi, etc.)         │
-│  fazem chamadas REST → http://SEU_DOMINIO/api/...           │
-│         ↓                                                   │
-│  server/index.ts (Express) recebe e processa                │
-│         ↓                                                   │
-│  server/db.ts conecta no PostgreSQL via DATABASE_URL        │
+│  api-client.ts → isPostgresMode() = true                    │
+│  → productsApi.fetchAll() → fetch("https://x/api/products")│
+│  → Express.js recebe → pool.query("SELECT * FROM products")│
+│  → PostgreSQL retorna dados → Express envia JSON            │
 └─────────────────────────────────────────────────────────────┘
 
-Se VITE_API_MODE NÃO existir ou for "supabase":
+MODO SUPABASE (padrão, quando VITE_API_MODE não existe):
 ┌─────────────────────────────────────────────────────────────┐
-│  api-client.ts usa o cliente Supabase diretamente           │
-│  (ignora completamente o servidor Express.js)               │
-│  → Precisa de VITE_SUPABASE_URL e VITE_SUPABASE_KEY        │
-│  → NÃO funciona em VPS sem Supabase configurado            │
+│  api-client.ts → isPostgresMode() = false                   │
+│  → productsApi.fetchAll() → supabase.from("products")...    │
+│  → Supabase cloud processa e retorna dados                  │
+│  → NÃO funciona em VPS sem Supabase configurado!            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### ❌ Variáveis que NÃO devem existir no `.env` do modo PostgreSQL:
-
-| Variável | Por quê remover |
-|----------|-----------------|
-| `VITE_SUPABASE_URL` | Faz o sistema tentar conectar ao Supabase |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Idem |
-| `VITE_SUPABASE_PROJECT_ID` | Idem |
-
-> 🚨 **Se qualquer uma dessas variáveis existir no `.env`, o Supabase client será inicializado e pode causar erros mesmo com `VITE_API_MODE=postgres`.**
-
-### 🔧 Comando rápido para verificar se está no modo correto:
+### 🔧 Comandos de verificação rápida:
 
 ```bash
-# Na raiz do projeto, execute:
+# 1. O .env tem modo postgres?
 grep "VITE_API_MODE" .env
+# ✅ VITE_API_MODE=postgres
 
-# ✅ Resultado esperado:
-# VITE_API_MODE=postgres
+# 2. Tem variáveis Supabase indevidas?
+grep "VITE_SUPABASE" .env
+# ✅ Não deve retornar NADA
 
-# ❌ Se não aparecer nada, o modo PostgreSQL NÃO está ativo!
+# 3. As chaves admin são iguais?
+grep "API_KEY" .env
+# ✅ ADMIN_API_KEY e VITE_ADMIN_API_KEY devem ter o mesmo valor
+
+# 4. O frontend foi compilado com modo postgres?
+grep -o "postgres" /var/www/catalogo/dist/assets/*.js | head -1
+# ✅ Se retornar algo → build correto
+# ❌ Se não retornar → precisa rodar: npm run build
+
+# 5. O backend responde?
+curl -s http://localhost:3001/api/health
+# ✅ {"status":"ok","mode":"postgres"}
 ```
 
 ---
@@ -389,7 +475,7 @@ Confirme que você tem tudo pronto:
 | 3 | [Instalar e Configurar PostgreSQL](#etapa-3--instalar-e-configurar-postgresql) | 5 min |
 | 4 | [Criar o Banco de Dados e as Tabelas](#etapa-4--criar-o-banco-de-dados-e-as-tabelas) | 5 min |
 | 5 | [Baixar o Projeto e Configurar](#etapa-5--baixar-o-projeto-e-configurar) | 5 min |
-| 6 | [Criar Rotas do Backend (Vendedores e Pedidos)](#etapa-6--criar-rotas-do-backend-vendedores-e-pedidos) | 5 min |
+| 6 | [Verificar Rotas do Backend](#etapa-6--verificar-rotas-do-backend) | 2 min |
 | 7 | [Iniciar o Backend com PM2](#etapa-7--iniciar-o-backend-com-pm2) | 3 min |
 | 8 | [Compilar o Frontend](#etapa-8--compilar-o-frontend) | 3 min |
 | 9 | [Configurar o Nginx](#etapa-9--configurar-o-nginx) | 5 min |
@@ -1063,247 +1149,47 @@ Salve e saia do nano (`Ctrl+O`, `Enter`, `Ctrl+X`).
 
 ---
 
-## Etapa 6 — Criar Rotas do Backend (Vendedores e Pedidos)
+## Etapa 6 — Verificar Rotas do Backend
 
-O projeto já vem com rotas para produtos, categorias, banners e configurações. Mas as rotas de **vendedores** e **pedidos** precisam ser criadas manualmente para o modo VPS.
+> ✅ **Todas as rotas já vêm prontas no repositório.** Não é necessário criar nenhum arquivo manualmente.
+> Esta etapa é apenas para **verificar** que todos os arquivos existem.
 
-### 6.1 — Criar o arquivo de vendedores
-
-Execute o comando abaixo (ele cria o arquivo automaticamente):
-
-```bash
-cat > server/routes/sellers.ts << 'TYPESCRIPT'
-import { Router } from "express";
-import pool from "../db";
-
-export const sellersRouter = Router();
-
-// Listar todos os vendedores
-sellersRouter.get("/", async (_req, res) => {
-  try {
-    const { rows } = await pool.query("SELECT * FROM sellers ORDER BY name");
-    res.json(rows);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Buscar vendedor pelo slug (ex: /sellers/slug/joao-silva)
-sellersRouter.get("/slug/:slug", async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      "SELECT * FROM sellers WHERE slug = $1 AND active = true LIMIT 1",
-      [req.params.slug]
-    );
-    res.json(rows[0] || null);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Criar novo vendedor
-sellersRouter.post("/", async (req, res) => {
-  try {
-    const { name, slug, whatsapp } = req.body;
-    const { rows } = await pool.query(
-      "INSERT INTO sellers (name, slug, whatsapp) VALUES ($1, $2, $3) RETURNING *",
-      [name, slug, whatsapp || null]
-    );
-    res.json(rows[0]);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Atualizar vendedor
-sellersRouter.put("/:id", async (req, res) => {
-  try {
-    const fields: string[] = [];
-    const values: any[] = [];
-    let idx = 1;
-
-    for (const [key, value] of Object.entries(req.body)) {
-      if (key === "id" || key === "created_at") continue;
-      fields.push(\`\${key} = $\${idx}\`);
-      values.push(value);
-      idx++;
-    }
-
-    if (fields.length === 0) {
-      res.status(400).json({ error: "No fields to update" });
-      return;
-    }
-
-    values.push(req.params.id);
-    const { rows } = await pool.query(
-      \`UPDATE sellers SET \${fields.join(", ")} WHERE id = $\${idx} RETURNING *\`,
-      values
-    );
-    res.json(rows[0]);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Excluir vendedor
-sellersRouter.delete("/:id", async (req, res) => {
-  try {
-    await pool.query("DELETE FROM sellers WHERE id = $1", [req.params.id]);
-    res.json({ success: true });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-TYPESCRIPT
-```
-
-### 6.2 — Criar o arquivo de pedidos
+### 6.1 — Verificar se todos os arquivos de rotas existem
 
 ```bash
-cat > server/routes/orders.ts << 'TYPESCRIPT'
-import { Router } from "express";
-import pool from "../db";
-
-export const ordersRouter = Router();
-
-// Listar todos os pedidos
-ordersRouter.get("/", async (_req, res) => {
-  try {
-    const { rows } = await pool.query("SELECT * FROM orders ORDER BY created_at DESC");
-    res.json(rows);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Listar itens de um pedido específico
-ordersRouter.get("/:id/items", async (req, res) => {
-  try {
-    const { rows } = await pool.query(
-      "SELECT * FROM order_items WHERE order_id = $1",
-      [req.params.id]
-    );
-    res.json(rows);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Criar pedido com seus itens (tudo numa transação)
-ordersRouter.post("/", async (req, res) => {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    const { order, items } = req.body;
-    const { rows } = await client.query(
-      \`INSERT INTO orders (customer_name, customer_phone, customer_cpf_cnpj, payment_method, notes, subtotal, shipping_fee, total, seller_id, seller_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING *\`,
-      [
-        order.customer_name, order.customer_phone,
-        order.customer_cpf_cnpj || null, order.payment_method || null,
-        order.notes || null, order.subtotal || 0,
-        order.shipping_fee || 0, order.total || 0,
-        order.seller_id || null, order.seller_name || null
-      ]
-    );
-
-    const createdOrder = rows[0];
-
-    for (const item of items) {
-      await client.query(
-        \`INSERT INTO order_items (order_id, product_id, product_name, product_code, unit_price, quantity, total_price)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)\`,
-        [
-          createdOrder.id, item.product_id || null,
-          item.product_name, item.product_code || null,
-          item.unit_price, item.quantity || 1, item.total_price
-        ]
-      );
-    }
-
-    await client.query("COMMIT");
-    res.json(createdOrder);
-  } catch (err: any) {
-    await client.query("ROLLBACK");
-    res.status(500).json({ error: err.message });
-  } finally {
-    client.release();
-  }
-});
-
-// Atualizar pedido (ex: mudar status)
-ordersRouter.put("/:id", async (req, res) => {
-  try {
-    const fields: string[] = [];
-    const values: any[] = [];
-    let idx = 1;
-
-    for (const [key, value] of Object.entries(req.body)) {
-      if (key === "id" || key === "created_at") continue;
-      fields.push(\`\${key} = $\${idx}\`);
-      values.push(value);
-      idx++;
-    }
-
-    values.push(req.params.id);
-    const { rows } = await pool.query(
-      \`UPDATE orders SET \${fields.join(", ")} WHERE id = $\${idx} RETURNING *\`,
-      values
-    );
-    res.json(rows[0]);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Excluir pedido
-ordersRouter.delete("/:id", async (req, res) => {
-  try {
-    await pool.query("DELETE FROM orders WHERE id = $1", [req.params.id]);
-    res.json({ success: true });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-TYPESCRIPT
+ls -la server/routes/
 ```
 
-### 6.3 — Registrar as novas rotas no servidor
+### ✅ Resultado esperado (8 arquivos):
 
-Abra o arquivo principal do servidor:
+```
+auth.ts
+banners.ts
+categories.ts
+orders.ts
+payment-conditions.ts
+products.ts
+sellers.ts
+settings.ts
+upload.ts
+```
+
+> ❌ **Se algum arquivo estiver faltando** (especialmente `sellers.ts` ou `orders.ts`), atualize o repositório:
+> ```bash
+> cd /var/www/catalogo
+> git pull
+> npm install
+> ```
+
+### 6.2 — Verificar se as rotas estão registradas no server/index.ts
 
 ```bash
-nano server/index.ts
+grep "Router\|app.use" server/index.ts
 ```
 
-**O arquivo deve ficar assim** (adicione as linhas marcadas com `// ← ADICIONAR`):
+### ✅ Resultado esperado — todas estas rotas devem aparecer:
 
-```typescript
-import express from "express";
-import cors from "cors";
-import path from "path";
-import { productsRouter } from "./routes/products";
-import { categoriesRouter } from "./routes/categories";
-import { settingsRouter } from "./routes/settings";
-import { bannersRouter } from "./routes/banners";
-import { paymentConditionsRouter } from "./routes/payment-conditions";
-import { uploadRouter } from "./routes/upload";
-import { authRouter } from "./routes/auth";
-import { sellersRouter } from "./routes/sellers";       // ← ADICIONAR
-import { ordersRouter } from "./routes/orders";          // ← ADICIONAR
-
-const app = express();
-const PORT = process.env.PORT || 3001;
-
-app.use(cors());
-app.use(express.json({ limit: "50mb" }));
-
-// Serve uploaded images
-app.use("/uploads", express.static(path.join(process.cwd(), "public/uploads")));
-
-// API routes
+```
 app.use("/api/products", productsRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/settings", settingsRouter);
@@ -1311,21 +1197,11 @@ app.use("/api/banners", bannersRouter);
 app.use("/api/payment-conditions", paymentConditionsRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/auth", authRouter);
-app.use("/api/sellers", sellersRouter);                  // ← ADICIONAR
-app.use("/api/orders", ordersRouter);                    // ← ADICIONAR
-
-// Health check
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", mode: "postgres" });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor backend rodando em http://localhost:${PORT}`);
-  console.log(`📦 Modo: PostgreSQL direto`);
-});
+app.use("/api/sellers", sellersRouter);
+app.use("/api/orders", ordersRouter);
 ```
 
-Salve e saia (`Ctrl+O`, Enter, `Ctrl+X`).
+> ❌ **Se `sellers` ou `orders` não aparecer**, atualize o projeto com `git pull`.
 
 ---
 
@@ -2088,7 +1964,7 @@ ls -la /var/www/catalogo/server/routes/orders.ts
 
 **✅ Resultado esperado:** Deve mostrar o arquivo com permissões e tamanho.
 
-**❌ Se o arquivo NÃO existe**, crie-o. Veja a [Etapa 6.2](#62--criar-o-arquivo-de-pedidos) mais acima neste documento.
+**❌ Se o arquivo NÃO existe**, atualize o repositório: `cd /var/www/catalogo && git pull`
 
 ---
 
@@ -2111,7 +1987,7 @@ app.use("/api/orders", ordersRouter);
 nano /var/www/catalogo/server/index.ts
 ```
 
-Adicione estas duas linhas (veja a posição exata na [Etapa 6.3](#63--registrar-as-novas-rotas-no-servidor)):
+Atualize o repositório com `git pull` — o `server/index.ts` já vem com todas as rotas registradas.
 
 ```typescript
 import { ordersRouter } from "./routes/orders";          // ← No topo, junto com os outros imports
@@ -2192,7 +2068,7 @@ pm2 logs catalogo-api --lines 20
 | `column "seller_id" does not exist` | Tabela desatualizada | Recrie com o SQL do Passo 1 |
 | `Cannot read properties of undefined` | Corpo da requisição vazio | Verifique o `Content-Type: application/json` |
 | `ECONNREFUSED` | PostgreSQL offline | `systemctl start postgresql` |
-| `SyntaxError in orders.ts` | Erro de sintaxe no arquivo | Recrie o arquivo pela [Etapa 6.2](#62--criar-o-arquivo-de-pedidos) |
+| `SyntaxError in orders.ts` | Erro de sintaxe no arquivo | Atualize com `git pull` |
 
 ---
 
@@ -2689,7 +2565,8 @@ cd catalogo
 npm install
 mkdir -p public/uploads
 
-# 6. Criar rotas (seção 6: sellers.ts, orders.ts, atualizar index.ts)
+# 6. Verificar rotas (todas já vêm no repositório)
+#    ls server/routes/  → deve ter: sellers.ts, orders.ts, products.ts, etc.
 
 # ═══════════════════════════════════════════════════
 # 7. ⚠️ PASSO MAIS IMPORTANTE: CONFIGURAR O .env

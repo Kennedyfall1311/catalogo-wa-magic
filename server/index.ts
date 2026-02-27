@@ -8,6 +8,8 @@ import { bannersRouter } from "./routes/banners";
 import { paymentConditionsRouter } from "./routes/payment-conditions";
 import { uploadRouter } from "./routes/upload";
 import { authRouter } from "./routes/auth";
+import { sellersRouter } from "./routes/sellers";
+import { ordersRouter } from "./routes/orders";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,6 +28,8 @@ app.use("/api/banners", bannersRouter);
 app.use("/api/payment-conditions", paymentConditionsRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/sellers", sellersRouter);
+app.use("/api/orders", ordersRouter);
 
 // Health check
 app.get("/api/health", (_req, res) => {
