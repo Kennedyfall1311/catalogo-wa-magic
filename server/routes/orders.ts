@@ -34,7 +34,11 @@ ordersRouter.post("/", async (req, res) => {
     await client.query("BEGIN");
 
     const { order, items } = req.body;
-    const { rows } = await client.query(
+
+    if (!order || !Array.isArray(items)) {
+      res.status(400).json({ error: "Payload inválido: envie { order, items[] }" });
+      return;
+    }
       `INSERT INTO orders (customer_name, customer_phone, customer_cpf_cnpj, payment_method, notes, subtotal, shipping_fee, total, seller_id, seller_name)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
@@ -83,6 +87,11 @@ ordersRouter.put("/:id", requireAdmin, async (req, res) => {
       fields.push(`${key} = $${idx}`);
       values.push(value);
       idx++;
+    }
+
+    if (fields.length === 0) {
+      res.status(400).json({ error: "No fields to update" });
+      return;
     }
 
     values.push(req.params.id);

@@ -39,6 +39,11 @@ paymentConditionsRouter.put("/:id", requireAdmin, async (req, res) => {
       idx++;
     }
 
+    if (fields.length === 0) {
+      res.status(400).json({ error: "No fields to update" });
+      return;
+    }
+
     values.push(req.params.id);
     const { rows } = await pool.query(
       `UPDATE payment_conditions SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`,

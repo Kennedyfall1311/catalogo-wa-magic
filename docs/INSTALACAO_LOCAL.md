@@ -70,12 +70,11 @@ Mudou os dois tipos?
 
 | Variável | Tipo | Quem usa | Para quê |
 |---|---|---|---|
-| `VITE_API_MODE=postgres` | Frontend | `api-client.ts` | **Muda o modo de Supabase para PostgreSQL**. Sem isso = tela branca |
-| `VITE_API_URL=https://dominio/api` | Frontend | `api-client.ts` | URL para onde o frontend envia as requisições de dados |
+| `VITE_API_MODE=postgres` | Frontend | `api-client.ts` | **Muda o modo de backend para PostgreSQL**. Sem isso = tela branca |
+| `VITE_API_URL=https://dominio/api` | Frontend | `api-client.ts` | URL para onde o frontend envia as requisições de dados (**opcional; se vazio usa `/api` automaticamente**) |
 | `VITE_ADMIN_API_KEY=chave` | Frontend | `api-client.ts` | Chave enviada no header Authorization das requisições de escrita |
 | `DATABASE_URL=postgresql://...` | Backend | `server/db.ts` | String de conexão com o banco PostgreSQL |
 | `PORT=3001` | Backend | `server/index.ts` | Porta onde o Express.js escuta |
-| `API_BASE_URL=https://dominio` | Backend | `server/routes/upload.ts` | Monta a URL pública das imagens após upload |
 | `ADMIN_API_KEY=chave` | Backend | `server/middleware/auth.ts` | Valida a chave recebida do frontend. **Deve ser IGUAL a `VITE_ADMIN_API_KEY`** |
 
 ---
@@ -141,6 +140,29 @@ curl -s http://localhost:3001/api/health
 grep -R "postgres" dist/assets | head
 ```
 
+### 🧪 Pós-instalação (sanity check em bloco único)
+
+```bash
+cd /var/www/catalogo
+
+echo "[1/8] PM2" && pm2 status
+
+echo "[2/8] API local" && curl -sf http://localhost:3001/api/health && echo " OK"
+
+echo "[3/8] API via domínio" && curl -sf https://SEU_DOMINIO/api/health && echo " OK"
+
+echo "[4/8] Front compilado em postgres" && grep -R "postgres" dist/assets | head -1
+
+echo "[5/8] Sem variáveis cloud no .env" && ! grep -q "VITE_SUPABASE" .env && echo " OK"
+
+echo "[6/8] Chaves admin iguais" && \
+  test "$(grep '^ADMIN_API_KEY=' .env | cut -d= -f2-)" = "$(grep '^VITE_ADMIN_API_KEY=' .env | cut -d= -f2-)" && echo " OK"
+
+echo "[7/8] Upload dir" && test -d /var/www/catalogo/public/uploads && echo " OK"
+
+echo "[8/8] Permissão uploads" && sudo chown -R $USER:$USER /var/www/catalogo/public/uploads && echo " OK"
+```
+
 ---
 
 ### 🔴 ARQUIVO QUE VOCÊ PRECISA CRIAR/EDITAR (apenas 1):
@@ -149,7 +171,7 @@ grep -R "postgres" dist/assets | head
 |---|---------|-----------------|---------|
 | 1 | **`.env`** (raiz do projeto) | **DELETAR o original** e **criar um novo** | O `.env` do repositório tem variáveis do Supabase que impedem o modo PostgreSQL de funcionar |
 
-#### Conteúdo COMPLETO do `.env` para modo PostgreSQL (7 variáveis obrigatórias):
+#### Conteúdo COMPLETO do `.env` para modo PostgreSQL (6 variáveis obrigatórias):
 
 ```env
 # ═══════════════════════════════════════════════════
@@ -157,10 +179,11 @@ grep -R "postgres" dist/assets | head
 # ⚠️ Só entram em vigor após: npm run build
 # ═══════════════════════════════════════════════════
 
-# 1. OBRIGATÓRIO — troca de Supabase para PostgreSQL
+# 1. OBRIGATÓRIO — troca para modo PostgreSQL
 VITE_API_MODE=postgres
 
-# 2. URL completa da API (seu domínio + /api)
+# 2. OPCIONAL — URL da API (recomendado usar domínio em produção)
+#    Se não definir, o frontend usa /api automaticamente
 VITE_API_URL=https://SEU_DOMINIO/api
 
 # 3. Chave de segurança do admin (frontend envia no header)
@@ -177,10 +200,7 @@ DATABASE_URL=postgresql://postgres:SUA_SENHA@localhost:5432/catalogo
 # 5. Porta do Express.js
 PORT=3001
 
-# 6. URL base para montar URLs de imagens
-API_BASE_URL=https://SEU_DOMINIO
-
-# 7. Chave de segurança do admin (backend valida)
+# 6. Chave de segurança do admin (backend valida)
 #    ⚠️ DEVE SER IGUAL À VITE_ADMIN_API_KEY
 ADMIN_API_KEY=SUA_CHAVE_AQUI
 ```
@@ -211,7 +231,7 @@ ADMIN_API_KEY=SUA_CHAVE_AQUI
 | 8 | **`server/routes/banners.ts`** | CRUD de banners do carrossel | — |
 | 9 | **`server/routes/payment-conditions.ts`** | CRUD de condições de pagamento | — |
 | 10 | **`server/routes/settings.ts`** | Leitura/escrita de configurações (key/value) | — |
-| 11 | **`server/routes/upload.ts`** | Upload de imagens (file e base64) | `API_BASE_URL` |
+| 11 | **`server/routes/upload.ts`** | Upload de imagens (file e base64; retorna URL relativa `/uploads/...`) | — |
 | 12 | **`server/routes/auth.ts`** | Sessão mock (admin sempre ativo no modo VPS) | — |
 
 ---
@@ -263,11 +283,9 @@ Este arquivo contém a lógica que lê `VITE_API_MODE`:
  ├── PORT=3001 ────────────────→ server/index.ts                        │
  │                                Porta do Express                      │
  │                                                                      │
- ├── API_BASE_URL=https://x ───→ server/routes/upload.ts               │
- │                                URL pública das imagens               │
- │                                                                      │
- └── ADMIN_API_KEY=abc ────────→ server/middleware/auth.ts              │
-                                  Valida o token do frontend            │
+  └── ADMIN_API_KEY=abc ────────→ server/middleware/auth.ts              │
+                                   Valida o token do frontend            │
+      └──────────────────────────────────────────────────────────────────┘
      └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -2719,7 +2737,7 @@ cd /var/www/catalogo && npm run build && pm2 restart catalogo-api
  ├── ADMIN_API_KEY=abc ───────────→ server/middleware/auth.ts → Valida escrita
  ├── DATABASE_URL=postgresql://... → server/db.ts ────────────→ Conecta no banco
  ├── PORT=3001 ───────────────────→ server/index.ts ──────────→ Porta do Express
- └── API_BASE_URL=https://x ──────→ server/routes/upload.ts ──→ URL das imagens
+ └── ADMIN_API_KEY=abc ───────────→ server/middleware/auth.ts → Valida escrita
 ```
 
 ---
