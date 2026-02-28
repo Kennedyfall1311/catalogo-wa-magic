@@ -111,6 +111,36 @@ Mudou os dois tipos?
 > Esta é a referência completa de **cada arquivo** que participa do funcionamento do modo PostgreSQL.
 > Separados em: o que **VOCÊ edita**, o que **já vem pronto** e o que **precisa existir na VPS**.
 
+### ✅ Arquivos que REALMENTE precisam ser alterados para o modo VPS funcionar
+
+| Tipo | Arquivo | Alterar? | Quando |
+|---|---|---|---|
+| Projeto | `.env` | **SIM** | Sempre (obrigatório) |
+| VPS | `/etc/nginx/sites-available/catalogo` | **SIM** | Sempre (obrigatório) |
+| VPS | Banco PostgreSQL (`catalogo`) | **SIM** | Sempre (schema inicial) |
+| Projeto | `src/lib/api-client.ts` | **NÃO** (já corrigido no repositório) | Só se estiver em versão antiga sem a correção do erro `supabaseUrl is required` |
+
+### 🔄 Comandos para garantir que você tem a correção do erro `supabaseUrl is required`
+
+```bash
+# 1) Atualizar código do projeto
+cd /var/www/catalogo
+git pull
+
+# 2) Instalar dependências e gerar build do frontend no modo postgres
+npm install
+npm run build
+
+# 3) Reiniciar backend
+pm2 restart catalogo-api
+
+# 4) Verificar saúde da API
+curl -s http://localhost:3001/api/health
+
+# 5) Verificar se build está em modo postgres
+grep -R "postgres" dist/assets | head
+```
+
 ---
 
 ### 🔴 ARQUIVO QUE VOCÊ PRECISA CRIAR/EDITAR (apenas 1):

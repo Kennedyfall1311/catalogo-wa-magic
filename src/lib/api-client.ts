@@ -9,12 +9,27 @@
  * importing supabase directly.
  */
 
-import { supabase } from "@/integrations/supabase/client";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 const API_MODE = import.meta.env.VITE_API_MODE || "supabase";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export const isPostgresMode = () => API_MODE === "postgres";
+
+const supabase = isPostgresMode()
+  ? (null as any)
+  : createClient<Database>(
+      import.meta.env.VITE_SUPABASE_URL,
+      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      {
+        auth: {
+          storage: localStorage,
+          persistSession: true,
+          autoRefreshToken: true,
+        },
+      }
+    );
 
 // ─── Timeout & Retry Config ───
 
