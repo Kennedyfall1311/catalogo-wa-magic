@@ -42,9 +42,7 @@ uploadRouter.post("/image", requireAdmin, upload.single("file"), (req, res) => {
     return;
   }
 
-  const port = process.env.PORT || 3001;
-  const baseUrl = process.env.API_BASE_URL || `http://localhost:${port}`;
-  const url = `${baseUrl}/uploads/${req.file.filename}`;
+  const url = `/uploads/${req.file.filename}`;
 
   res.json({ url });
 });
@@ -71,9 +69,7 @@ uploadRouter.post("/base64", requireAdmin, (req, res) => {
     const filePath = path.join(UPLOAD_DIR, name);
     fs.writeFileSync(filePath, buffer);
 
-    const port = process.env.PORT || 3001;
-    const baseUrl = process.env.API_BASE_URL || `http://localhost:${port}`;
-    const url = `${baseUrl}/uploads/${name}`;
+    const url = `/uploads/${name}`;
 
     res.json({ url });
   } catch (err: any) {

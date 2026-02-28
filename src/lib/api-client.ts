@@ -13,7 +13,10 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 const API_MODE = import.meta.env.VITE_API_MODE || "supabase";
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const API_URL = (
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined" ? `${window.location.origin}/api` : "http://localhost:3001/api")
+).replace(/\/+$/, "");
 
 export const isPostgresMode = () => API_MODE === "postgres";
 
