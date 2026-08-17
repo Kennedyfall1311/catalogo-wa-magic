@@ -66,10 +66,69 @@ export function useDbProducts() {
   };
 
   const upsertProducts = async (rows: TablesInsert<"products">[]) => {
-    const { error } = await productsApi.upsert(rows);
-    if (!error) await fetchProducts();
-    return { error };
+    // Fetch current products to avoid creating duplicates on re-imports
+    let existing: DbProduct[] = products;
+    try {
+      const fresh = await productsApi.fetchAll();
+      if (fresh) existing = fresh;
+    } catch {
+      /* fallback to state */
+    }
+
+    const byCode = new Map<string, DbProduct>();
+    const bySlug = new Map<string, DbProduct>();
+    existing.forEach((p) => {
+      if (p.code) byCode.set(String(p.code).trim().toLowerCase(), p);
+      if (p.slug) bySlug.set(p.slug, p);
+    });
+
+    // 1. Deduplicate incoming rows (same code / same slug = same product, last wins)
+    const deduped = new Map<string, TablesInsert<"products">>();
+    rows.forEach((row) => {
+      const key = row.code ? `c:${String(row.code).trim().toLowerCase()}` : `s:${row.slug}`;
+      const prev = deduped.get(key);
+      deduped.set(key, prev ? { ...prev, ...row } : row);
+    });
+
+    const toUpsert: TablesInsert<"products">[] = [];
+    const toUpdate: { id: string; data: Partial<TablesInsert<"products">> }[] = [];
+
+    deduped.forEach((row) => {
+      const match =
+        (row.code ? byCode.get(String(row.code).trim().toLowerCase()) : undefined) ||
+        (row.slug ? bySlug.get(row.slug) : undefined);
+
+      // Never wipe an existing image with the placeholder
+      const data: any = { ...row };
+      if (match && (!data.image_url || data.image_url === "/placeholder.svg")) {
+        delete data.image_url;
+      }
+
+      if (match) {
+        toUpdate.push({ id: match.id, data });
+      } else if (row.code) {
+        toUpsert.push(row);
+      } else {
+        toUpsert.push(row);
+      }
+    });
+
+    // 2. Update matched products by id (no duplicates possible)
+    for (const item of toUpdate) {
+      const { error } = await productsApi.update(item.id, item.data);
+      if (error) return { error };
+    }
+
+    // 3. Insert/upsert only genuinely new products
+    if (toUpsert.length > 0) {
+      const { error } = await productsApi.upsert(toUpsert);
+      if (error) return { error };
+    }
+
+    await fetchProducts();
+    return { error: null };
   };
+
 
   const uploadImage = async (file: File) => {
     return storageApi.uploadFile(file);
