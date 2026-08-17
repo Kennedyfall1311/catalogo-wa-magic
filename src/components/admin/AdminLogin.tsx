@@ -87,13 +87,21 @@ export function AdminLogin({ onLogin, onSignUp }: AdminLoginProps) {
           {loading ? "Aguarde..." : isSignUp ? "Criar Conta" : "Entrar"}
         </button>
 
-        <button
-          type="button"
-          onClick={() => { setIsSignUp(!isSignUp); setError(""); setMessage(""); }}
-          className="w-full text-center text-sm text-muted-foreground underline"
-        >
-          {isSignUp ? "Já tem conta? Faça login" : "Criar nova conta"}
-        </button>
+        {!isPostgresMode() && (
+          <button
+            type="button"
+            onClick={() => { setIsSignUp(!isSignUp); setError(""); setMessage(""); }}
+            className="w-full text-center text-sm text-muted-foreground underline"
+          >
+            {isSignUp ? "Já tem conta? Faça login" : "Criar nova conta"}
+          </button>
+        )}
+
+        {isPostgresMode() && (
+          <p className="text-center text-xs text-muted-foreground">
+            Use o e-mail e a senha definidos em <code>ADMIN_EMAIL</code> e <code>ADMIN_PASSWORD</code> no arquivo <code>.env</code> do servidor.
+          </p>
+        )}
 
         {!isPostgresMode() && (
           <button
