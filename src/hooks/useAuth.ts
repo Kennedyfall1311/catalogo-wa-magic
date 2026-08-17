@@ -16,12 +16,21 @@ export function useAuth() {
     let isMounted = true;
 
     if (isPostgresMode()) {
-      // PostgreSQL mode: admin is always open
-      setUser({ id: "local-admin", email: "admin@local" });
-      setSession({});
-      setIsAdmin(true);
-      setLoading(false);
-      return;
+      // PostgreSQL mode: validate stored session token against the Express backend
+      authApi
+        .getSession()
+        .then(({ user: currentUser, isAdmin: admin, session: currentSession }) => {
+          if (!isMounted) return;
+          setUser(currentUser);
+          setSession(currentSession);
+          setIsAdmin(!!admin);
+        })
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
+      return () => {
+        isMounted = false;
+      };
     }
 
     // Supabase mode: use auth state listener
@@ -69,7 +78,14 @@ export function useAuth() {
   }, [checkAdminRole]);
 
   const signIn = async (email: string, password: string) => {
-    return authApi.signIn(email, password);
+    const result = await authApi.signIn(email, password);
+    if (!result.error && isPostgresMode()) {
+      const { user: currentUser, isAdmin: admin, session: currentSession } = await authApi.getSession();
+      setUser(currentUser);
+      setSession(currentSession);
+      setIsAdmin(!!admin);
+    }
+    return result;
   };
 
   const signUp = async (email: string, password: string) => {
@@ -79,7 +95,9 @@ export function useAuth() {
   const signOut = async () => {
     await authApi.signOut();
     if (isPostgresMode()) {
-      // No-op in postgres mode
+      setUser(null);
+      setSession(null);
+      setIsAdmin(false);
     }
   };
 
