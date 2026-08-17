@@ -74,10 +74,23 @@ async function withRetry<T>(fn: () => Promise<T>, retries = MAX_RETRIES): Promis
 // ─── Admin API Key (local mode) ───
 
 const ADMIN_API_KEY = import.meta.env.VITE_ADMIN_API_KEY || "";
+const ADMIN_TOKEN_STORAGE_KEY = "catalogo_admin_token";
+
+export function getAdminToken(): string {
+  if (typeof localStorage === "undefined") return "";
+  return localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || "";
+}
+
+function setAdminToken(token: string | null) {
+  if (typeof localStorage === "undefined") return;
+  if (token) localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+  else localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+}
 
 function authHeaders(): Record<string, string> {
-  if (ADMIN_API_KEY) {
-    return { Authorization: `Bearer ${ADMIN_API_KEY}` };
+  const token = getAdminToken() || ADMIN_API_KEY;
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
   }
   return {};
 }
@@ -464,18 +477,29 @@ export const storageApi = {
 export const authApi = {
   async getSession() {
     if (isPostgresMode()) {
-      return {
-        user: { id: "local-admin", email: "admin@local" } as any,
-        isAdmin: true,
-        session: {} as any,
-      };
+      const token = getAdminToken() || ADMIN_API_KEY;
+      if (!token) return { user: null, isAdmin: false, session: null };
+      try {
+        const res = await fetchWithTimeout(`${API_URL}/auth/session`, { headers: authHeaders() });
+        if (!res.ok) {
+          setAdminToken(null);
+          return { user: null, isAdmin: false, session: null };
+        }
+        const data = await res.json();
+        return { user: data.user, isAdmin: !!data.isAdmin, session: { token } as any };
+      } catch {
+        return { user: null, isAdmin: false, session: null };
+      }
     }
     const { data: { session } } = await supabase.auth.getSession();
     return { user: session?.user ?? null, session, isAdmin: false };
   },
 
   async checkAdmin(userId: string): Promise<boolean> {
-    if (isPostgresMode()) return true;
+    if (isPostgresMode()) {
+      const { isAdmin } = await authApi.getSession();
+      return isAdmin;
+    }
     const { data } = await supabase
       .from("user_roles")
       .select("role")
@@ -487,7 +511,19 @@ export const authApi = {
 
   async signIn(email: string, password: string) {
     if (isPostgresMode()) {
-      return { error: null };
+      try {
+        const res = await fetchWithTimeout(`${API_URL}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) return { error: { message: data.error || "Falha no login" } };
+        setAdminToken(data.token);
+        return { error: null };
+      } catch (err: any) {
+        return { error: { message: err?.message || "Servidor indisponível" } };
+      }
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
@@ -495,7 +531,12 @@ export const authApi = {
 
   async signUp(email: string, password: string) {
     if (isPostgresMode()) {
-      return { error: null };
+      return {
+        error: {
+          message:
+            "No modo local o acesso é definido por ADMIN_EMAIL e ADMIN_PASSWORD no arquivo .env do servidor.",
+        },
+      };
     }
     const { error } = await supabase.auth.signUp({
       email,
@@ -506,16 +547,20 @@ export const authApi = {
   },
 
   async signOut() {
-    if (isPostgresMode()) return;
+    if (isPostgresMode()) {
+      try {
+        await fetchWithTimeout(`${API_URL}/auth/logout`, { method: "POST", headers: authHeaders() });
+      } catch {
+        /* ignora */
+      }
+      setAdminToken(null);
+      return;
+    }
     await supabase.auth.signOut();
   },
 
   onAuthStateChange(callback: (user: any, session: any) => void): () => void {
     if (isPostgresMode()) {
-      setTimeout(() => callback(
-        { id: "local-admin", email: "admin@local" },
-        {}
-      ), 0);
       return () => {};
     }
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
