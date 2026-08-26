@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Package, Search, Eye, EyeOff, Save, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -14,16 +14,27 @@ interface StockManagerProps {
 
 export function StockManager({ products, categories, onUpdateProduct, hideOutOfStock, onToggleHideOutOfStock }: StockManagerProps) {
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [visibleCount, setVisibleCount] = useState(50);
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "out_of_stock">("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [debouncedSearch, filterCategory, stockFilter]);
+
   const filtered = useMemo(() => {
     return products
       .filter((p) => {
-        const q = search.toLowerCase();
+        const q = debouncedSearch.toLowerCase();
         return p.name.toLowerCase().includes(q) || (p.code && p.code.toLowerCase().includes(q));
       })
       .filter((p) => !filterCategory || p.category_id === filterCategory)
@@ -37,7 +48,9 @@ export function StockManager({ products, categories, onUpdateProduct, hideOutOfS
         const qB = b.quantity ?? -1;
         return qA - qB;
       });
-  }, [products, search, filterCategory, stockFilter]);
+  }, [products, debouncedSearch, filterCategory, stockFilter]);
+
+  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
 
   const totalProducts = products.length;
   const outOfStock = products.filter((p) => p.quantity == null || p.quantity <= 0).length;
@@ -120,7 +133,7 @@ export function StockManager({ products, categories, onUpdateProduct, hideOutOfS
 
       {/* Product list */}
       <div className="space-y-1">
-        {filtered.map((p) => {
+        {visible.map((p) => {
           const qty = p.quantity;
           const isOut = qty == null || qty <= 0;
           const isLow = qty != null && qty > 0 && qty <= 5;
@@ -131,6 +144,8 @@ export function StockManager({ products, categories, onUpdateProduct, hideOutOfS
               <img
                 src={p.image_url || "/placeholder.svg"}
                 alt={p.name}
+                loading="lazy"
+                decoding="async"
                 className="h-10 w-10 rounded-md object-cover bg-muted shrink-0"
               />
               <div className="flex-1 min-w-0">
@@ -186,6 +201,14 @@ export function StockManager({ products, categories, onUpdateProduct, hideOutOfS
             </div>
           );
         })}
+        {visible.length < filtered.length && (
+          <button
+            onClick={() => setVisibleCount((c) => c + 50)}
+            className="w-full rounded-lg border bg-card py-2.5 text-sm font-medium hover:bg-muted transition-colors"
+          >
+            Carregar mais ({filtered.length - visible.length} restantes)
+          </button>
+        )}
         {filtered.length === 0 && (
           <p className="text-center text-sm text-muted-foreground py-8">
             Nenhum produto encontrado.

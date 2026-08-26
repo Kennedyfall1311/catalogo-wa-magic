@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LayoutGrid, Eye, EyeOff, ShoppingBag, Palette, Star, Shuffle, List, Tag } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { FeaturedProductsManager } from "./FeaturedProductsManager";
@@ -41,15 +41,17 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
   const [priceColor, setPriceColor] = useState(settings.price_color ?? "#1f1f1f");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-
+  const colorsDirty = useRef(false);
 
   const hideNoPhoto = settings.hide_products_without_photo === "true";
 
+  // Só sincroniza com o servidor quando não há alterações pendentes do usuário
   useEffect(() => {
+    if (colorsDirty.current) return;
     setButtonColor(settings.button_color ?? "#1f1f1f");
     setTextColor(settings.text_color ?? "#1f1f1f");
     setPriceColor(settings.price_color ?? "#1f1f1f");
-  }, [settings]);
+  }, [settings.button_color, settings.text_color, settings.price_color]);
 
   const handleSaveColors = async () => {
     setSaving(true);
@@ -58,6 +60,7 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
       onUpdate("text_color", textColor),
       onUpdate("price_color", priceColor),
     ]);
+    colorsDirty.current = false;
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -286,9 +289,9 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
           Cores do Card
         </h3>
         <div className="grid grid-cols-3 gap-4">
-          <ColorField label="Botão Comprar" value={buttonColor} onChange={setButtonColor} />
-          <ColorField label="Cor das Letras" value={textColor} onChange={setTextColor} />
-          <ColorField label="Cor dos Preços" value={priceColor} onChange={setPriceColor} />
+          <ColorField label="Botão Comprar" value={buttonColor} onChange={(v) => { colorsDirty.current = true; setButtonColor(v); }} />
+          <ColorField label="Cor das Letras" value={textColor} onChange={(v) => { colorsDirty.current = true; setTextColor(v); }} />
+          <ColorField label="Cor dos Preços" value={priceColor} onChange={(v) => { colorsDirty.current = true; setPriceColor(v); }} />
         </div>
         <button
           onClick={handleSaveColors}
