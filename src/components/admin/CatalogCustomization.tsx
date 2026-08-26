@@ -41,15 +41,17 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
   const [priceColor, setPriceColor] = useState(settings.price_color ?? "#1f1f1f");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-
+  const colorsDirty = useRef(false);
 
   const hideNoPhoto = settings.hide_products_without_photo === "true";
 
+  // Só sincroniza com o servidor quando não há alterações pendentes do usuário
   useEffect(() => {
+    if (colorsDirty.current) return;
     setButtonColor(settings.button_color ?? "#1f1f1f");
     setTextColor(settings.text_color ?? "#1f1f1f");
     setPriceColor(settings.price_color ?? "#1f1f1f");
-  }, [settings]);
+  }, [settings.button_color, settings.text_color, settings.price_color]);
 
   const handleSaveColors = async () => {
     setSaving(true);
@@ -58,6 +60,7 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
       onUpdate("text_color", textColor),
       onUpdate("price_color", priceColor),
     ]);
+    colorsDirty.current = false;
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
