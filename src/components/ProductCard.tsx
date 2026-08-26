@@ -45,19 +45,40 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
         </Link>
 
         <div className="flex flex-col flex-1 px-2 py-3 text-center border-t gap-1">
+          {/* Zona fixa: nome sempre reserva 2 linhas */}
           <Link to={buildPath(`/produto/${product.slug}`)}>
-            <h3 className={`${nameSize} font-semibold uppercase leading-tight line-clamp-2 hover:underline`} style={textColor ? { color: textColor } : undefined}>
+            <h3 className={`${nameSize} font-semibold uppercase leading-tight line-clamp-2 min-h-[2.5em] hover:underline`} style={textColor ? { color: textColor } : undefined}>
               {product.name}
             </h3>
           </Link>
-          {product.code && (
-            <p className={`${detailSize} text-muted-foreground`}>Cód: {product.code}</p>
-          )}
-          {hasDiscount && (
-            <p className={`${detailSize} text-muted-foreground line-through`}>
-              de R$ {Number(product.original_price!).toFixed(2).replace(".", ",")}
-            </p>
-          )}
+          {/* Zona fixa: código sempre reserva 1 linha */}
+          <p className={`${detailSize} text-muted-foreground min-h-[1.25em] leading-tight`}>
+            {product.code ? `Cód: ${product.code}` : "\u00A0"}
+          </p>
+
+          {/* Zona variável: informações opcionais crescem sem desalinhar o resto */}
+          <div className="flex flex-col gap-1 flex-1">
+            {catalogSettings.catalog_show_description === "true" && product.description && (
+              <p className={`${detailSize} text-muted-foreground line-clamp-2`}>{product.description}</p>
+            )}
+            {catalogSettings.catalog_show_reference === "true" && product.reference && (
+              <p className={`${detailSize} text-muted-foreground`}>Ref: {product.reference}</p>
+            )}
+            {catalogSettings.catalog_show_manufacturer_code === "true" && product.manufacturer_code && (
+              <p className={`${detailSize} text-muted-foreground`}>Fab: {product.manufacturer_code}</p>
+            )}
+            {catalogSettings.catalog_show_unit_of_measure === "true" && product.unit_of_measure && (
+              <p className={`${detailSize} text-muted-foreground`}>Un: {product.unit_of_measure}</p>
+            )}
+            {catalogSettings.catalog_show_quantity === "true" && product.quantity != null && (
+              <p className={`${detailSize} text-muted-foreground`}>Qtd: {product.quantity}</p>
+            )}
+          </div>
+
+          {/* Zona fixa: preço "de" sempre reserva 1 linha para alinhar os preços */}
+          <p className={`${detailSize} text-muted-foreground line-through min-h-[1.25em] leading-tight ${hasDiscount ? "" : "invisible"}`}>
+            {hasDiscount ? `de R$ ${Number(product.original_price!).toFixed(2).replace(".", ",")}` : "de R$ 0,00"}
+          </p>
           <p className={`${priceSize} font-bold`} style={priceColor ? { color: priceColor } : undefined}>
             R$ {Number(product.price).toFixed(2).replace(".", ",")}
           </p>
@@ -69,21 +90,6 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
               </p>
             ) : null;
           })()}
-          {catalogSettings.catalog_show_description === "true" && product.description && (
-            <p className={`${detailSize} text-muted-foreground line-clamp-2`}>{product.description}</p>
-          )}
-          {catalogSettings.catalog_show_reference === "true" && product.reference && (
-            <p className={`${detailSize} text-muted-foreground`}>Ref: {product.reference}</p>
-          )}
-          {catalogSettings.catalog_show_manufacturer_code === "true" && product.manufacturer_code && (
-            <p className={`${detailSize} text-muted-foreground`}>Fab: {product.manufacturer_code}</p>
-          )}
-          {catalogSettings.catalog_show_unit_of_measure === "true" && product.unit_of_measure && (
-            <p className={`${detailSize} text-muted-foreground`}>Un: {product.unit_of_measure}</p>
-          )}
-          {catalogSettings.catalog_show_quantity === "true" && product.quantity != null && (
-            <p className={`${detailSize} text-muted-foreground`}>Qtd: {product.quantity}</p>
-          )}
 
           <div className="mt-auto pt-1 flex gap-1.5">
             <button
