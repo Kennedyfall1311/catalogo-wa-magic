@@ -289,9 +289,9 @@ export function CatalogCustomization({ settings, onUpdate, products, categories,
           Cores do Card
         </h3>
         <div className="grid grid-cols-3 gap-4">
-          <ColorField label="Botão Comprar" value={buttonColor} onChange={setButtonColor} />
-          <ColorField label="Cor das Letras" value={textColor} onChange={setTextColor} />
-          <ColorField label="Cor dos Preços" value={priceColor} onChange={setPriceColor} />
+          <ColorField label="Botão Comprar" value={buttonColor} onChange={(v) => { colorsDirty.current = true; setButtonColor(v); }} />
+          <ColorField label="Cor das Letras" value={textColor} onChange={(v) => { colorsDirty.current = true; setTextColor(v); }} />
+          <ColorField label="Cor dos Preços" value={priceColor} onChange={(v) => { colorsDirty.current = true; setPriceColor(v); }} />
         </div>
         <button
           onClick={handleSaveColors}
