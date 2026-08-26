@@ -268,7 +268,7 @@ const Index = () => {
               </div>
             ) : (
               <>
-                <div className={`grid ${gridClass} border-t border-l`}>
+                <div className={`grid ${gridClass} items-stretch border-t border-l`}>
                   {visibleProducts.map((product, i) => (
                     <ProductCard key={product.id} product={product} index={i} whatsappNumber={whatsappNumber} buttonColor={settings.button_color} textColor={settings.text_color} priceColor={settings.price_color} catalogSettings={settings} />
                   ))}
