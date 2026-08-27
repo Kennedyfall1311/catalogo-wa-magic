@@ -44,7 +44,7 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
           </div>
         </Link>
 
-        <div className="flex flex-col flex-1 px-2 py-3 text-center border-t gap-1">
+        <div className="flex flex-col flex-1 px-2 py-2 text-center border-t gap-0.5">
           {/* Zona fixa: nome sempre reserva 2 linhas */}
           <Link to={buildPath(`/produto/${product.slug}`)}>
             <h3 className={`${nameSize} font-semibold uppercase leading-tight line-clamp-2 min-h-[2.5em] hover:underline`} style={textColor ? { color: textColor } : undefined}>
@@ -52,38 +52,42 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
             </h3>
           </Link>
           {/* Zona fixa: código sempre reserva 1 linha */}
-          <p className={`${detailSize} text-muted-foreground min-h-[1.25em] leading-tight`}>
+          <p className={`${detailSize} text-muted-foreground min-h-[1.2em] leading-tight`}>
             {product.code ? `Cód: ${product.code}` : "\u00A0"}
           </p>
 
-          {/* Zona fixa: descrição sempre reserva 2 linhas para alinhar entre os cards */}
-          {catalogSettings.catalog_show_description === "true" && (
-            <p className={`${detailSize} text-muted-foreground line-clamp-2 min-h-[2.5em] leading-tight`}>
-              {product.description || "\u00A0"}
+          {/* Descrição: reserva 2 linhas apenas quando há texto */}
+          {catalogSettings.catalog_show_description === "true" && product.description && (
+            <p className={`${detailSize} text-muted-foreground line-clamp-2 leading-tight`}>
+              {product.description}
             </p>
           )}
 
-          {/* Zona variável: detalhes opcionais agrupados no rodapé, antes do preço */}
-          <div className="flex flex-col gap-1">
-            {catalogSettings.catalog_show_reference === "true" && product.reference && (
-              <p className={`${detailSize} text-muted-foreground`}>Ref: {product.reference}</p>
-            )}
-            {catalogSettings.catalog_show_manufacturer_code === "true" && product.manufacturer_code && (
-              <p className={`${detailSize} text-muted-foreground`}>Fab: {product.manufacturer_code}</p>
-            )}
-            {catalogSettings.catalog_show_unit_of_measure === "true" && product.unit_of_measure && (
-              <p className={`${detailSize} text-muted-foreground`}>Un: {product.unit_of_measure}</p>
-            )}
-            {catalogSettings.catalog_show_quantity === "true" && product.quantity != null && (
-              <p className={`${detailSize} text-muted-foreground`}>Qtd: {product.quantity}</p>
-            )}
-          </div>
+          {/* Zona variável: detalhes opcionais agrupados antes do preço */}
+          {(product.reference || product.manufacturer_code || product.unit_of_measure || product.quantity != null) && (
+            <div className="flex flex-col leading-tight">
+              {catalogSettings.catalog_show_reference === "true" && product.reference && (
+                <p className={`${detailSize} text-muted-foreground`}>Ref: {product.reference}</p>
+              )}
+              {catalogSettings.catalog_show_manufacturer_code === "true" && product.manufacturer_code && (
+                <p className={`${detailSize} text-muted-foreground`}>Fab: {product.manufacturer_code}</p>
+              )}
+              {catalogSettings.catalog_show_unit_of_measure === "true" && product.unit_of_measure && (
+                <p className={`${detailSize} text-muted-foreground`}>Un: {product.unit_of_measure}</p>
+              )}
+              {catalogSettings.catalog_show_quantity === "true" && product.quantity != null && (
+                <p className={`${detailSize} text-muted-foreground`}>Qtd: {product.quantity}</p>
+              )}
+            </div>
+          )}
 
-          {/* Zona fixa: preço "de" sempre reserva 1 linha para alinhar os preços */}
-          <p className={`${detailSize} text-muted-foreground line-through min-h-[1.25em] leading-tight ${hasDiscount ? "" : "invisible"}`}>
-            {hasDiscount ? `de R$ ${Number(product.original_price!).toFixed(2).replace(".", ",")}` : "de R$ 0,00"}
-          </p>
-          <p className={`${priceSize} font-bold`} style={priceColor ? { color: priceColor } : undefined}>
+          {/* Preço "de": só ocupa espaço quando há desconto */}
+          {hasDiscount && (
+            <p className={`${detailSize} text-muted-foreground line-through leading-tight`}>
+              de R$ {Number(product.original_price!).toFixed(2).replace(".", ",")}
+            </p>
+          )}
+          <p className={`${priceSize} font-bold mt-1`} style={priceColor ? { color: priceColor } : undefined}>
             R$ {Number(product.price).toFixed(2).replace(".", ",")}
           </p>
           {catalogSettings.catalog_show_installments === "true" && (() => {
@@ -95,7 +99,8 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
             ) : null;
           })()}
 
-          <div className="pt-2 flex gap-1.5">
+          <div className="pt-2 mt-auto flex gap-1.5">
+
             <button
               onClick={() => setDialogOpen(true)}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${buttonColor ? 'text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
