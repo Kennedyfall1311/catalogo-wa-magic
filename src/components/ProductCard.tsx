@@ -56,11 +56,15 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
             {product.code ? `Cód: ${product.code}` : "\u00A0"}
           </p>
 
-          {/* Zona variável: informações opcionais crescem sem desalinhar o resto */}
-          <div className="flex flex-col gap-1 flex-1">
-            {catalogSettings.catalog_show_description === "true" && product.description && (
-              <p className={`${detailSize} text-muted-foreground line-clamp-2`}>{product.description}</p>
-            )}
+          {/* Zona fixa: descrição sempre reserva 2 linhas para alinhar entre os cards */}
+          {catalogSettings.catalog_show_description === "true" && (
+            <p className={`${detailSize} text-muted-foreground line-clamp-2 min-h-[2.5em] leading-tight`}>
+              {product.description || "\u00A0"}
+            </p>
+          )}
+
+          {/* Zona variável: detalhes opcionais agrupados no rodapé, antes do preço */}
+          <div className="flex flex-col gap-1 flex-1 justify-end">
             {catalogSettings.catalog_show_reference === "true" && product.reference && (
               <p className={`${detailSize} text-muted-foreground`}>Ref: {product.reference}</p>
             )}
