@@ -57,7 +57,7 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
           </p>
 
           {/* Zona variável: informações opcionais crescem sem desalinhar o resto */}
-          <div className="flex flex-col gap-1 flex-1">
+          <div className="flex flex-col gap-1 flex-1 justify-end">
             {catalogSettings.catalog_show_description === "true" && product.description && (
               <p className={`${detailSize} text-muted-foreground line-clamp-2`}>{product.description}</p>
             )}
