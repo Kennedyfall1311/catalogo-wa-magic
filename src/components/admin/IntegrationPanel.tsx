@@ -35,7 +35,6 @@ export function IntegrationPanel({ settings, onUpdate }: IntegrationPanelProps) 
   const erpEnabled = settings.erp_enabled === "true";
   const syncProducts = settings.erp_sync_products !== "false";
   const syncStock = settings.erp_sync_stock !== "false";
-  const sendOrders = settings.erp_send_orders !== "false";
 
   useEffect(() => {
     setApiUrl(settings.erp_api_url ?? "");
@@ -157,16 +156,14 @@ export function IntegrationPanel({ settings, onUpdate }: IntegrationPanelProps) 
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Enviar pedidos</p>
-                <p className="text-xs text-muted-foreground">Envia pedidos finalizados automaticamente para o ERP</p>
-              </div>
-              <Switch
-                checked={sendOrders}
-                onCheckedChange={(val) => onUpdate("erp_send_orders", val ? "true" : "false")}
-              />
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-sm font-medium">Vendas 100% internas</p>
+              <p className="text-xs text-muted-foreground">
+                Os pedidos são criados, armazenados e gerenciados apenas neste sistema (site/app + banco próprio).
+                O envio automático de pedidos para ERP externo está desativado.
+              </p>
             </div>
+
           </div>
         </div>
       )}
@@ -199,7 +196,7 @@ export function IntegrationPanel({ settings, onUpdate }: IntegrationPanelProps) 
           <p><strong>1.</strong> Configure a URL e o token da API do seu ERP acima.</p>
           <p><strong>2.</strong> Escolha quais módulos quer sincronizar (produtos, estoque, pedidos).</p>
           <p><strong>3.</strong> Clique em "Sincronizar Agora" para importar os dados do ERP.</p>
-          <p><strong>4.</strong> Os pedidos do catálogo serão enviados automaticamente ao ERP quando habilitado.</p>
+          <p><strong>4.</strong> As vendas continuam 100% internas: pedidos ficam no banco próprio do sistema.</p>
           <p className="pt-1 border-t text-muted-foreground/70">
             Compatível com qualquer ERP que possua API REST (Bling, Tiny, Omie, Sankhya, etc).
             Quando tiver sua API pronta, basta preencher os campos acima.

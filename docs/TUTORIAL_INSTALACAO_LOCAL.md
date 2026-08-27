@@ -235,3 +235,102 @@ nano .env                               # configurar variáveis + senha do admin
 npx tsx server/index.ts                 # terminal 1
 npm run dev                             # terminal 2
 ```
+
+---
+
+## 10. 🛒 Vendas 100% internas (site/app + banco próprio)
+
+A partir desta versão **nenhuma venda passa por API externa**. Todo o ciclo do pedido
+(carrinho → checkout → pedido gravado → status → dashboard) roda no seu próprio backend
+Express + PostgreSQL local (ou no Lovable Cloud, se você usar o modo em nuvem).
+
+### 10.1 Tabelas usadas pelas vendas
+
+Já estão no schema completo (Etapa 4.2 do [`INSTALACAO_LOCAL.md`](./INSTALACAO_LOCAL.md)):
+
+| Tabela | Para quê |
+|---|---|
+| `orders` | Cabeçalho do pedido: cliente, telefone, CPF/CNPJ, pagamento, frete, total, status, vendedor |
+| `order_items` | Itens do pedido: produto, código, quantidade, preço unitário e total |
+| `sellers` | Vendedor vinculado ao pedido (opcional, via link `/v/:slug`) |
+
+Se você criou o banco antes, confira/rode:
+
+```sql
+\dt
+-- precisa listar orders e order_items
+
+-- índices recomendados para o dashboard de vendas
+CREATE INDEX IF NOT EXISTS idx_orders_status     ON public.orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON public.order_items(order_id);
+```
+
+> A baixa de estoque é feita **pelo próprio backend** dentro da transação do pedido
+> (`UPDATE products SET quantity = quantity - qtd`). Não é preciso criar trigger no modo local.
+
+### 10.2 Rotas internas de vendas (`server/routes/orders.ts`)
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| `GET` | `/api/orders` | público* | Lista pedidos. Filtros: `?status=`, `?seller_id=`, `?from=`, `?to=` |
+| `GET` | `/api/orders/stats/summary` | público* | Total de pedidos, faturamento, ticket médio, pendentes, pedidos de hoje |
+| `GET` | `/api/orders/:id` | público* | Pedido + itens |
+| `GET` | `/api/orders/:id/items` | público* | Somente os itens |
+| `POST` | `/api/orders` | público | Cria pedido + itens em **transação** e dá baixa no estoque |
+| `PUT` | `/api/orders/:id` | **admin** | Atualiza status e demais campos permitidos |
+| `DELETE` | `/api/orders/:id` | **admin** | Exclui o pedido (itens saem em cascata) |
+
+\* leitura fica atrás do painel admin no navegador; para expor na internet, coloque o backend
+atrás de Nginx com acesso restrito ou proteja também as rotas de leitura.
+
+**Criar um pedido (exemplo):**
+
+```bash
+curl -X POST http://localhost:3001/api/orders \
+  -H "Content-Type: application/json" \
+  -H "X-Idempotency-Key: 6f1c2d10-teste-0001" \
+  -d '{
+    "order": {
+      "customer_name": "João da Silva",
+      "customer_phone": "11999999999",
+      "payment_method": "PIX",
+      "subtotal": 250, "shipping_fee": 20, "total": 270
+    },
+    "items": [
+      { "product_name": "Camiseta Branca", "product_code": "CAM001",
+        "quantity": 2, "unit_price": 125, "total_price": 250 }
+    ]
+  }'
+```
+
+**Mudar o status (precisa de login admin):**
+
+```bash
+curl -X PUT http://localhost:3001/api/orders/<ID_DO_PEDIDO> \
+  -H "Authorization: Bearer <token-do-login>" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"completed"}'
+```
+
+### 10.3 Proteção contra pedido duplicado
+
+O checkout envia o header `X-Idempotency-Key`. Se a mesma chave chegar de novo
+(duplo clique, reenvio, queda de rede), o backend **devolve o pedido já criado**
+em vez de gravar outro. A chave vale por 24 horas.
+
+### 10.4 O que foi desativado
+
+- O módulo **“Enviar pedidos ao ERP”** saiu do painel (Admin → Integração).
+- A integração ERP continua disponível apenas para **produtos, preços e estoque**.
+- Nenhuma requisição de venda sai do seu servidor.
+
+### 10.5 Conferindo se está tudo interno
+
+```bash
+curl http://localhost:3001/api/health              # {"status":"ok","mode":"postgres"}
+curl http://localhost:3001/api/orders/stats/summary
+psql -U postgres -d catalogo -c "SELECT id, customer_name, total, status FROM orders ORDER BY created_at DESC LIMIT 5;"
+```
+
+Depois abra <http://localhost:8080/admin> → aba **Vendas** e veja o pedido no dashboard.
