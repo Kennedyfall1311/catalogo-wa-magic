@@ -95,7 +95,7 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
             ) : null;
           })()}
 
-          <div className="mt-auto pt-1 flex gap-1.5">
+          <div className="pt-2 flex gap-1.5">
             <button
               onClick={() => setDialogOpen(true)}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${buttonColor ? 'text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
