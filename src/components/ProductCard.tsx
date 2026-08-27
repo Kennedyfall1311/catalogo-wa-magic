@@ -64,7 +64,7 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
           )}
 
           {/* Zona variável: detalhes opcionais agrupados no rodapé, antes do preço */}
-          <div className="flex flex-col gap-1 flex-1 justify-end">
+          <div className="flex flex-col gap-1">
             {catalogSettings.catalog_show_reference === "true" && product.reference && (
               <p className={`${detailSize} text-muted-foreground`}>Ref: {product.reference}</p>
             )}
