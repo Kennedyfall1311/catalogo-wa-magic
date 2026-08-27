@@ -157,16 +157,14 @@ export function IntegrationPanel({ settings, onUpdate }: IntegrationPanelProps) 
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Enviar pedidos</p>
-                <p className="text-xs text-muted-foreground">Envia pedidos finalizados automaticamente para o ERP</p>
-              </div>
-              <Switch
-                checked={sendOrders}
-                onCheckedChange={(val) => onUpdate("erp_send_orders", val ? "true" : "false")}
-              />
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-sm font-medium">Vendas 100% internas</p>
+              <p className="text-xs text-muted-foreground">
+                Os pedidos são criados, armazenados e gerenciados apenas neste sistema (site/app + banco próprio).
+                O envio automático de pedidos para ERP externo está desativado.
+              </p>
             </div>
+
           </div>
         </div>
       )}
