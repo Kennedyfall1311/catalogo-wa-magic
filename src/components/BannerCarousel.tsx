@@ -8,15 +8,19 @@ interface BannerCarouselProps {
   intervalMs?: number;
 }
 
-function BannerImage({ banner }: { banner: Banner }) {
+function BannerImage({ banner, index, total }: { banner: Banner; index?: number; total?: number }) {
+  const alt = index != null && total && total > 1
+    ? `Banner promocional ${index + 1} de ${total} do catálogo`
+    : "Banner promocional do catálogo";
   const img = (
     <img
       src={banner.image_url}
-      alt="Banner"
+      alt={alt}
       className="w-full h-full object-cover"
       loading="lazy"
     />
   );
+
 
   const wrapper = (
     <div className="w-full aspect-[16/5] sm:aspect-[19/5] max-h-[400px] overflow-hidden">
