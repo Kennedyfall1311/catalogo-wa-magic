@@ -88,7 +88,7 @@ export default function Checkout() {
             <Link to={buildPath("/")} className="rounded-full p-2 hover:bg-muted transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <span className="text-sm font-medium">Pedido Enviado</span>
+            <span className="text-sm font-medium" aria-hidden="true">Pedido Enviado</span>
           </div>
         </header>
         <main className="flex-1 container max-w-md py-16 text-center space-y-5">
@@ -135,7 +135,7 @@ export default function Checkout() {
             <Link to={buildPath("/")} className="rounded-full p-2 hover:bg-muted transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <span className="text-sm font-medium">Suas Informações</span>
+            <h1 className="text-sm font-medium">Suas Informações</h1>
           </div>
         </header>
         <main className="flex-1 container max-w-2xl py-20 text-center text-muted-foreground space-y-3">
@@ -332,7 +332,7 @@ export default function Checkout() {
           <Link to={buildPath("/sacola")} className="rounded-full p-2 hover:bg-muted transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <span className="text-sm font-medium">Suas Informações</span>
+          <h1 className="text-sm font-medium">Suas Informações</h1>
         </div>
       </header>
 

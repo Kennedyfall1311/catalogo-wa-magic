@@ -68,9 +68,9 @@ export function BannerCarousel({ banners, intervalMs = 5000 }: BannerCarouselPro
     <div className="relative w-full group">
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex">
-          {banners.map((b) => (
+          {banners.map((b, i) => (
             <div key={b.id} className="flex-[0_0_100%] min-w-0">
-              <BannerImage banner={b} />
+              <BannerImage banner={b} index={i} total={banners.length} />
             </div>
           ))}
         </div>
@@ -79,6 +79,7 @@ export function BannerCarousel({ banners, intervalMs = 5000 }: BannerCarouselPro
       {canPrev && (
         <button
           onClick={() => emblaApi?.scrollPrev()}
+          aria-label="Banner anterior"
           className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -87,6 +88,7 @@ export function BannerCarousel({ banners, intervalMs = 5000 }: BannerCarouselPro
       {canNext && (
         <button
           onClick={() => emblaApi?.scrollNext()}
+          aria-label="Próximo banner"
           className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <ChevronRight className="h-5 w-5" />
