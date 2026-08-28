@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -22,12 +23,19 @@ export default function Cart() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>Minha Sacola | {settings.store_name || "Catálogo Digital"}</title>
+        <meta name="description" content="Revise os produtos da sua sacola, ajuste as quantidades e siga para finalizar o pedido pelo WhatsApp." />
+        <meta property="og:title" content={`Minha Sacola | ${settings.store_name || "Catálogo Digital"}`} />
+        <meta property="og:description" content="Revise os produtos da sua sacola e finalize seu pedido pelo WhatsApp." />
+        <meta name="robots" content="noindex" />
+      </Helmet>
       <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
         <div className="container flex h-14 items-center gap-3">
           <Link to={buildPath("/")} className="rounded-full p-2 hover:bg-muted transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <span className="text-sm font-medium">Minha Sacola</span>
+          <h1 className="text-sm font-medium">Minha Sacola</h1>
         </div>
       </header>
 
@@ -64,6 +72,7 @@ export default function Cart() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                      aria-label={`Diminuir quantidade de ${item.product.name}`}
                       className="flex h-6 w-6 items-center justify-center rounded border hover:bg-muted transition-colors"
                     >
                       <Minus className="h-3 w-3" />
@@ -73,6 +82,7 @@ export default function Cart() {
                     </span>
                     <button
                       onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                      aria-label={`Aumentar quantidade de ${item.product.name}`}
                       className="flex h-6 w-6 items-center justify-center rounded border hover:bg-muted transition-colors"
                     >
                       <Plus className="h-3 w-3" />

@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, MessageCircle, AlertCircle, CheckCircle2, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -88,7 +89,7 @@ export default function Checkout() {
             <Link to={buildPath("/")} className="rounded-full p-2 hover:bg-muted transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <span className="text-sm font-medium">Pedido Enviado</span>
+            <span className="text-sm font-medium" aria-hidden="true">Pedido Enviado</span>
           </div>
         </header>
         <main className="flex-1 container max-w-md py-16 text-center space-y-5">
@@ -135,7 +136,7 @@ export default function Checkout() {
             <Link to={buildPath("/")} className="rounded-full p-2 hover:bg-muted transition-colors">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <span className="text-sm font-medium">Suas Informações</span>
+            <h1 className="text-sm font-medium">Suas Informações</h1>
           </div>
         </header>
         <main className="flex-1 container max-w-2xl py-20 text-center text-muted-foreground space-y-3">
@@ -327,12 +328,19 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>Finalizar Pedido | {settings.store_name || "Catálogo Digital"}</title>
+        <meta name="description" content="Informe seus dados de contato e entrega para finalizar o pedido diretamente pelo WhatsApp." />
+        <meta property="og:title" content={`Finalizar Pedido | ${settings.store_name || "Catálogo Digital"}`} />
+        <meta property="og:description" content="Informe seus dados e finalize seu pedido pelo WhatsApp." />
+        <meta name="robots" content="noindex" />
+      </Helmet>
       <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
         <div className="container flex h-14 items-center gap-3">
           <Link to={buildPath("/sacola")} className="rounded-full p-2 hover:bg-muted transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <span className="text-sm font-medium">Suas Informações</span>
+          <h1 className="text-sm font-medium">Suas Informações</h1>
         </div>
       </header>
 
