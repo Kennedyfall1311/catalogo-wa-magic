@@ -117,8 +117,10 @@ export function ProductCard({ product, index, whatsappNumber, buttonColor, textC
                 });
               }}
               className="flex items-center justify-center rounded-md border px-2 py-2 text-muted-foreground hover:bg-muted transition-colors"
+              aria-label={`Compartilhar link do produto ${product.name}`}
               title="Copiar link do produto"
             >
+
               <Share2 className="h-3.5 w-3.5" />
             </button>
           </div>
