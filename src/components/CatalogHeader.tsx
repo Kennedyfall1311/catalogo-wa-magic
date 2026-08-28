@@ -44,7 +44,8 @@ export function CatalogHeader({ storeName, storeSubtitle, logoUrl, welcomeText, 
         <div className={`flex items-center justify-between px-4 py-2 ${!headerColor ? 'bg-card' : ''}`}>
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2 cursor-pointer">
             {logoUrl ? (
-              <img src={logoUrl} alt={storeName || "Logo"} className="h-10 w-10 rounded-full object-cover" />
+              <img src={logoUrl} alt={`Logotipo de ${storeName || "nosso catálogo"}`} className="h-10 w-10 rounded-full object-cover" />
+
             ) : (
               <ShoppingBag className="h-5 w-5" />
             )}
