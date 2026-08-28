@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { CatalogHeader } from "@/components/CatalogHeader";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { ProductCard } from "@/components/ProductCard";
@@ -196,6 +197,11 @@ const Index = () => {
 
   const gridClass = "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5";
 
+  const storeName = settings.store_name || "Catálogo Digital";
+  const storeSubtitle = settings.store_subtitle || "Distribuidora";
+  const pageDescription = (settings.company_description ||
+    `Confira os produtos de ${storeName}. Preços atualizados, categorias organizadas e pedido rápido pelo WhatsApp.`).slice(0, 158);
+
   if (settingsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -206,6 +212,14 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <Helmet>
+        <title>{`${storeName} | ${storeSubtitle} - Catálogo Online`}</title>
+        <meta name="description" content={pageDescription} />
+        <meta property="og:title" content={`${storeName} | ${storeSubtitle}`} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:type" content="website" />
+        <link rel="canonical" href={typeof window !== "undefined" ? window.location.origin + "/" : "/"} />
+      </Helmet>
       <CatalogHeader
         storeName={settings.store_name}
         storeSubtitle={settings.store_subtitle}

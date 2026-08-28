@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { ArrowLeft, ShoppingBag, Share2, Check } from "lucide-react";
 import { useProductBySlug } from "@/hooks/useProductBySlug";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -38,8 +39,43 @@ export default function ProductDetail() {
 
   const hasDiscount = product.original_price && product.original_price > product.price;
 
+  const storeName = settings.store_name || "Catálogo Digital";
+  const productUrl = typeof window !== "undefined" ? window.location.origin + window.location.pathname : "";
+  const productDescription = (product.description ||
+    `${product.name} disponível em ${storeName}. Peça agora pelo WhatsApp.`).slice(0, 158);
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: productDescription,
+    ...(product.image_url ? { image: product.image_url } : {}),
+    ...(product.code ? { sku: product.code } : {}),
+    ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
+    offers: {
+      "@type": "Offer",
+      price: Number(product.price).toFixed(2),
+      priceCurrency: "BRL",
+      availability:
+        product.quantity != null && product.quantity <= 0
+          ? "https://schema.org/OutOfStock"
+          : "https://schema.org/InStock",
+      ...(productUrl ? { url: productUrl } : {}),
+    },
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>{`${product.name} | ${storeName}`}</title>
+        <meta name="description" content={productDescription} />
+        <meta property="og:title" content={`${product.name} | ${storeName}`} />
+        <meta property="og:description" content={productDescription} />
+        <meta property="og:type" content="product" />
+        {productUrl && <meta property="og:url" content={productUrl} />}
+        {product.image_url && <meta property="og:image" content={product.image_url} />}
+        {productUrl && <link rel="canonical" href={productUrl} />}
+        <script type="application/ld+json">{JSON.stringify(productJsonLd)}</script>
+      </Helmet>
       <header className="sticky top-0 z-40 border-b bg-card/80 backdrop-blur-md">
         <div className="container flex h-14 items-center gap-3">
           <Link to={buildPath("/")} className="rounded-full p-2 hover:bg-muted transition-colors">
