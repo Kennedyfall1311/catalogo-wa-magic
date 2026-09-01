@@ -334,3 +334,31 @@ psql -U postgres -d catalogo -c "SELECT id, customer_name, total, status FROM or
 ```
 
 Depois abra <http://localhost:8080/admin> → aba **Vendas** e veja o pedido no dashboard.
+
+---
+
+## 11. Sugestões de compra (na página do produto)
+
+Na página de detalhe de cada produto aparece o bloco **"Sugestões de compra"**, com até 4 produtos relacionados, motivo da recomendação e botão **Comprar** em cada card (abre a mesma janela de quantidade do catálogo).
+
+### 11.1 Como as sugestões são escolhidas
+
+1. O sistema monta uma lista de candidatos: todos os produtos **ativos**, com nome e preço, excluindo o produto que está aberto. Itens da **mesma categoria** vêm primeiro.
+2. **Modo em nuvem (Lovable Cloud):** os candidatos são enviados à IA (edge function `suggest-upsell`), que escolhe de 3 a 4 itens complementares e escreve um motivo curto de venda para cada um. Se a IA falhar, entra o fallback da mesma categoria.
+3. **Modo local (PostgreSQL):** não há chamada de IA — o bloco usa direto o fallback e sugere os primeiros itens da **mesma categoria** do produto aberto.
+
+### 11.2 No modo local, nada a configurar
+
+- As sugestões funcionam automaticamente com os dados do seu banco (`productsApi.fetchAll`).
+- Para ter boas sugestões, mantenha os produtos com **categoria preenchida** — é ela que o fallback usa.
+- O bloco não aparece quando o produto é o único ativo do catálogo.
+
+### 11.3 Onde está no código
+
+| Arquivo | Papel |
+|---|---|
+| `src/components/AiUpsellSuggestions.tsx` | Bloco exibido na página do produto (título, cards, fallback) |
+| `src/pages/ProductDetail.tsx` | Onde o bloco é renderizado (abaixo das informações do produto) |
+| `supabase/functions/suggest-upsell/index.ts` | Função da IA usada **apenas** no modo em nuvem |
+
+> O bloco herda as cores do catálogo (cor do botão e do preço definidas na personalização), então não precisa de configuração extra de aparência.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { productsApi, isPostgresMode } from "@/lib/api-client";
 import { useSellerPrefix } from "@/hooks/useSellerPrefix";
@@ -110,8 +110,8 @@ export function AiUpsellSuggestions({ product, buttonColor, priceColor }: Props)
   return (
     <section className="mt-10">
       <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="h-4 w-4 text-primary" />
-        <h2 className="text-base font-semibold">Sugestões de compra por IA</h2>
+        <ShoppingBag className="h-4 w-4 text-primary" />
+        <h2 className="text-base font-semibold">Sugestões de compra</h2>
       </div>
 
       {loading ? (
