@@ -20,6 +20,9 @@ interface Suggestion {
 
 const formatPrice = (v: number) => `R$ ${Number(v).toFixed(2).replace(".", ",")}`;
 
+// Cache em memória: revisitar um produto mostra as sugestões instantaneamente
+const suggestionsCache = new Map<string, Suggestion[]>();
+
 export function AiUpsellSuggestions({ product, buttonColor, priceColor }: Props) {
   const { buildPath } = useSellerPrefix();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -30,6 +33,12 @@ export function AiUpsellSuggestions({ product, buttonColor, priceColor }: Props)
     let cancelled = false;
 
     const run = async () => {
+      const cached = suggestionsCache.get(product.id);
+      if (cached) {
+        setSuggestions(cached);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setSuggestions([]);
       try {
@@ -44,16 +53,19 @@ export function AiUpsellSuggestions({ product, buttonColor, priceColor }: Props)
 
         const sameCategory = pool.filter((p) => p.category_id && p.category_id === product.category_id);
         const others = pool.filter((p) => !sameCategory.includes(p));
-        const candidates = [...sameCategory, ...others].slice(0, 40);
+        const candidates = [...sameCategory, ...others].slice(0, 25);
+
+        const finish = (list: Suggestion[]) => {
+          suggestionsCache.set(product.id, list);
+          if (!cancelled) setSuggestions(list);
+        };
 
         const fallback = () =>
           candidates.slice(0, 4).map((p) => ({ product: p }));
 
         if (isPostgresMode()) {
-          if (!cancelled) {
-            setSuggestions(fallback());
-            setLoading(false);
-          }
+          finish(fallback());
+          if (!cancelled) setLoading(false);
           return;
         }
 
@@ -91,7 +103,7 @@ export function AiUpsellSuggestions({ product, buttonColor, priceColor }: Props)
           })
           .filter(Boolean) as Suggestion[];
 
-        setSuggestions(mapped.length > 0 ? mapped : fallback());
+        finish(mapped.length > 0 ? mapped : fallback());
       } catch {
         if (!cancelled) setSuggestions([]);
       } finally {
