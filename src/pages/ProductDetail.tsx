@@ -168,6 +168,12 @@ export default function ProductDetail() {
               </div>
             </div>
           </div>
+
+          <AiUpsellSuggestions
+            product={product}
+            buttonColor={settings.button_color}
+            priceColor={settings.price_color}
+          />
         </div>
       </main>
 
